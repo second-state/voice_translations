@@ -26,18 +26,19 @@ body {
 /* ---------- Top bar ---------- */
 .topbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 10px 16px;
   padding: 12px 20px;
   border-bottom: 1px solid var(--border);
   background: var(--panel);
 }
 .brand { display: flex; align-items: center; gap: 10px; }
-.brand h1 { font-size: 18px; margin: 0; font-weight: 600; }
+.brand h1 { font-size: 18px; margin: 0; font-weight: 600; white-space: nowrap; }
 .logo { font-size: 20px; }
 
-.mic-controls { display: flex; align-items: center; gap: 14px; }
+.mic-controls { display: flex; align-items: center; gap: 14px; min-width: 0; }
 
 .meter {
   width: 120px;
@@ -78,6 +79,16 @@ body {
 }
 .mic-btn.live { background: var(--red); }
 .mic-btn:hover { filter: brightness(1.1); }
+
+@media (max-width: 640px) {
+  .topbar { padding: 10px 14px; }
+  /* Controls drop to their own full-width row under the title. */
+  .mic-controls { flex: 1 0 100%; }
+  .meter { flex: 1; width: auto; min-width: 50px; }
+  .mic-btn { white-space: nowrap; }
+  .settings { padding: 10px 14px; }
+  .messages { padding: 14px; }
+}
 
 /* ---------- Settings row ---------- */
 .settings {

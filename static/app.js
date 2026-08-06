@@ -304,6 +304,12 @@ async function streamTranslation(msg, lang) {
             throw new Error(ev.message);
           } else if (ev.type === 'done') {
             entry.done = true;
+            // The server sends the sanitized full text with `done`; use it as
+            // the authoritative version of the translation.
+            if (typeof ev.text === 'string' && ev.text) {
+              entry.text = ev.text;
+              blobText.textContent = entry.text;
+            }
           }
         }
       }

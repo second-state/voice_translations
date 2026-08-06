@@ -5,6 +5,24 @@ const ALL_LANGS = [
   'Italian', 'Portuguese', 'Russian', 'Arabic', 'Hindi', 'Vietnamese', 'Thai',
 ];
 
+// ISO 639-1 codes (plus common country-code slips) -> display names, so
+// config values and ASR results always collapse onto the chip names above.
+const LANG_CODES = {
+  en: 'English', ko: 'Korean', kr: 'Korean', zh: 'Chinese', cn: 'Chinese',
+  ja: 'Japanese', jp: 'Japanese', es: 'Spanish', fr: 'French', de: 'German',
+  it: 'Italian', pt: 'Portuguese', ru: 'Russian', ar: 'Arabic', hi: 'Hindi',
+  vi: 'Vietnamese', th: 'Thai', id: 'Indonesian', nl: 'Dutch', tr: 'Turkish',
+  pl: 'Polish', uk: 'Ukrainian', sv: 'Swedish',
+};
+
+function langName(value) {
+  if (!value) return '';
+  const key = value.trim().toLowerCase();
+  if (LANG_CODES[key]) return LANG_CODES[key];
+  const known = ALL_LANGS.find((l) => l.toLowerCase() === key);
+  return known || key.charAt(0).toUpperCase() + key.slice(1);
+}
+
 const state = {
   cfg: null,
   targets: new Set(),
@@ -22,7 +40,8 @@ async function init() {
   const resp = await fetch('/api/config');
   if (!resp.ok) throw new Error(await resp.text());
   state.cfg = await resp.json();
-  for (const lang of state.cfg.default_targets) state.targets.add(lang);
+  state.cfg.default_source = langName(state.cfg.default_source);
+  for (const lang of state.cfg.default_targets) state.targets.add(langName(lang));
   renderLangChips();
   refreshSrtTracks();
   $('micBtn').addEventListener('click', toggleMic);
@@ -221,7 +240,7 @@ async function handleUtterance(blob, start, end) {
       return;
     }
     msg.sourceText = text;
-    msg.sourceLang = data.language || state.cfg.default_source;
+    msg.sourceLang = langName(data.language) || state.cfg.default_source;
     updateSourceBlob(msg);
 
     // One request per target language, all streaming concurrently.

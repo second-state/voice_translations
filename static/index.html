@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Voice Translator</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="logo">🎙️</span>
+    <h1>Voice Translator</h1>
+  </div>
+  <div class="mic-controls">
+    <div class="meter" title="Microphone level"><div id="meterFill" class="meter-fill"></div></div>
+    <span id="status" class="status idle">Idle</span>
+    <button id="micBtn" class="mic-btn">Start listening</button>
+  </div>
+</header>
+
+<section class="settings">
+  <div class="setting-group">
+    <span class="setting-label">Translate into <em>(pick one or more)</em></span>
+    <div id="langChips" class="chips"></div>
+  </div>
+  <div class="setting-group">
+    <select id="srtTrack" class="select" title="Which text track to export"></select>
+    <button id="exportBtn" class="btn">Export SRT</button>
+    <button id="clearBtn" class="btn subtle">Clear</button>
+  </div>
+</section>
+
+<main id="messages" class="messages">
+  <div id="empty" class="empty">
+    Press <strong>Start listening</strong> and speak.<br>
+    Each sentence is transcribed, then translated into every selected language in parallel.
+  </div>
+</main>
+
+<script src="/app.js"></script>
+</body>
+</html>

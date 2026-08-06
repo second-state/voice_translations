@@ -1,0 +1,38 @@
+# Copy this file to config.toml and fill in your credentials.
+# config.toml is git-ignored and must never be committed.
+
+[server]
+host = "127.0.0.1"
+port = 8080
+
+[audio]
+# Silence duration (ms) that ends a sentence/utterance.
+sentence_break_ms = 50
+# RMS level below which the microphone signal counts as silence (0.0 - 1.0).
+silence_threshold = 0.015
+# Utterances shorter than this (ms) are discarded as noise.
+min_speech_ms = 250
+# Force a sentence break if one utterance runs longer than this (ms).
+max_utterance_ms = 15000
+
+[languages]
+# Fallback when the ASR service does not report a detected language.
+default_source = "English"
+# Languages pre-selected in the UI.
+default_targets = ["Korean"]
+
+[asr]
+# OpenAI-compatible base URL; the server appends /audio/transcriptions.
+endpoint = "https://api.example.com/v1"
+api_key = "your-asr-api-key"
+model = "whisper-1"
+
+[llm]
+# OpenAI-compatible base URL; the server appends /chat/completions.
+endpoint = "https://api.example.com/v1"
+api_key = "your-llm-api-key"
+model = "gpt-4o-mini"
+# How many past messages to include as translation context.
+context_messages = 5
+# Sampling temperature; omit to use the model's default.
+#temperature = 0.3

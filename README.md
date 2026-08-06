@@ -3,7 +3,7 @@
 Real-time voice transcription and translation web app built with Rust (Axum).
 
 The browser captures microphone audio and detects sentence breaks (a configurable
-silence gap, default 50 ms). Each utterance is sent to the backend, which:
+silence gap, default 700 ms). Each utterance is sent to the backend, which:
 
 1. Forwards the audio to an OpenAI-compatible ASR endpoint (`/audio/transcriptions`)
    with automatic source-language detection.
@@ -33,7 +33,7 @@ Open http://127.0.0.1:8080, press **Start listening**, and speak.
 
 | Section | Key | Meaning |
 | --- | --- | --- |
-| `[audio]` | `sentence_break_ms` | Silence gap that ends a sentence (default 50) |
+| `[audio]` | `sentence_break_ms` | Silence gap that ends a sentence (default 700) |
 | `[audio]` | `silence_threshold` | RMS level treated as silence |
 | `[audio]` | `min_speech_ms` | Discard utterances shorter than this |
 | `[audio]` | `max_utterance_ms` | Force a break for very long utterances |

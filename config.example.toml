@@ -6,8 +6,10 @@ host = "127.0.0.1"
 port = 8080
 
 [audio]
-# Silence duration (ms) that ends a sentence/utterance.
-sentence_break_ms = 50
+# Silence duration (ms) that ends a sentence/utterance. Between-sentence
+# pauses in conversation average ~500-1000ms; values below ~200ms will split
+# on the silent closure of stop consonants (p/t/k) mid-word.
+sentence_break_ms = 700
 # RMS level below which the microphone signal counts as silence (0.0 - 1.0).
 silence_threshold = 0.015
 # Utterances shorter than this (ms) are discarded as noise.

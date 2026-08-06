@@ -95,16 +95,25 @@ async fn style_css() -> impl IntoResponse {
     )
 }
 
-/// Expose the client-relevant configuration to the browser UI.
+/// Expose the client-relevant configuration to the browser UI. Language
+/// values from config.toml are ISO 639-1 codes (or full names); normalize
+/// them to the display names the UI uses.
 async fn api_config(State(state): State<AppState>) -> Json<Value> {
     let cfg = &state.cfg;
+    let default_source = asr::normalize_language(&cfg.languages.default_source);
+    let default_targets: Vec<String> = cfg
+        .languages
+        .default_targets
+        .iter()
+        .map(|lang| asr::normalize_language(lang))
+        .collect();
     Json(json!({
         "sentence_break_ms": cfg.audio.sentence_break_ms,
         "silence_threshold": cfg.audio.silence_threshold,
         "min_speech_ms": cfg.audio.min_speech_ms,
         "max_utterance_ms": cfg.audio.max_utterance_ms,
-        "default_source": cfg.languages.default_source,
-        "default_targets": cfg.languages.default_targets,
+        "default_source": default_source,
+        "default_targets": default_targets,
         "context_messages": cfg.llm.context_messages,
     }))
 }

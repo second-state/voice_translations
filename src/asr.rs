@@ -108,9 +108,9 @@ pub fn normalize_language(raw: &str) -> String {
     let key = raw.trim().to_lowercase();
     let mapped = match key.as_str() {
         "en" | "eng" | "english" => "English",
-        "ko" | "kor" | "korean" => "Korean",
-        "zh" | "zho" | "chi" | "chinese" | "mandarin" => "Chinese",
-        "ja" | "jpn" | "japanese" => "Japanese",
+        "ko" | "kr" | "kor" | "korean" => "Korean",
+        "zh" | "cn" | "zho" | "chi" | "chinese" | "mandarin" => "Chinese",
+        "ja" | "jp" | "jpn" | "japanese" => "Japanese",
         "es" | "spa" | "spanish" => "Spanish",
         "fr" | "fra" | "fre" | "french" => "French",
         "de" | "deu" | "ger" | "german" => "German",

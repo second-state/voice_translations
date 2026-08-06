@@ -37,8 +37,8 @@ Open http://127.0.0.1:8080, press **Start listening**, and speak.
 | `[audio]` | `silence_threshold` | RMS level treated as silence |
 | `[audio]` | `min_speech_ms` | Discard utterances shorter than this |
 | `[audio]` | `max_utterance_ms` | Force a break for very long utterances |
-| `[languages]` | `default_source` | Fallback if ASR reports no language |
-| `[languages]` | `default_targets` | Languages pre-selected in the UI |
+| `[languages]` | `default_source` | Fallback if ASR reports no language (ISO 639-1 code, e.g. `en`) |
+| `[languages]` | `default_targets` | Languages pre-selected in the UI (ISO 639-1 codes, e.g. `["ko", "ja"]`) |
 | `[asr]` / `[llm]` | `endpoint`, `api_key`, `model` | OpenAI-compatible services |
 | `[llm]` | `context_messages` | Past messages sent as translation context |
 

@@ -16,10 +16,11 @@ min_speech_ms = 250
 max_utterance_ms = 15000
 
 [languages]
+# ISO 639-1 codes (en, ko, ja, zh, es, ...); full names are also accepted.
 # Fallback when the ASR service does not report a detected language.
-default_source = "English"
+default_source = "en"
 # Languages pre-selected in the UI.
-default_targets = ["Korean"]
+default_targets = ["ko"]
 
 [asr]
 # OpenAI-compatible base URL; the server appends /audio/transcriptions.

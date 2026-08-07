@@ -50,21 +50,28 @@ impl Default for ServerConfig {
 pub struct AudioConfig {
     /// Silence duration (ms) that ends a sentence/utterance.
     pub sentence_break_ms: u64,
-    /// RMS level below which the microphone signal counts as silence.
-    pub silence_threshold: f64,
     /// Utterances shorter than this (ms) are discarded as noise.
     pub min_speech_ms: u64,
     /// Force a sentence break if one utterance runs longer than this (ms).
     pub max_utterance_ms: u64,
+    /// Silero VAD speech probability above which a frame counts as speech.
+    pub vad_positive_threshold: f64,
+    /// Silero VAD speech probability below which a frame counts as silence.
+    pub vad_negative_threshold: f64,
+    /// Audio (ms) prepended before detected speech onset, so the first
+    /// syllable is not clipped.
+    pub pre_speech_pad_ms: u64,
 }
 
 impl Default for AudioConfig {
     fn default() -> Self {
         Self {
             sentence_break_ms: 700,
-            silence_threshold: 0.015,
             min_speech_ms: 250,
             max_utterance_ms: 15_000,
+            vad_positive_threshold: 0.5,
+            vad_negative_threshold: 0.35,
+            pre_speech_pad_ms: 300,
         }
     }
 }

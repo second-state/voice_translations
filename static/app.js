@@ -87,23 +87,18 @@ function sameLang(a, b) {
   return !!a && !!b && a.trim().toLowerCase() === b.trim().toLowerCase();
 }
 
-/* ---------- Microphone + voice activity detection ---------- */
+/* ---------- Microphone + Silero VAD (@ricky0123/vad-web, local assets) ----------
+   The Silero neural VAD decides what is human speech: audio is only sent to
+   the server when the model detects a speech segment, so keyboard noise,
+   music, and background hum never trigger transcription. */
 
-let mediaStream = null;
-let audioCtx = null;
-let analyser = null;
-let recorder = null;
-let tickTimer = null;
-let mimeType = '';
-let fileExt = 'webm';
-let speechDetected = false;
-let lastVoiceAt = 0;
+let vadInstance = null;
 let utterStart = 0;
-let recStartedAt = 0;
+let maxTimer = null;
 
 async function toggleMic() {
   if (state.running) {
-    stopMic();
+    await stopMic();
   } else {
     try {
       await startMic();
@@ -114,103 +109,101 @@ async function toggleMic() {
 }
 
 async function startMic() {
-  mediaStream = await navigator.mediaDevices.getUserMedia({
-    audio: { echoCancellation: true, noiseSuppression: true },
-  });
-  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  const source = audioCtx.createMediaStreamSource(mediaStream);
-  analyser = audioCtx.createAnalyser();
-  analyser.fftSize = 2048;
-  source.connect(analyser);
-
-  if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
-    mimeType = 'audio/webm;codecs=opus'; fileExt = 'webm';
-  } else if (MediaRecorder.isTypeSupported('audio/webm')) {
-    mimeType = 'audio/webm'; fileExt = 'webm';
-  } else {
-    mimeType = 'audio/mp4'; fileExt = 'mp4';   // Safari
+  if (!vadInstance) {
+    setStatus('listening', 'Loading VAD model…');
+    vadInstance = await vad.MicVAD.new({
+      model: 'v5',
+      baseAssetPath: '/vendor/',
+      onnxWASMBasePath: '/vendor/',
+      positiveSpeechThreshold: state.cfg.vad_positive_threshold,
+      negativeSpeechThreshold: state.cfg.vad_negative_threshold,
+      redemptionMs: state.cfg.sentence_break_ms,
+      minSpeechMs: state.cfg.min_speech_ms,
+      preSpeechPadMs: state.cfg.pre_speech_pad_ms,
+      submitUserSpeechOnPause: true,
+      onFrameProcessed: (probs, frame) => {
+        let sum = 0;
+        for (let i = 0; i < frame.length; i++) sum += frame[i] * frame[i];
+        const rms = Math.sqrt(sum / frame.length);
+        $('meterFill').style.width = Math.min(100, Math.round(rms * 600)) + '%';
+      },
+      onSpeechStart: () => {
+        utterStart = Date.now() - state.cfg.pre_speech_pad_ms;
+        setStatus('speaking');
+        clearTimeout(maxTimer);
+        maxTimer = setTimeout(forceBreak, state.cfg.max_utterance_ms);
+      },
+      onVADMisfire: () => {
+        // Detected sound was shorter than min_speech_ms: not speech.
+        clearTimeout(maxTimer);
+        if (state.running) setStatus('listening');
+      },
+      onSpeechEnd: (audio) => {
+        clearTimeout(maxTimer);
+        if (state.running) setStatus('listening');
+        // `audio` is Float32Array PCM at 16 kHz containing exactly the
+        // detected speech segment (plus pre-speech padding).
+        handleUtterance(encodeWav(audio, 16000), utterStart || Date.now(), Date.now());
+      },
+    });
   }
-
+  vadInstance.start();
   state.running = true;
   state.sessionStart ??= Date.now();
-  startRecorder();
-  tickTimer = setInterval(tick, 20);
   $('micBtn').textContent = 'Stop listening';
   $('micBtn').classList.add('live');
   setStatus('listening');
 }
 
-function stopMic() {
+async function stopMic() {
   state.running = false;
-  clearInterval(tickTimer);
-  if (recorder && recorder.state !== 'inactive') finishRecorder(speechDetected);
-  mediaStream?.getTracks().forEach((t) => t.stop());
-  audioCtx?.close();
-  mediaStream = audioCtx = analyser = recorder = null;
+  clearTimeout(maxTimer);
+  if (vadInstance) {
+    const inst = vadInstance;
+    vadInstance = null;
+    await inst.pause();   // submits any in-progress speech, releases the mic
+    await inst.destroy();
+  }
   $('micBtn').textContent = 'Start listening';
   $('micBtn').classList.remove('live');
   $('meterFill').style.width = '0%';
   setStatus('idle');
 }
 
-function startRecorder() {
-  const chunks = [];
-  recorder = new MediaRecorder(mediaStream, { mimeType });
-  recorder.chunks = chunks;
-  recorder.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
-  recorder.start(100);
-  recStartedAt = Date.now();
-  speechDetected = false;
+// Long monologue: force a sentence break so translation stays live; the VAD
+// submits the audio captured so far and keeps listening.
+async function forceBreak() {
+  if (!state.running || !vadInstance) return;
+  await vadInstance.pause();
+  if (state.running && vadInstance) vadInstance.start();
 }
 
-function tick() {
-  if (!analyser) return;
-  const buf = new Float32Array(analyser.fftSize);
-  analyser.getFloatTimeDomainData(buf);
-  let sum = 0;
-  for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i];
-  const rms = Math.sqrt(sum / buf.length);
-  $('meterFill').style.width = Math.min(100, Math.round(rms * 600)) + '%';
-
-  const now = Date.now();
-  if (rms > state.cfg.silence_threshold) {
-    if (!speechDetected) {
-      speechDetected = true;
-      utterStart = now;
-      setStatus('speaking');
-    }
-    lastVoiceAt = now;
-  }
-
-  if (speechDetected) {
-    const brokeOff = now - lastVoiceAt >= state.cfg.sentence_break_ms;
-    const tooLong = now - utterStart >= state.cfg.max_utterance_ms;
-    if (brokeOff || tooLong) {
-      finishRecorder(true);
-      if (state.running) startRecorder();
-      setStatus('listening');
-    }
-  } else if (now - recStartedAt > 5000) {
-    // Nothing but silence so far: restart to keep the eventual blob small.
-    finishRecorder(false);
-    if (state.running) startRecorder();
-  }
-}
-
-function finishRecorder(send) {
-  const rec = recorder;
-  if (!rec || rec.state === 'inactive') return;
-  const start = utterStart;
-  const end = Date.now();
-  const shouldSend = send && speechDetected && end - start >= state.cfg.min_speech_ms;
-  rec.onstop = () => {
-    if (shouldSend) {
-      const blob = new Blob(rec.chunks, { type: mimeType });
-      handleUtterance(blob, start, end);
-    }
+// Float32 PCM -> 16-bit mono WAV blob.
+function encodeWav(samples, sampleRate) {
+  const buffer = new ArrayBuffer(44 + samples.length * 2);
+  const view = new DataView(buffer);
+  const writeStr = (off, s) => {
+    for (let i = 0; i < s.length; i++) view.setUint8(off + i, s.charCodeAt(i));
   };
-  rec.stop();
-  speechDetected = false;
+  writeStr(0, 'RIFF');
+  view.setUint32(4, 36 + samples.length * 2, true);
+  writeStr(8, 'WAVE');
+  writeStr(12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);            // PCM
+  view.setUint16(22, 1, true);            // mono
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * 2, true);
+  view.setUint16(32, 2, true);
+  view.setUint16(34, 16, true);
+  writeStr(36, 'data');
+  view.setUint32(40, samples.length * 2, true);
+  let off = 44;
+  for (let i = 0; i < samples.length; i++, off += 2) {
+    const s = Math.max(-1, Math.min(1, samples[i]));
+    view.setInt16(off, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+  }
+  return new Blob([view], { type: 'audio/wav' });
 }
 
 /* ---------- Transcription + translation pipeline ---------- */
@@ -229,7 +222,7 @@ async function handleUtterance(blob, start, end) {
   renderMessage(msg);
 
   const form = new FormData();
-  form.append('audio', blob, `utterance-${msg.id}.${fileExt}`);
+  form.append('audio', blob, `utterance-${msg.id}.wav`);
   try {
     const resp = await fetch('/api/transcribe', { method: 'POST', body: form });
     if (!resp.ok) throw new Error(await resp.text());

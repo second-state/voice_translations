@@ -65,6 +65,12 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/config", get(api_config))
         .route("/api/transcribe", post(asr::api_transcribe))
         .route("/api/translate", post(translate::api_translate))
+        // Vendored Silero VAD + onnxruntime-web assets (large binaries, served
+        // from disk rather than embedded in the executable).
+        .nest_service(
+            "/vendor",
+            tower_http::services::ServeDir::new("static/vendor"),
+        )
         .layer(DefaultBodyLimit::max(32 * 1024 * 1024))
         .with_state(state);
 
@@ -109,9 +115,11 @@ async fn api_config(State(state): State<AppState>) -> Json<Value> {
         .collect();
     Json(json!({
         "sentence_break_ms": cfg.audio.sentence_break_ms,
-        "silence_threshold": cfg.audio.silence_threshold,
         "min_speech_ms": cfg.audio.min_speech_ms,
         "max_utterance_ms": cfg.audio.max_utterance_ms,
+        "vad_positive_threshold": cfg.audio.vad_positive_threshold,
+        "vad_negative_threshold": cfg.audio.vad_negative_threshold,
+        "pre_speech_pad_ms": cfg.audio.pre_speech_pad_ms,
         "default_source": default_source,
         "default_targets": default_targets,
         "context_messages": cfg.llm.context_messages,

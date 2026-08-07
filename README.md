@@ -2,8 +2,12 @@
 
 Real-time voice transcription and translation web app built with Rust (Axum).
 
-The browser captures microphone audio and detects sentence breaks (a configurable
-silence gap, default 700 ms). Each utterance is sent to the backend, which:
+The browser runs the [Silero VAD](https://github.com/snakers4/silero-vad) neural
+network locally (via [@ricky0123/vad-web](https://github.com/ricky0123/vad) and
+onnxruntime-web, vendored under `static/vendor/` — no CDN required) to detect
+human speech. Audio is only sent to the server when the model detects a speech
+segment; sentence breaks are a configurable silence gap (default 700 ms). Each
+detected utterance is sent to the backend as 16 kHz WAV, which:
 
 1. Forwards the audio to an OpenAI-compatible ASR endpoint (`/audio/transcriptions`)
    with automatic source-language detection.
@@ -34,9 +38,11 @@ Open http://127.0.0.1:8080, press **Start listening**, and speak.
 | Section | Key | Meaning |
 | --- | --- | --- |
 | `[audio]` | `sentence_break_ms` | Silence gap that ends a sentence (default 700) |
-| `[audio]` | `silence_threshold` | RMS level treated as silence |
-| `[audio]` | `min_speech_ms` | Discard utterances shorter than this |
+| `[audio]` | `min_speech_ms` | Discard speech segments shorter than this |
 | `[audio]` | `max_utterance_ms` | Force a break for very long utterances |
+| `[audio]` | `vad_positive_threshold` | Silero speech probability that starts a segment (default 0.5) |
+| `[audio]` | `vad_negative_threshold` | Silero speech probability that counts as silence (default 0.35) |
+| `[audio]` | `pre_speech_pad_ms` | Audio prepended before speech onset (default 300) |
 | `[languages]` | `default_source` | Fallback if ASR reports no language (ISO 639-1 code, e.g. `en`) |
 | `[languages]` | `default_targets` | Languages pre-selected in the UI (ISO 639-1 codes, e.g. `["ko", "ja"]`) |
 | `[asr]` / `[llm]` | `endpoint`, `api_key`, `model` | OpenAI-compatible services |

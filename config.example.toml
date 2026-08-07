@@ -10,12 +10,17 @@ port = 8080
 # pauses in conversation average ~500-1000ms; values below ~200ms will split
 # on the silent closure of stop consonants (p/t/k) mid-word.
 sentence_break_ms = 700
-# RMS level below which the microphone signal counts as silence (0.0 - 1.0).
-silence_threshold = 0.015
 # Utterances shorter than this (ms) are discarded as noise.
 min_speech_ms = 250
 # Force a sentence break if one utterance runs longer than this (ms).
 max_utterance_ms = 15000
+# Silero VAD speech probability above which a frame counts as speech (0-1).
+vad_positive_threshold = 0.5
+# Silero VAD speech probability below which a frame counts as silence (0-1).
+vad_negative_threshold = 0.35
+# Audio (ms) prepended before the detected speech onset so the first
+# syllable is not clipped.
+pre_speech_pad_ms = 300
 
 [languages]
 # ISO 639-1 codes (en, ko, ja, zh, es, ...); full names are also accepted.

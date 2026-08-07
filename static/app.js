@@ -152,8 +152,9 @@ async function startMic() {
         clearTimeout(maxTimer);
         if (state.running) setStatus('listening');
         // `audio` is Float32Array PCM at 16 kHz containing exactly the
-        // detected speech segment (plus pre-speech padding).
-        handleUtterance(encodeWav(audio, 16000), utterStart || Date.now(), Date.now());
+        // detected speech segment (plus pre-speech padding). Quiet/distant
+        // speakers are boosted to a healthy level before transcription.
+        handleUtterance(encodeWav(normalizePeak(audio), 16000), utterStart || Date.now(), Date.now());
       },
     });
   }
@@ -186,6 +187,22 @@ async function forceBreak() {
   if (!state.running || !vadInstance) return;
   await vadInstance.pause();
   if (state.running && vadInstance) vadInstance.start();
+}
+
+// Peak-normalize quiet recordings so distant speakers transcribe well.
+// Runs after VAD detection, so it only affects what the ASR hears.
+function normalizePeak(samples, target = 0.9, maxGain = 10) {
+  let peak = 0;
+  for (let i = 0; i < samples.length; i++) {
+    const a = Math.abs(samples[i]);
+    if (a > peak) peak = a;
+  }
+  if (peak < 1e-4) return samples;          // effectively silence
+  const gain = Math.min(maxGain, target / peak);
+  if (gain <= 1) return samples;            // already loud enough
+  const out = new Float32Array(samples.length);
+  for (let i = 0; i < samples.length; i++) out[i] = samples[i] * gain;
+  return out;
 }
 
 // Float32 PCM -> 16-bit mono WAV blob.

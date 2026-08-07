@@ -15,8 +15,12 @@ min_speech_ms = 250
 # Force a sentence break if one utterance runs longer than this (ms).
 max_utterance_ms = 15000
 # Silero VAD speech probability above which a frame counts as speech (0-1).
+# Lower it (e.g. 0.35) to capture quiet speakers far from the microphone;
+# raise it (e.g. 0.6) in noisy rooms to reject non-speech sounds.
 vad_positive_threshold = 0.5
 # Silero VAD speech probability below which a frame counts as silence (0-1).
+# Keep it below vad_positive_threshold; lower it together with the positive
+# threshold for distant speakers (e.g. 0.25).
 vad_negative_threshold = 0.35
 # Audio (ms) prepended before the detected speech onset so the first
 # syllable is not clipped.

@@ -88,21 +88,34 @@ body {
   .mic-btn { white-space: nowrap; }
   .settings { padding: 10px 14px; }
   .messages { padding: 14px; }
+  /* The whole config section can be collapsed on small screens. */
+  .settings-toggle {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: var(--panel);
+    border: none;
+    border-bottom: 1px solid var(--border);
+    color: var(--muted);
+    padding: 8px 14px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .settings.collapsed { display: none; }
 }
 
-/* ---------- Settings row ---------- */
+/* ---------- Settings section ---------- */
 .settings {
   display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 10px;
   padding: 10px 20px;
   border-bottom: 1px solid var(--border);
   background: var(--panel);
 }
-.setting-group { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.setting-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .setting-label { font-size: 13px; color: var(--muted); }
+.settings-toggle { display: none; }
 
 .chips { display: flex; gap: 6px; flex-wrap: wrap; }
 .chip {

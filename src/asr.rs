@@ -22,12 +22,23 @@ pub async fn api_transcribe(
     mut multipart: Multipart,
 ) -> Result<Json<TranscribeResponse>, AppError> {
     let mut audio: Option<(Vec<u8>, String, String)> = None;
+    // Optional ISO 639-1 hint when the user picks a fixed source language.
+    let mut language_hint: Option<String> = None;
     while let Some(field) = multipart.next_field().await? {
-        if field.name() == Some("audio") {
-            let filename = field.file_name().unwrap_or("audio.webm").to_string();
-            let mime = field.content_type().unwrap_or("audio/webm").to_string();
-            let bytes = field.bytes().await?.to_vec();
-            audio = Some((bytes, filename, mime));
+        match field.name() {
+            Some("audio") => {
+                let filename = field.file_name().unwrap_or("audio.webm").to_string();
+                let mime = field.content_type().unwrap_or("audio/webm").to_string();
+                let bytes = field.bytes().await?.to_vec();
+                audio = Some((bytes, filename, mime));
+            }
+            Some("language") => {
+                let value = field.text().await?.trim().to_string();
+                if !value.is_empty() {
+                    language_hint = Some(value);
+                }
+            }
+            _ => {}
         }
     }
     let (bytes, filename, mime) =
@@ -35,14 +46,15 @@ pub async fn api_transcribe(
 
     // verbose_json includes the detected language; fall back to plain json for
     // servers that reject it.
-    let value = match request_transcription(&state, &bytes, &filename, &mime, "verbose_json").await
-    {
-        Ok(value) => value,
-        Err(err) => {
-            tracing::warn!("verbose_json transcription failed ({err:#}); retrying with json");
-            request_transcription(&state, &bytes, &filename, &mime, "json").await?
-        }
-    };
+    let hint = language_hint.as_deref();
+    let value =
+        match request_transcription(&state, &bytes, &filename, &mime, hint, "verbose_json").await {
+            Ok(value) => value,
+            Err(err) => {
+                tracing::warn!("verbose_json transcription failed ({err:#}); retrying with json");
+                request_transcription(&state, &bytes, &filename, &mime, hint, "json").await?
+            }
+        };
 
     let text = value
         .get("text")
@@ -50,9 +62,9 @@ pub async fn api_transcribe(
         .unwrap_or_default()
         .trim()
         .to_string();
-    let language = value
-        .get("language")
-        .and_then(Value::as_str)
+    let language = language_hint
+        .as_deref()
+        .or_else(|| value.get("language").and_then(Value::as_str))
         .map(normalize_language);
 
     tracing::info!(
@@ -69,6 +81,7 @@ async fn request_transcription(
     bytes: &[u8],
     filename: &str,
     mime: &str,
+    language: Option<&str>,
     response_format: &str,
 ) -> Result<Value> {
     let asr = &state.cfg.asr;
@@ -76,10 +89,13 @@ async fn request_transcription(
         .file_name(filename.to_string())
         .mime_str(mime)
         .context("invalid audio content type")?;
-    let form = reqwest::multipart::Form::new()
+    let mut form = reqwest::multipart::Form::new()
         .part("file", part)
         .text("model", asr.model.clone())
         .text("response_format", response_format.to_string());
+    if let Some(language) = language {
+        form = form.text("language", language.to_string());
+    }
 
     let url = format!(
         "{}/audio/transcriptions",

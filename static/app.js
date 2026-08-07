@@ -1,9 +1,6 @@
 'use strict';
 
-const ALL_LANGS = [
-  'English', 'Korean', 'Chinese', 'Japanese', 'Spanish', 'French', 'German',
-  'Italian', 'Portuguese', 'Russian', 'Arabic', 'Hindi', 'Vietnamese', 'Thai',
-];
+const ALL_LANGS = ['English', 'Chinese', 'Korean', 'Japanese'];
 
 // ISO 639-1 codes (plus common country-code slips) -> display names, so
 // config values and ASR results always collapse onto the chip names above.
@@ -23,9 +20,16 @@ function langName(value) {
   return known || key.charAt(0).toUpperCase() + key.slice(1);
 }
 
+// Display name -> ISO 639-1 code (first code listed for each name wins).
+const NAME_TO_CODE = {};
+for (const [code, name] of Object.entries(LANG_CODES)) {
+  if (!(name in NAME_TO_CODE)) NAME_TO_CODE[name] = code;
+}
+
 const state = {
   cfg: null,
   targets: new Set(),
+  sourceOverride: 'auto',
   messages: [],
   running: false,
   sessionStart: null,
@@ -43,10 +47,16 @@ async function init() {
   state.cfg.default_source = langName(state.cfg.default_source);
   for (const lang of state.cfg.default_targets) state.targets.add(langName(lang));
   renderLangChips();
-  refreshSrtTracks();
+  renderSourceSelect();
   $('micBtn').addEventListener('click', toggleMic);
   $('exportBtn').addEventListener('click', exportSrt);
   $('clearBtn').addEventListener('click', clearAll);
+  $('settingsToggle').addEventListener('click', () => {
+    const collapsed = $('settings').classList.toggle('collapsed');
+    const toggle = $('settingsToggle');
+    toggle.textContent = collapsed ? 'Options ▸' : 'Options ▾';
+    toggle.setAttribute('aria-expanded', String(!collapsed));
+  });
 }
 
 /* ---------- Language selection ---------- */
@@ -62,25 +72,25 @@ function renderLangChips() {
       if (state.targets.has(lang)) state.targets.delete(lang);
       else state.targets.add(lang);
       chip.classList.toggle('on');
-      refreshSrtTracks();
     });
     wrap.appendChild(chip);
   }
 }
 
-function refreshSrtTracks() {
-  const sel = $('srtTrack');
-  const prev = sel.value;
+function renderSourceSelect() {
+  const sel = $('sourceLang');
   sel.innerHTML = '';
-  const options = [['source', 'Source (as spoken)']]
-    .concat([...state.targets].map((l) => [l, l]));
+  const options = [['auto', 'Auto-detect']].concat(ALL_LANGS.map((l) => [l, l]));
   for (const [value, label] of options) {
     const opt = document.createElement('option');
     opt.value = value;
-    opt.textContent = 'SRT: ' + label;
+    opt.textContent = label;
     sel.appendChild(opt);
   }
-  if ([...sel.options].some((o) => o.value === prev)) sel.value = prev;
+  sel.value = 'auto';
+  sel.addEventListener('change', () => {
+    state.sourceOverride = sel.value;
+  });
 }
 
 function sameLang(a, b) {
@@ -223,6 +233,8 @@ async function handleUtterance(blob, start, end) {
 
   const form = new FormData();
   form.append('audio', blob, `utterance-${msg.id}.wav`);
+  const override = state.sourceOverride !== 'auto' ? state.sourceOverride : null;
+  if (override) form.append('language', NAME_TO_CODE[override] || override);
   try {
     const resp = await fetch('/api/transcribe', { method: 'POST', body: form });
     if (!resp.ok) throw new Error(await resp.text());
@@ -233,7 +245,7 @@ async function handleUtterance(blob, start, end) {
       return;
     }
     msg.sourceText = text;
-    msg.sourceLang = langName(data.language) || state.cfg.default_source;
+    msg.sourceLang = override || langName(data.language) || state.cfg.default_source;
     updateSourceBlob(msg);
 
     // One request per target language, all streaming concurrently.
@@ -402,26 +414,38 @@ function setStatus(kind, detail) {
 
 /* ---------- SRT export ---------- */
 
+// One .srt file per track: the source as spoken, plus each selected language.
 function exportSrt() {
-  const track = $('srtTrack').value;
   const msgs = state.messages.filter((m) => m.sourceText);
-  const base = state.sessionStart ?? msgs[0]?.start ?? 0;
-  let n = 0;
-  let out = '';
-  for (const m of msgs) {
-    const text = track === 'source' ? m.sourceText : m.translations[track]?.text || '';
-    if (!text.trim()) continue;
-    n++;
-    out += `${n}\n${fmtSrt(m.start - base)} --> ${fmtSrt(m.end - base)}\n${text.trim()}\n\n`;
-  }
-  if (!n) {
-    setStatus('error', 'Nothing to export for that track');
+  if (!msgs.length) {
+    setStatus('error', 'Nothing to export yet');
     return;
   }
-  const blob = new Blob([out], { type: 'text/plain;charset=utf-8' });
+  const tracks = [['source', (m) => m.sourceText]]
+    .concat([...state.targets].map((lang) => [lang, (m) => m.translations[lang]?.text || '']));
+  let exported = 0;
+  for (const [track, textOf] of tracks) {
+    const base = state.sessionStart ?? msgs[0].start;
+    let n = 0;
+    let out = '';
+    for (const m of msgs) {
+      const text = (textOf(m) || '').trim();
+      if (!text) continue;
+      n++;
+      out += `${n}\n${fmtSrt(m.start - base)} --> ${fmtSrt(m.end - base)}\n${text}\n\n`;
+    }
+    if (!n) continue;
+    downloadFile(`transcript-${track.toLowerCase()}.srt`, out);
+    exported++;
+  }
+  if (!exported) setStatus('error', 'Nothing to export yet');
+}
+
+function downloadFile(filename, content) {
+  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `transcript-${track.toLowerCase()}.srt`;
+  a.download = filename;
   a.click();
   URL.revokeObjectURL(a.href);
 }

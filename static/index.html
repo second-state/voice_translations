@@ -20,13 +20,17 @@
   </div>
 </header>
 
-<section class="settings">
-  <div class="setting-group">
+<button id="settingsToggle" class="settings-toggle" aria-expanded="true">Options ▾</button>
+<section id="settings" class="settings">
+  <div class="setting-row">
     <span class="setting-label">Translate into <em>(pick one or more)</em></span>
     <div id="langChips" class="chips"></div>
   </div>
-  <div class="setting-group">
-    <select id="srtTrack" class="select" title="Which text track to export"></select>
+  <div class="setting-row">
+    <span class="setting-label">Source</span>
+    <select id="sourceLang" class="select" title="Spoken language"></select>
+  </div>
+  <div class="setting-row">
     <button id="exportBtn" class="btn">Export SRT</button>
     <button id="clearBtn" class="btn subtle">Clear</button>
   </div>

@@ -80,7 +80,7 @@ body {
 .mic-btn.live { background: var(--red); }
 .mic-btn:hover { filter: brightness(1.1); }
 
-@media (max-width: 640px) {
+@media (max-width: 720px) {
   .topbar { padding: 10px 14px; }
   /* Controls drop to their own full-width row under the title. */
   .mic-controls { flex: 1 0 100%; }

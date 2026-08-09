@@ -265,15 +265,21 @@ async function handleUtterance(blob, start, end) {
     msg.sourceLang = override || langName(data.language) || state.cfg.default_source;
     updateSourceBlob(msg);
 
+    // The source blob streams a polished (filler-free) version of the raw
+    // transcript; a target matching the source language mirrors it.
+    msg.cleanSource = { text: '', done: false, original: true };
+    const mirrors = [];
     // One request per target language, all streaming concurrently.
     for (const lang of [...state.targets]) {
       if (sameLang(lang, msg.sourceLang)) {
-        msg.translations[lang] = { text, done: true, original: true };
+        msg.translations[lang] = msg.cleanSource;
         addTranslationBlob(msg, lang);
+        mirrors.push(lang);
       } else {
         streamTranslation(msg, lang);
       }
     }
+    streamCleanSource(msg, mirrors);
   } catch (err) {
     msg.el.classList.add('error');
     const blobText = msg.el.querySelector('.source .blob-text');
@@ -282,11 +288,34 @@ async function handleUtterance(blob, start, end) {
   }
 }
 
-async function streamTranslation(msg, lang) {
+function streamTranslation(msg, lang) {
   msg.translations[lang] = { text: '', done: false };
   addTranslationBlob(msg, lang);
-  const blobText = msg.el.querySelector(`.blob[data-lang="${lang}"] .blob-text`);
-  const entry = msg.translations[lang];
+  const el = msg.el.querySelector(`.blob[data-lang="${lang}"] .blob-text`);
+  return streamPolish(msg, lang, buildContext(msg, lang), msg.translations[lang], [el], null);
+}
+
+// Stream the same-language cleanup into the source blob and any target blob
+// that matches the source language.
+function streamCleanSource(msg, mirrorLangs) {
+  const els = [msg.el.querySelector('.source .blob-text')];
+  for (const lang of mirrorLangs) {
+    els.push(msg.el.querySelector(`.blob[data-lang="${lang}"] .blob-text`));
+  }
+  els[0].classList.add('streaming');
+  const prior = state.messages.filter((m) => m !== msg && m.sourceText);
+  const context = prior.slice(-state.cfg.context_messages).map((m) => ({
+    source: m.sourceText,
+    translation: m.cleanSource?.text || '',
+  }));
+  // On failure the raw transcript stays on screen instead of an error.
+  return streamPolish(msg, msg.sourceLang, context, msg.cleanSource, els, msg.sourceText);
+}
+
+// Shared SSE-over-POST reader: streams /api/translate output into `entry`
+// and every element in `els`.
+async function streamPolish(msg, targetLang, context, entry, els, fallbackText) {
+  const show = (text) => { for (const el of els) el.textContent = text; };
   try {
     const resp = await fetch('/api/translate', {
       method: 'POST',
@@ -294,8 +323,8 @@ async function streamTranslation(msg, lang) {
       body: JSON.stringify({
         text: msg.sourceText,
         source_lang: msg.sourceLang,
-        target_lang: lang,
-        context: buildContext(msg, lang),
+        target_lang: targetLang,
+        context,
       }),
     });
     if (!resp.ok || !resp.body) {
@@ -320,28 +349,34 @@ async function streamTranslation(msg, lang) {
           try { ev = JSON.parse(line.slice(5).trim()); } catch { continue; }
           if (ev.type === 'delta') {
             entry.text += ev.text;
-            blobText.textContent = entry.text;
+            show(entry.text);
             autoscroll();
           } else if (ev.type === 'error') {
             throw new Error(ev.message);
           } else if (ev.type === 'done') {
             entry.done = true;
             // The server sends the sanitized full text with `done`; use it as
-            // the authoritative version of the translation.
+            // the authoritative version.
             if (typeof ev.text === 'string' && ev.text) {
               entry.text = ev.text;
-              blobText.textContent = entry.text;
+              show(entry.text);
             }
           }
         }
       }
     }
     entry.done = true;
-    blobText.classList.remove('streaming');
+    for (const el of els) el.classList.remove('streaming');
   } catch (err) {
     entry.done = true;
-    blobText.classList.remove('streaming');
-    blobText.textContent = (entry.text ? entry.text + ' ' : '') + '⚠ ' + err.message;
+    for (const el of els) el.classList.remove('streaming');
+    if (fallbackText && !entry.text) {
+      entry.text = fallbackText;
+      show(fallbackText);
+      console.warn('cleanup failed, keeping raw transcript:', err.message);
+    } else {
+      show((entry.text ? entry.text + ' ' : '') + '⚠ ' + err.message);
+    }
   }
 }
 
@@ -438,7 +473,7 @@ function exportSrt() {
     setStatus('error', 'Nothing to export yet');
     return;
   }
-  const tracks = [['source', (m) => m.sourceText]]
+  const tracks = [['source', (m) => m.cleanSource?.text || m.sourceText]]
     .concat([...state.targets].map((lang) => [lang, (m) => m.translations[lang]?.text || '']));
   let exported = 0;
   for (const [track, textOf] of tracks) {

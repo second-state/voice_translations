@@ -120,6 +120,17 @@ async function toggleMic() {
 }
 
 async function startMic() {
+  // navigator.mediaDevices only exists in secure contexts (https:// or
+  // localhost); give a clear message instead of an undefined-property error.
+  if (!navigator.mediaDevices?.getUserMedia) {
+    if (!window.isSecureContext) {
+      throw new Error(
+        'microphone access needs HTTPS. Open this page via an https:// URL ' +
+        '(e.g. a Cloudflare tunnel) or on localhost.'
+      );
+    }
+    throw new Error('this browser does not support microphone capture.');
+  }
   if (!vadInstance) {
     setStatus('listening', 'Loading VAD model…');
     vadInstance = await vad.MicVAD.new({

@@ -32,6 +32,11 @@ cargo run --release
 Open http://127.0.0.1:8080, press **Start listening**, and speak.
 
 > Browsers only allow microphone access on `localhost` or HTTPS origins.
+> On a phone, a plain `http://<lan-ip>:8080` URL will load the page but
+> `navigator.mediaDevices` will be missing — serve the app through an HTTPS
+> proxy/tunnel (e.g. `cloudflared tunnel --url http://localhost:8080`), or for
+> quick testing enable the Chrome flag
+> `chrome://flags/#unsafely-treat-insecure-origin-as-secure` for that origin.
 
 ## Configuration (`config.toml`)
 

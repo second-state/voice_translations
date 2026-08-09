@@ -1,6 +1,6 @@
 'use strict';
 
-const ALL_LANGS = ['English', 'Chinese', 'Korean', 'Japanese'];
+const ALL_LANGS = ['English', 'Chinese', 'Korean', 'Japanese', 'Icelandic'];
 
 // ISO 639-1 codes (plus common country-code slips) -> display names, so
 // config values and ASR results always collapse onto the chip names above.
@@ -9,7 +9,7 @@ const LANG_CODES = {
   ja: 'Japanese', jp: 'Japanese', es: 'Spanish', fr: 'French', de: 'German',
   it: 'Italian', pt: 'Portuguese', ru: 'Russian', ar: 'Arabic', hi: 'Hindi',
   vi: 'Vietnamese', th: 'Thai', id: 'Indonesian', nl: 'Dutch', tr: 'Turkish',
-  pl: 'Polish', uk: 'Ukrainian', sv: 'Swedish',
+  pl: 'Polish', uk: 'Ukrainian', sv: 'Swedish', is: 'Icelandic',
 };
 
 function langName(value) {
@@ -406,6 +406,10 @@ function renderMessage(msg) {
       <div class="blob-text pending">Transcribing…</div>
     </div>
     <div class="blobs"></div>`;
+  if (state.cfg.tts_enabled) {
+    el.querySelector('.source .blob-lang')
+      .appendChild(makeSpeakBtn(() => msg.cleanSource?.text || msg.sourceText));
+  }
   msg.el = el;
   $('messages').appendChild(el);
   autoscroll(true);
@@ -427,6 +431,7 @@ function addTranslationBlob(msg, lang) {
   const label = document.createElement('div');
   label.className = 'blob-lang';
   label.textContent = lang + (entry.original ? ' · same as source' : '');
+  if (state.cfg.tts_enabled) label.appendChild(makeSpeakBtn(() => entry.text));
   const text = document.createElement('div');
   text.className = 'blob-text' + (entry.done ? '' : ' streaming');
   text.textContent = entry.text;
@@ -462,6 +467,52 @@ function setStatus(kind, detail) {
   el.textContent = detail ||
     ({ idle: 'Idle', listening: 'Listening', speaking: 'Speaking…', error: 'Error' }[kind] || kind);
   if (detail) console.warn(detail);
+}
+
+/* ---------- Text-to-speech ---------- */
+
+let currentAudio = null;
+
+function makeSpeakBtn(getText) {
+  const btn = document.createElement('button');
+  btn.className = 'speak-btn';
+  btn.title = 'Read aloud';
+  btn.textContent = '🔊';
+  btn.addEventListener('click', () => speakText(getText(), btn));
+  return btn;
+}
+
+async function speakText(text, btn) {
+  if (!text || !text.trim()) return;
+  btn.disabled = true;
+  btn.textContent = '…';
+  try {
+    const resp = await fetch('/api/tts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    });
+    if (!resp.ok) throw new Error(await resp.text());
+    const blob = await resp.blob();
+    if (currentAudio) {
+      currentAudio.pause();
+      URL.revokeObjectURL(currentAudio.src);
+    }
+    const audio = new Audio(URL.createObjectURL(blob));
+    currentAudio = audio;
+    audio.onended = () => {
+      if (currentAudio === audio) {
+        URL.revokeObjectURL(audio.src);
+        currentAudio = null;
+      }
+    };
+    await audio.play();
+  } catch (err) {
+    setStatus('error', 'TTS: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🔊';
+  }
 }
 
 /* ---------- SRT export ---------- */

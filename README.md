@@ -47,5 +47,6 @@ Open http://127.0.0.1:8080, press **Start listening**, and speak.
 | `[languages]` | `default_targets` | Languages pre-selected in the UI (ISO 639-1 codes, e.g. `["ko", "ja"]`) |
 | `[asr]` / `[llm]` | `endpoint`, `api_key`, `model` | OpenAI-compatible services |
 | `[llm]` | `context_messages` | Past messages sent as translation context |
+| `[tts]` | `endpoint`, `api_key`, `model`, `voice` | Optional; adds read-aloud buttons to every sentence |
 
 `config.toml` is git-ignored; never commit real credentials.

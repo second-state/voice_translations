@@ -213,12 +213,27 @@ body {
 .blobs:empty { display: none; margin: 0; }
 
 .blob-lang {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--muted);
   margin-bottom: 4px;
 }
+.speak-btn {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  padding: 0 2px;
+}
+.speak-btn:hover { color: var(--accent); }
+.speak-btn:disabled { opacity: 0.5; cursor: default; }
 .blob-text {
   font-size: 15px;
   line-height: 1.55;

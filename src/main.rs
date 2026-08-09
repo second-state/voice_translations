@@ -1,6 +1,7 @@
 mod asr;
 mod config;
 mod translate;
+mod tts;
 
 use std::{net::SocketAddr, sync::Arc};
 
@@ -65,6 +66,7 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/config", get(api_config))
         .route("/api/transcribe", post(asr::api_transcribe))
         .route("/api/translate", post(translate::api_translate))
+        .route("/api/tts", post(tts::api_tts))
         // Vendored Silero VAD + onnxruntime-web assets (large binaries, served
         // from disk rather than embedded in the executable).
         .nest_service(
@@ -123,5 +125,6 @@ async fn api_config(State(state): State<AppState>) -> Json<Value> {
         "default_source": default_source,
         "default_targets": default_targets,
         "context_messages": cfg.llm.context_messages,
+        "tts_enabled": cfg.tts.is_some(),
     }))
 }

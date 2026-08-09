@@ -143,6 +143,7 @@ pub fn normalize_language(raw: &str) -> String {
         "pl" | "pol" | "polish" => "Polish",
         "uk" | "ukr" | "ukrainian" => "Ukrainian",
         "sv" | "swe" | "swedish" => "Swedish",
+        "is" | "isl" | "ice" | "icelandic" => "Icelandic",
         _ => "",
     };
     if !mapped.is_empty() {

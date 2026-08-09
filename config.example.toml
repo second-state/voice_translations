@@ -50,3 +50,13 @@ model = "gpt-4o-mini"
 context_messages = 5
 # Sampling temperature; omit to use the model's default.
 #temperature = 0.3
+
+[tts]
+# OpenAI-compatible base URL; the server appends /audio/speech.
+# Remove this whole section to hide the read-aloud buttons in the UI.
+endpoint = "https://api.example.com/v1"
+api_key = "your-tts-api-key"
+# e.g. "gpt-4o-mini-tts", or "elevenlabs/eleven_multilingual_v2" on gateways
+# that expose ElevenLabs (better multilingual quality).
+model = "gpt-4o-mini-tts"
+voice = "alloy"

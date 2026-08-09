@@ -14,6 +14,8 @@ pub struct Config {
     pub languages: LanguagesConfig,
     pub asr: AsrConfig,
     pub llm: LlmConfig,
+    /// Optional; when absent, the read-aloud buttons are hidden in the UI.
+    pub tts: Option<TtsConfig>,
 }
 
 impl Config {
@@ -118,4 +120,18 @@ pub struct LlmConfig {
 
 fn default_context_messages() -> usize {
     5
+}
+
+#[derive(Debug, Deserialize)]
+pub struct TtsConfig {
+    /// OpenAI-compatible base URL; `/audio/speech` is appended.
+    pub endpoint: String,
+    pub api_key: String,
+    pub model: String,
+    #[serde(default = "default_voice")]
+    pub voice: String,
+}
+
+fn default_voice() -> String {
+    "alloy".into()
 }

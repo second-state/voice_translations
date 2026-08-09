@@ -8,12 +8,14 @@ port = 8080
 [audio]
 # Silence duration (ms) that ends a sentence/utterance. Between-sentence
 # pauses in conversation average ~500-1000ms; values below ~200ms will split
-# on the silent closure of stop consonants (p/t/k) mid-word.
-sentence_break_ms = 700
+# on the silent closure of stop consonants (p/t/k) mid-word. Higher values
+# (1200+) keep hesitant speech with thinking pauses together in one
+# sentence, which lets the translator clean up fillers and self-corrections.
+sentence_break_ms = 1200
 # Utterances shorter than this (ms) are discarded as noise.
 min_speech_ms = 250
 # Force a sentence break if one utterance runs longer than this (ms).
-max_utterance_ms = 15000
+max_utterance_ms = 30000
 # Silero VAD speech probability above which a frame counts as speech (0-1).
 # Lower it (e.g. 0.35) to capture quiet speakers far from the microphone;
 # raise it (e.g. 0.6) in noisy rooms to reject non-speech sounds.

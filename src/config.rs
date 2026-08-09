@@ -66,9 +66,9 @@ pub struct AudioConfig {
 impl Default for AudioConfig {
     fn default() -> Self {
         Self {
-            sentence_break_ms: 700,
+            sentence_break_ms: 1_200,
             min_speech_ms: 250,
-            max_utterance_ms: 15_000,
+            max_utterance_ms: 30_000,
             vad_positive_threshold: 0.5,
             vad_negative_threshold: 0.35,
             pre_speech_pad_ms: 300,

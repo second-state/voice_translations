@@ -6,7 +6,7 @@ The browser runs the [Silero VAD](https://github.com/snakers4/silero-vad) neural
 network locally (via [@ricky0123/vad-web](https://github.com/ricky0123/vad) and
 onnxruntime-web, vendored under `static/vendor/` — no CDN required) to detect
 human speech. Audio is only sent to the server when the model detects a speech
-segment; sentence breaks are a configurable silence gap (default 700 ms). Each
+segment; sentence breaks are a configurable silence gap (default 1200 ms). Each
 detected utterance is sent to the backend as 16 kHz WAV, which:
 
 1. Forwards the audio to an OpenAI-compatible ASR endpoint (`/audio/transcriptions`)
@@ -37,7 +37,7 @@ Open http://127.0.0.1:8080, press **Start listening**, and speak.
 
 | Section | Key | Meaning |
 | --- | --- | --- |
-| `[audio]` | `sentence_break_ms` | Silence gap that ends a sentence (default 700) |
+| `[audio]` | `sentence_break_ms` | Silence gap that ends a sentence (default 1200) |
 | `[audio]` | `min_speech_ms` | Discard speech segments shorter than this |
 | `[audio]` | `max_utterance_ms` | Force a break for very long utterances |
 | `[audio]` | `vad_positive_threshold` | Silero speech probability that starts a segment (default 0.5) |

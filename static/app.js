@@ -119,17 +119,36 @@ async function toggleMic() {
   }
 }
 
+// Some Android WebViews only expose the legacy prefixed getUserMedia; bridge
+// it onto navigator.mediaDevices so the VAD's stream request can use it.
+function polyfillMediaDevices() {
+  if (navigator.mediaDevices?.getUserMedia) return true;
+  const legacy = navigator.getUserMedia || navigator.webkitGetUserMedia
+    || navigator.mozGetUserMedia;
+  if (!legacy) return false;
+  if (!navigator.mediaDevices) navigator.mediaDevices = {};
+  navigator.mediaDevices.getUserMedia = (constraints) =>
+    new Promise((resolve, reject) => legacy.call(navigator, constraints, resolve, reject));
+  return true;
+}
+
 async function startMic() {
-  // navigator.mediaDevices only exists in secure contexts (https:// or
-  // localhost); give a clear message instead of an undefined-property error.
-  if (!navigator.mediaDevices?.getUserMedia) {
+  // Diagnose a missing microphone API precisely: insecure origin, or a
+  // browser/WebView that does not expose mediaDevices at all.
+  if (!polyfillMediaDevices()) {
+    console.warn('mediaDevices missing; secureContext=' + window.isSecureContext
+      + ' ua=' + navigator.userAgent);
     if (!window.isSecureContext) {
       throw new Error(
         'microphone access needs HTTPS. Open this page via an https:// URL ' +
         '(e.g. a Cloudflare tunnel) or on localhost.'
       );
     }
-    throw new Error('this browser does not support microphone capture.');
+    throw new Error(
+      'this browser does not expose the microphone API. If you opened the ' +
+      'link inside another app (chat app, QR scanner) or a privacy browser, ' +
+      'open it in Chrome directly instead.'
+    );
   }
   if (!vadInstance) {
     setStatus('listening', 'Loading VAD model…');

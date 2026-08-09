@@ -80,30 +80,6 @@ body {
 .mic-btn.live { background: var(--red); }
 .mic-btn:hover { filter: brightness(1.1); }
 
-@media (max-width: 720px) {
-  .topbar { padding: 10px 14px; }
-  /* Controls drop to their own full-width row under the title. */
-  .mic-controls { flex: 1 0 100%; }
-  .meter { flex: 1; width: auto; min-width: 50px; }
-  .mic-btn { white-space: nowrap; }
-  .settings { padding: 10px 14px; }
-  .messages { padding: 14px; }
-  /* The whole config section can be collapsed on small screens. */
-  .settings-toggle {
-    display: block;
-    width: 100%;
-    text-align: left;
-    background: var(--panel);
-    border: none;
-    border-bottom: 1px solid var(--border);
-    color: var(--muted);
-    padding: 8px 14px;
-    font-size: 13px;
-    cursor: pointer;
-  }
-  .settings.collapsed { display: none; }
-}
-
 /* ---------- Settings section ---------- */
 .settings {
   display: flex;
@@ -248,3 +224,28 @@ body {
   margin-left: 2px;
 }
 @keyframes blink { 50% { opacity: 0; } }
+
+/* ---------- Mobile (must stay last so it overrides the base rules) ---------- */
+@media (max-width: 720px) {
+  .topbar { padding: 10px 14px; }
+  /* Controls drop to their own full-width row under the title. */
+  .mic-controls { flex: 1 0 100%; }
+  .meter { flex: 1; width: auto; min-width: 50px; }
+  .mic-btn { white-space: nowrap; }
+  .settings { padding: 10px 14px; }
+  .messages { padding: 14px; }
+  /* The whole config section can be collapsed on small screens. */
+  .settings-toggle {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: var(--panel);
+    border: none;
+    border-bottom: 1px solid var(--border);
+    color: var(--muted);
+    padding: 8px 14px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .settings.collapsed { display: none; }
+}

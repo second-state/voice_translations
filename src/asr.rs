@@ -144,6 +144,7 @@ pub fn normalize_language(raw: &str) -> String {
         "uk" | "ukr" | "ukrainian" => "Ukrainian",
         "sv" | "swe" | "swedish" => "Swedish",
         "is" | "isl" | "ice" | "icelandic" => "Icelandic",
+        "no" | "nb" | "nn" | "nor" | "nob" | "nno" | "norwegian" => "Norwegian",
         _ => "",
     };
     if !mapped.is_empty() {

@@ -1,6 +1,6 @@
 'use strict';
 
-const ALL_LANGS = ['English', 'Chinese', 'Korean', 'Japanese', 'Icelandic'];
+const ALL_LANGS = ['English', 'Chinese', 'Korean', 'Japanese', 'Icelandic', 'Norwegian'];
 
 // ISO 639-1 codes (plus common country-code slips) -> display names, so
 // config values and ASR results always collapse onto the chip names above.
@@ -10,6 +10,7 @@ const LANG_CODES = {
   it: 'Italian', pt: 'Portuguese', ru: 'Russian', ar: 'Arabic', hi: 'Hindi',
   vi: 'Vietnamese', th: 'Thai', id: 'Indonesian', nl: 'Dutch', tr: 'Turkish',
   pl: 'Polish', uk: 'Ukrainian', sv: 'Swedish', is: 'Icelandic',
+  no: 'Norwegian', nb: 'Norwegian', nn: 'Norwegian',
 };
 
 function langName(value) {

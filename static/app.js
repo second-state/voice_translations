@@ -180,10 +180,6 @@ async function startMic() {
       'open it in Chrome directly instead.'
     );
   }
-  // Flip the button immediately so the tap gives instant feedback, even
-  // while the VAD model is still loading (toggleMic reverts on failure).
-  $('micBtn').textContent = 'Stop listening';
-  $('micBtn').classList.add('live');
   if (!vadInstance) {
     setStatus('listening', 'Loading VAD model…');
     vadInstance = await vad.MicVAD.new({
@@ -233,6 +229,9 @@ async function startMic() {
   vadInstance.start();
   state.running = true;
   state.sessionStart ??= Date.now();
+  // Only flip once fully started; the button stays grayed out until then.
+  $('micBtn').textContent = 'Stop listening';
+  $('micBtn').classList.add('live');
   setStatus('listening');
 }
 

@@ -1,5 +1,12 @@
 'use strict';
 
+// Server-side redirect handles proxies that set X-Forwarded-Proto; this
+// catches any that don't. Local plain-HTTP development stays untouched.
+if (location.protocol === 'http:'
+    && !['localhost', '127.0.0.1', '[::1]'].includes(location.hostname)) {
+  location.replace('https://' + location.host + location.pathname + location.search);
+}
+
 const ALL_LANGS = ['English', 'Chinese', 'Korean', 'Japanese', 'Icelandic', 'Norwegian'];
 
 // ISO 639-1 codes (plus common country-code slips) -> display names, so

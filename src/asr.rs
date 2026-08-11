@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use anyhow::{anyhow, Context, Result};
 use axum::{
     extract::{Multipart, State},
@@ -15,46 +17,99 @@ pub struct TranscribeResponse {
     pub language: Option<String>,
 }
 
+/// Everything the transcription endpoint accepts besides the audio itself.
+#[derive(Debug, Default, Clone)]
+pub struct TranscribeOptions {
+    /// Upload filename; some services pick the decoder from its extension.
+    pub filename: Option<String>,
+    /// Audio MIME type.
+    pub mime: Option<String>,
+    /// ISO 639-1 hint that pins the spoken language instead of detecting it.
+    pub language: Option<String>,
+    /// Vocabulary primer (the `prompt` field of the OpenAI audio API): a
+    /// sample of the jargon, drug names, and proper nouns expected in this
+    /// audio. The recognizer treats it as preceding context, which biases it
+    /// toward those spellings instead of common-word lookalikes. Keep it
+    /// under ~200 tokens; services silently truncate longer primers.
+    pub prompt: Option<String>,
+}
+
+/// An `audio` upload together with the text fields that came with it.
+#[derive(Debug, Default)]
+pub struct AudioForm {
+    pub audio: Vec<u8>,
+    pub options: TranscribeOptions,
+    /// Text fields other than the ones folded into `options`, keyed by field
+    /// name, so a downstream app can carry its own metadata (a specialty, a
+    /// speaker role) on the same multipart request.
+    pub fields: HashMap<String, String>,
+}
+
 /// POST /api/transcribe — accepts a multipart form with an `audio` file and
 /// forwards it to the configured OpenAI-compatible transcription endpoint.
 pub async fn api_transcribe(
     State(state): State<AppState>,
     mut multipart: Multipart,
 ) -> Result<Json<TranscribeResponse>, AppError> {
-    let mut audio: Option<(Vec<u8>, String, String)> = None;
-    // Optional ISO 639-1 hint when the user picks a fixed source language.
-    let mut language_hint: Option<String> = None;
+    let form = parse_audio_form(&mut multipart).await?;
+    Ok(Json(transcribe(&state, &form.audio, &form.options).await?))
+}
+
+/// Pull the `audio` file and the recognized text fields (`language`,
+/// `prompt`) out of a multipart request, keeping any other text field in
+/// [`AudioForm::fields`].
+pub async fn parse_audio_form(multipart: &mut Multipart) -> Result<AudioForm> {
+    let mut audio: Option<Vec<u8>> = None;
+    let mut options = TranscribeOptions::default();
+    let mut fields = HashMap::new();
+
     while let Some(field) = multipart.next_field().await? {
-        match field.name() {
-            Some("audio") => {
-                let filename = field.file_name().unwrap_or("audio.webm").to_string();
-                let mime = field.content_type().unwrap_or("audio/webm").to_string();
-                let bytes = field.bytes().await?.to_vec();
-                audio = Some((bytes, filename, mime));
+        let name = field.name().unwrap_or_default().to_string();
+        match name.as_str() {
+            "audio" => {
+                options.filename = Some(field.file_name().unwrap_or("audio.webm").to_string());
+                options.mime = Some(field.content_type().unwrap_or("audio/webm").to_string());
+                audio = Some(field.bytes().await?.to_vec());
             }
-            Some("language") => {
+            "" => {}
+            _ => {
                 let value = field.text().await?.trim().to_string();
-                if !value.is_empty() {
-                    language_hint = Some(value);
+                if value.is_empty() {
+                    continue;
+                }
+                match name.as_str() {
+                    "language" => options.language = Some(value),
+                    "prompt" => options.prompt = Some(value),
+                    _ => {
+                        fields.insert(name, value);
+                    }
                 }
             }
-            _ => {}
         }
     }
-    let (bytes, filename, mime) =
-        audio.ok_or_else(|| anyhow!("missing 'audio' field in form data"))?;
 
-    // verbose_json includes the detected language; fall back to plain json for
-    // servers that reject it.
-    let hint = language_hint.as_deref();
-    let value =
-        match request_transcription(&state, &bytes, &filename, &mime, hint, "verbose_json").await {
-            Ok(value) => value,
-            Err(err) => {
-                tracing::warn!("verbose_json transcription failed ({err:#}); retrying with json");
-                request_transcription(&state, &bytes, &filename, &mime, hint, "json").await?
-            }
-        };
+    Ok(AudioForm {
+        audio: audio.ok_or_else(|| anyhow!("missing 'audio' field in form data"))?,
+        options,
+        fields,
+    })
+}
+
+/// Transcribe one utterance. Asks for `verbose_json` first so the detected
+/// language comes back, and retries as plain `json` for services that reject
+/// the verbose format.
+pub async fn transcribe(
+    state: &AppState,
+    audio: &[u8],
+    options: &TranscribeOptions,
+) -> Result<TranscribeResponse> {
+    let value = match request_transcription(state, audio, options, "verbose_json").await {
+        Ok(value) => value,
+        Err(err) => {
+            tracing::warn!("verbose_json transcription failed ({err:#}); retrying with json");
+            request_transcription(state, audio, options, "json").await?
+        }
+    };
 
     let text = value
         .get("text")
@@ -62,39 +117,47 @@ pub async fn api_transcribe(
         .unwrap_or_default()
         .trim()
         .to_string();
-    let language = language_hint
+    // A pinned source language wins over whatever the service reports.
+    let language = options
+        .language
         .as_deref()
         .or_else(|| value.get("language").and_then(Value::as_str))
         .map(normalize_language);
 
     tracing::info!(
         "transcribed {} bytes -> {:?} ({} chars)",
-        bytes.len(),
+        audio.len(),
         language,
         text.len()
     );
-    Ok(Json(TranscribeResponse { text, language }))
+    Ok(TranscribeResponse { text, language })
 }
 
 async fn request_transcription(
     state: &AppState,
-    bytes: &[u8],
-    filename: &str,
-    mime: &str,
-    language: Option<&str>,
+    audio: &[u8],
+    options: &TranscribeOptions,
     response_format: &str,
 ) -> Result<Value> {
     let asr = &state.cfg.asr;
-    let part = reqwest::multipart::Part::bytes(bytes.to_vec())
-        .file_name(filename.to_string())
-        .mime_str(mime)
+    let part = reqwest::multipart::Part::bytes(audio.to_vec())
+        .file_name(
+            options
+                .filename
+                .clone()
+                .unwrap_or_else(|| "audio.wav".into()),
+        )
+        .mime_str(options.mime.as_deref().unwrap_or("audio/wav"))
         .context("invalid audio content type")?;
     let mut form = reqwest::multipart::Form::new()
         .part("file", part)
         .text("model", asr.model.clone())
         .text("response_format", response_format.to_string());
-    if let Some(language) = language {
-        form = form.text("language", language.to_string());
+    if let Some(language) = &options.language {
+        form = form.text("language", language.clone());
+    }
+    if let Some(prompt) = &options.prompt {
+        form = form.text("prompt", prompt.clone());
     }
 
     let url = format!(
@@ -145,6 +208,32 @@ pub fn normalize_language(raw: &str) -> String {
         "sv" | "swe" | "swedish" => "Swedish",
         "is" | "isl" | "ice" | "icelandic" => "Icelandic",
         "no" | "nb" | "nn" | "nor" | "nob" | "nno" | "norwegian" => "Norwegian",
+        "tl" | "fil" | "tgl" | "tagalog" | "filipino" => "Tagalog",
+        "fa" | "fas" | "per" | "persian" | "farsi" => "Persian",
+        "he" | "heb" | "hebrew" => "Hebrew",
+        "bn" | "ben" | "bengali" => "Bengali",
+        "ur" | "urd" | "urdu" => "Urdu",
+        "pa" | "pan" | "punjabi" => "Punjabi",
+        "ta" | "tam" | "tamil" => "Tamil",
+        "te" | "tel" | "telugu" => "Telugu",
+        "gu" | "guj" | "gujarati" => "Gujarati",
+        "mr" | "mar" | "marathi" => "Marathi",
+        "sw" | "swa" | "swahili" => "Swahili",
+        "am" | "amh" | "amharic" => "Amharic",
+        "so" | "som" | "somali" => "Somali",
+        "ht" | "hat" | "haitian" | "haitian creole" => "Haitian Creole",
+        "yue" | "cantonese" => "Cantonese",
+        "ro" | "ron" | "rum" | "romanian" => "Romanian",
+        "el" | "ell" | "gre" | "greek" => "Greek",
+        "hu" | "hun" | "hungarian" => "Hungarian",
+        "cs" | "ces" | "cze" | "czech" => "Czech",
+        "da" | "dan" | "danish" => "Danish",
+        "fi" | "fin" | "finnish" => "Finnish",
+        "ne" | "nep" | "nepali" => "Nepali",
+        "my" | "mya" | "bur" | "burmese" => "Burmese",
+        "km" | "khm" | "khmer" => "Khmer",
+        "lo" | "lao" => "Lao",
+        "hmn" | "hmong" => "Hmong",
         _ => "",
     };
     if !mapped.is_empty() {
@@ -167,5 +256,13 @@ mod tests {
         assert_eq!(normalize_language("KOREAN"), "Korean");
         assert_eq!(normalize_language("zh"), "Chinese");
         assert_eq!(normalize_language("swahili"), "Swahili");
+    }
+
+    #[test]
+    fn normalizes_languages_common_in_clinics() {
+        assert_eq!(normalize_language("es"), "Spanish");
+        assert_eq!(normalize_language("tl"), "Tagalog");
+        assert_eq!(normalize_language("ht"), "Haitian Creole");
+        assert_eq!(normalize_language("yue"), "Cantonese");
     }
 }

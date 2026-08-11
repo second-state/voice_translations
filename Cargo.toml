@@ -1,7 +1,28 @@
 [package]
 name = "voice-translations"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
+description = "Real-time speech transcription and translation over OpenAI-compatible ASR/LLM/TTS services"
+repository = "https://github.com/second-state/voice_translations"
+license = "Apache-2.0"
+
+# The crate is both the bundled web app and a library that other Axum apps
+# build domain-specific translators on (see `medical_translations`).
+[lib]
+name = "voice_translations"
+path = "src/lib.rs"
+
+[[bin]]
+name = "voice-translations"
+path = "src/main.rs"
+
+[features]
+default = []
+# Compile the Silero VAD + onnxruntime-web assets into the binary and expose
+# `assets::vendor_router()`. Off by default so this crate's own binary keeps
+# serving them from `static/vendor/` on disk; dependent crates turn it on
+# because they cannot reach this crate's source tree at runtime.
+embed-assets = []
 
 [dependencies]
 # Web server
@@ -10,6 +31,7 @@ tower-http = { version = "0.6", features = ["fs"] }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 tokio-stream = "0.1"
 futures = "0.3"
+bytes = "1"
 
 # Upstream HTTP (ASR + LLM)
 reqwest = { version = "0.12", default-features = false, features = [

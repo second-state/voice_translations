@@ -1,9 +1,15 @@
-use std::{fs, path::Path};
+use std::{fs, net::SocketAddr, path::Path};
 
 use anyhow::{Context, Result};
 use serde::Deserialize;
+use serde_json::{json, Value};
+
+use crate::asr::normalize_language;
 
 /// Application configuration loaded from `config.toml`.
+///
+/// Unknown sections are ignored, so a downstream app can keep its own
+/// settings in the same file and deserialize them into its own struct.
 #[derive(Debug, Deserialize)]
 pub struct Config {
     #[serde(default)]
@@ -28,6 +34,38 @@ impl Config {
             )
         })?;
         toml::from_str(&raw).with_context(|| format!("failed to parse {}", path.display()))
+    }
+
+    /// The `[server]` host/port as a socket address.
+    pub fn listen_addr(&self) -> Result<SocketAddr> {
+        format!("{}:{}", self.server.host, self.server.port)
+            .parse()
+            .context("invalid [server] host/port in config.toml")
+    }
+
+    /// The settings the browser needs, as JSON.
+    ///
+    /// Language values in `config.toml` are ISO 639-1 codes (or full names);
+    /// they are normalized here to the display names the UI compares against.
+    /// A downstream app typically merges its own keys into this object.
+    pub fn client_view(&self) -> Value {
+        json!({
+            "sentence_break_ms": self.audio.sentence_break_ms,
+            "min_speech_ms": self.audio.min_speech_ms,
+            "max_utterance_ms": self.audio.max_utterance_ms,
+            "vad_positive_threshold": self.audio.vad_positive_threshold,
+            "vad_negative_threshold": self.audio.vad_negative_threshold,
+            "pre_speech_pad_ms": self.audio.pre_speech_pad_ms,
+            "default_source": normalize_language(&self.languages.default_source),
+            "default_targets": self
+                .languages
+                .default_targets
+                .iter()
+                .map(|lang| normalize_language(lang))
+                .collect::<Vec<_>>(),
+            "context_messages": self.llm.context_messages,
+            "tts_enabled": self.tts.is_some(),
+        })
     }
 }
 

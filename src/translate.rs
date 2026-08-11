@@ -18,7 +18,7 @@ use tokio_stream::wrappers::ReceiverStream;
 
 use crate::AppState;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Default, Deserialize)]
 pub struct TranslateRequest {
     pub text: String,
     pub target_lang: String,
@@ -27,9 +27,15 @@ pub struct TranslateRequest {
     /// Recent conversation history, oldest first.
     #[serde(default)]
     pub context: Vec<ContextPair>,
+    /// Domain instructions spliced into the system prompt between the general
+    /// dictation-cleanup rules and the final output-format rule, so a
+    /// downstream app can teach the model a field's terminology and accuracy
+    /// requirements without restating (or weakening) the base behavior.
+    #[serde(default)]
+    pub domain_prompt: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct ContextPair {
     pub source: String,
     #[serde(default)]
@@ -37,12 +43,21 @@ pub struct ContextPair {
 }
 
 /// POST /api/translate — streams the translation back as Server-Sent Events
-/// over the POST response body (works through Cloudflare, unlike WebSockets
-/// on some plans; keep-alive comments prevent proxy idle timeouts).
+/// over the POST response body.
 pub async fn api_translate(
     State(state): State<AppState>,
     Json(req): Json<TranslateRequest>,
 ) -> impl IntoResponse {
+    translate_sse(state, req)
+}
+
+/// Stream a translation as Server-Sent Events over the POST response body
+/// (works through Cloudflare, unlike WebSockets on some plans; keep-alive
+/// comments prevent proxy idle timeouts).
+///
+/// Downstream apps call this from their own handler once they have filled in
+/// [`TranslateRequest::domain_prompt`].
+pub fn translate_sse(state: AppState, req: TranslateRequest) -> impl IntoResponse {
     let (tx, rx) = mpsc::channel::<Event>(64);
     tokio::spawn(async move {
         if let Err(err) = stream_translation(&state, &req, &tx).await {
@@ -66,19 +81,18 @@ pub async fn api_translate(
     )
 }
 
-async fn stream_translation(
-    state: &AppState,
-    req: &TranslateRequest,
-    tx: &mpsc::Sender<Event>,
-) -> Result<()> {
-    let llm = &state.cfg.llm;
-
+/// Build the system prompt for one translation request.
+///
+/// Public so downstream apps can inspect what the model will be told, or
+/// assemble a variant of it; the assembled order is: role, source language,
+/// dictation-cleanup rules, [`TranslateRequest::domain_prompt`], then the
+/// output-format rule. The domain block sits second-to-last deliberately —
+/// after the general rules it may need to override, but before the rule that
+/// keeps the response free of commentary.
+pub fn build_system_prompt(req: &TranslateRequest) -> String {
     // Same source and target language means this is a transcript-polishing
     // request (used for the source blob in the UI), not a translation.
-    let editing = req
-        .source_lang
-        .as_deref()
-        .is_some_and(|s| s.eq_ignore_ascii_case(&req.target_lang));
+    let editing = is_editing(req);
     let (verb, verbed, output_noun) = if editing {
         ("polish", "polished", "transcript")
     } else {
@@ -127,14 +141,43 @@ async fn stream_translation(
          the previous sentence, phrase it so it reads naturally after it.\
          \nNever summarize, never omit substantive content, and never add \
          information the speaker did not say. Preserve the meaning, tone, and \
-         register of the original.\
-         \n\nYour entire response must be exactly the polished {} {output_noun} \
+         register of the original."
+    ));
+
+    if let Some(domain) = req.domain_prompt.as_deref().map(str::trim) {
+        if !domain.is_empty() {
+            system.push_str("\n\n");
+            system.push_str(domain);
+        }
+    }
+
+    system.push_str(&format!(
+        "\n\nYour entire response must be exactly the polished {} {output_noun} \
          and nothing else: no reasoning, no analysis, no commentary, no notes, \
          no labels, no quotation marks around the output.",
         req.target_lang
     ));
+    system
+}
 
-    let mut messages = vec![json!({ "role": "system", "content": system })];
+/// Whether this request polishes a transcript in place rather than translating
+/// it (source and target language are the same).
+pub fn is_editing(req: &TranslateRequest) -> bool {
+    req.source_lang
+        .as_deref()
+        .is_some_and(|s| s.eq_ignore_ascii_case(&req.target_lang))
+}
+
+/// Run one translation, pushing `delta` events to `tx` as tokens arrive and a
+/// final `done` event carrying the sanitized full text.
+pub async fn stream_translation(
+    state: &AppState,
+    req: &TranslateRequest,
+    tx: &mpsc::Sender<Event>,
+) -> Result<()> {
+    let llm = &state.cfg.llm;
+
+    let mut messages = vec![json!({ "role": "system", "content": build_system_prompt(req) })];
     // Prior utterances become user/assistant turns so the model keeps
     // terminology and pronouns consistent across sentences.
     let skip = req.context.len().saturating_sub(llm.context_messages);
@@ -253,7 +296,7 @@ fn paragraph_break(s: &str) -> Option<usize> {
 
 /// Final cleanup applied to the full translation: keep only the first
 /// paragraph and strip wrapping quotation marks the model may have added.
-fn sanitize_translation(raw: &str) -> String {
+pub fn sanitize_translation(raw: &str) -> String {
     let mut text = raw.trim();
     if let Some(cut) = paragraph_break(text) {
         text = text[..cut].trim();
@@ -278,7 +321,7 @@ fn sanitize_translation(raw: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{paragraph_break, sanitize_translation};
+    use super::{build_system_prompt, paragraph_break, sanitize_translation, TranslateRequest};
 
     #[test]
     fn cuts_reasoning_after_paragraph_break() {
@@ -300,5 +343,52 @@ mod tests {
             "\u{8c22}\u{8c22}\u{3002}"
         );
         assert_eq!(sanitize_translation("plain text"), "plain text");
+    }
+
+    #[test]
+    fn domain_prompt_lands_before_the_output_rule() {
+        let req = TranslateRequest {
+            text: "hello".into(),
+            target_lang: "Spanish".into(),
+            source_lang: Some("English".into()),
+            domain_prompt: Some("Never drop a dosage.".into()),
+            ..Default::default()
+        };
+        let prompt = build_system_prompt(&req);
+        let domain = prompt.find("Never drop a dosage.").expect("domain block");
+        let output_rule = prompt.find("Your entire response").expect("output rule");
+        assert!(domain < output_rule);
+        assert!(prompt.contains("The speaker's language is English."));
+    }
+
+    #[test]
+    fn absent_domain_prompt_changes_nothing() {
+        let base = TranslateRequest {
+            text: "hello".into(),
+            target_lang: "Spanish".into(),
+            ..Default::default()
+        };
+        let blank = TranslateRequest {
+            domain_prompt: Some("   ".into()),
+            ..TranslateRequest {
+                text: "hello".into(),
+                target_lang: "Spanish".into(),
+                ..Default::default()
+            }
+        };
+        assert_eq!(build_system_prompt(&base), build_system_prompt(&blank));
+    }
+
+    #[test]
+    fn same_language_request_is_an_edit() {
+        let req = TranslateRequest {
+            text: "um, hello".into(),
+            target_lang: "English".into(),
+            source_lang: Some("english".into()),
+            ..Default::default()
+        };
+        let prompt = build_system_prompt(&req);
+        assert!(prompt.contains("dictation editor"));
+        assert!(prompt.contains("polished English transcript"));
     }
 }

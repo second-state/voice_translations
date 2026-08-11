@@ -1,44 +1,13 @@
-mod asr;
-mod config;
-mod translate;
-mod tts;
-
-use std::{net::SocketAddr, sync::Arc};
-
-use anyhow::Context;
 use axum::{
-    extract::{DefaultBodyLimit, State},
-    http::{header, StatusCode},
-    response::{Html, IntoResponse, Response},
+    extract::{DefaultBodyLimit, Request, State},
+    http::{header, HeaderValue},
+    middleware::{self, Next},
+    response::{Html, IntoResponse, Redirect, Response},
     routing::{get, post},
     Json, Router,
 };
-use serde_json::{json, Value};
-
-#[derive(Clone)]
-pub struct AppState {
-    pub cfg: Arc<config::Config>,
-    pub http: reqwest::Client,
-}
-
-/// Wrapper so handlers can use `?` with any `anyhow`-compatible error.
-pub struct AppError(anyhow::Error);
-
-impl IntoResponse for AppError {
-    fn into_response(self) -> Response {
-        tracing::error!("request failed: {:#}", self.0);
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("{:#}", self.0)).into_response()
-    }
-}
-
-impl<E> From<E> for AppError
-where
-    E: Into<anyhow::Error>,
-{
-    fn from(err: E) -> Self {
-        Self(err.into())
-    }
-}
+use serde_json::Value;
+use voice_translations::{asr, translate, tts, AppState, Config};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -49,15 +18,9 @@ async fn main() -> anyhow::Result<()> {
         )
         .init();
 
-    let cfg = config::Config::load("config.toml")?;
-    let addr: SocketAddr = format!("{}:{}", cfg.server.host, cfg.server.port)
-        .parse()
-        .context("invalid [server] host/port in config.toml")?;
-
-    let state = AppState {
-        cfg: Arc::new(cfg),
-        http: reqwest::Client::new(),
-    };
+    let cfg = Config::load("config.toml")?;
+    let addr = cfg.listen_addr()?;
+    let state = AppState::new(cfg);
 
     let app = Router::new()
         .route("/", get(index))
@@ -74,12 +37,47 @@ async fn main() -> anyhow::Result<()> {
             tower_http::services::ServeDir::new("static/vendor"),
         )
         .layer(DefaultBodyLimit::max(32 * 1024 * 1024))
+        .layer(middleware::from_fn(force_https))
         .with_state(state);
 
     tracing::info!("listening on http://{addr}");
     let listener = tokio::net::TcpListener::bind(addr).await?;
     axum::serve(listener, app).await?;
     Ok(())
+}
+
+/// Behind a proxy/tunnel, upgrade plain-HTTP visitors to HTTPS (like GitHub
+/// Pages): X-Forwarded-Proto reveals the original scheme. Requests straight
+/// to the server (no proxy header), e.g. localhost, are left alone. HTTPS
+/// responses get an HSTS header so browsers stop trying HTTP entirely.
+async fn force_https(req: Request, next: Next) -> Response {
+    let proto = req
+        .headers()
+        .get("x-forwarded-proto")
+        .and_then(|v| v.to_str().ok())
+        .map(str::to_ascii_lowercase);
+    if proto.as_deref() == Some("http") {
+        if let Some(host) = req
+            .headers()
+            .get(header::HOST)
+            .and_then(|v| v.to_str().ok())
+        {
+            let path = req
+                .uri()
+                .path_and_query()
+                .map(|p| p.as_str())
+                .unwrap_or("/");
+            return Redirect::permanent(&format!("https://{host}{path}")).into_response();
+        }
+    }
+    let mut resp = next.run(req).await;
+    if proto.as_deref() == Some("https") {
+        resp.headers_mut().insert(
+            header::STRICT_TRANSPORT_SECURITY,
+            HeaderValue::from_static("max-age=31536000"),
+        );
+    }
+    resp
 }
 
 async fn index() -> Html<&'static str> {
@@ -103,28 +101,7 @@ async fn style_css() -> impl IntoResponse {
     )
 }
 
-/// Expose the client-relevant configuration to the browser UI. Language
-/// values from config.toml are ISO 639-1 codes (or full names); normalize
-/// them to the display names the UI uses.
+/// Expose the client-relevant configuration to the browser UI.
 async fn api_config(State(state): State<AppState>) -> Json<Value> {
-    let cfg = &state.cfg;
-    let default_source = asr::normalize_language(&cfg.languages.default_source);
-    let default_targets: Vec<String> = cfg
-        .languages
-        .default_targets
-        .iter()
-        .map(|lang| asr::normalize_language(lang))
-        .collect();
-    Json(json!({
-        "sentence_break_ms": cfg.audio.sentence_break_ms,
-        "min_speech_ms": cfg.audio.min_speech_ms,
-        "max_utterance_ms": cfg.audio.max_utterance_ms,
-        "vad_positive_threshold": cfg.audio.vad_positive_threshold,
-        "vad_negative_threshold": cfg.audio.vad_negative_threshold,
-        "pre_speech_pad_ms": cfg.audio.pre_speech_pad_ms,
-        "default_source": default_source,
-        "default_targets": default_targets,
-        "context_messages": cfg.llm.context_messages,
-        "tts_enabled": cfg.tts.is_some(),
-    }))
+    Json(state.cfg.client_view())
 }

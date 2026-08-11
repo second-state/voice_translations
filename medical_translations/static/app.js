@@ -1,5 +1,12 @@
 'use strict';
 
+// Server-side redirect handles proxies that set X-Forwarded-Proto; this
+// catches any that don't. Local plain-HTTP development stays untouched.
+if (location.protocol === 'http:'
+    && !['localhost', '127.0.0.1', '[::1]'].includes(location.hostname)) {
+  location.replace('https://' + location.host + location.pathname + location.search);
+}
+
 /* Medical Interpreter — browser side.
    The speech capture and VAD handling here is the upstream voice translator's,
    unchanged in substance; what differs is the pipeline downstream of a

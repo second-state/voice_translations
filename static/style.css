@@ -79,6 +79,13 @@ body {
 }
 .mic-btn.live { background: var(--red); }
 .mic-btn:hover { filter: brightness(1.1); }
+/* Grayed out while starting/stopping (clicks are ignored then). */
+.mic-btn:disabled {
+  background: var(--panel-2);
+  color: var(--muted);
+  cursor: default;
+  filter: none;
+}
 
 /* ---------- Settings section ---------- */
 .settings {

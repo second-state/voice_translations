@@ -139,6 +139,10 @@ async function toggleMic() {
     }
   } catch (err) {
     setStatus('error', 'Mic error: ' + err.message);
+    if (!state.running) {
+      $('micBtn').textContent = 'Start listening';
+      $('micBtn').classList.remove('live');
+    }
   } finally {
     micBusy = false;
     $('micBtn').disabled = false;
@@ -176,6 +180,10 @@ async function startMic() {
       'open it in Chrome directly instead.'
     );
   }
+  // Flip the button immediately so the tap gives instant feedback, even
+  // while the VAD model is still loading (toggleMic reverts on failure).
+  $('micBtn').textContent = 'Stop listening';
+  $('micBtn').classList.add('live');
   if (!vadInstance) {
     setStatus('listening', 'Loading VAD model…');
     vadInstance = await vad.MicVAD.new({
@@ -225,8 +233,6 @@ async function startMic() {
   vadInstance.start();
   state.running = true;
   state.sessionStart ??= Date.now();
-  $('micBtn').textContent = 'Stop listening';
-  $('micBtn').classList.add('live');
   setStatus('listening');
 }
 

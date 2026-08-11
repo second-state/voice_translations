@@ -2,6 +2,13 @@
 
 Real-time voice transcription and translation web app built with Rust (Axum).
 
+> **Two apps ship from this repository.** This one is the general-purpose
+> translator: no domain prompts, no specialty selector. Its sibling,
+> [`medical_translations/`](medical_translations/), is a patient/clinician
+> interpreter built on this crate as a library. They are separate binaries with
+> separate configuration files and separate default ports, and can run side by
+> side — see [Building both apps](#building-both-apps).
+
 The browser runs the [Silero VAD](https://github.com/snakers4/silero-vad) neural
 network locally (via [@ricky0123/vad-web](https://github.com/ricky0123/vad) and
 onnxruntime-web, vendored under `static/vendor/` — no CDN required) to detect
@@ -26,7 +33,7 @@ language) can be exported as an SRT subtitle file.
 
 ```sh
 cp config.example.toml config.toml   # then fill in your endpoints + API keys
-cargo run --release
+cargo run --release -p voice-translations
 ```
 
 Open http://127.0.0.1:8080, press **Start listening**, and speak.
@@ -55,6 +62,71 @@ Open http://127.0.0.1:8080, press **Start listening**, and speak.
 | `[tts]` | `endpoint`, `api_key`, `model`, `voice` | Optional; adds read-aloud buttons to every sentence |
 
 `config.toml` is git-ignored; never commit real credentials.
+
+## Building both apps
+
+The repository is a Cargo workspace with two members, so one command builds
+both binaries into a shared `target/`:
+
+```sh
+cargo build --release              # both apps
+cargo build --release -p voice-translations     # just this one
+cargo build --release -p medical-translations   # just the medical one
+```
+
+| | General translator | Medical interpreter |
+| --- | --- | --- |
+| Binary | `target/release/voice-translations` | `target/release/medical-translations` |
+| Source | `src/`, `static/` | `medical_translations/` |
+| Example config | `config.example.toml` | `medical_translations/config.example.toml` |
+| Default port | 8080 | 8090 |
+| Config env var | `VOICE_TRANSLATIONS_CONFIG` | `MEDICAL_TRANSLATIONS_CONFIG` |
+
+Both binaries take the same flags:
+
+```
+-c, --config <path>   Configuration file to load [default: config.toml]
+-h, --help            Print help
+-V, --version         Print the version
+```
+
+## Deploying
+
+Each binary is self-contained: the Silero VAD and onnxruntime assets are
+compiled in, so a deployment is **one binary plus one config file**, and it can
+live anywhere. Copy both apps to the same directory and give each its own
+config:
+
+```sh
+scp target/release/{voice-translations,medical-translations} server:/opt/translate/
+scp config.toml server:/opt/translate/generic.toml
+scp medical_translations/config.toml server:/opt/translate/medical.toml
+
+# on the server, in /opt/translate:
+./voice-translations   --config generic.toml    # :8080
+./medical-translations --config medical.toml    # :8090
+```
+
+Both apps log the **absolute path** of the configuration they loaded at
+startup. This matters because both default to `config.toml` in the working
+directory, so launching one from the other's directory would otherwise pick up
+the wrong file silently:
+
+```
+INFO voice_translations: loading configuration from /opt/translate/generic.toml
+INFO voice_translations: serving vendor assets embedded in the binary
+INFO voice_translations: listening on http://127.0.0.1:8080
+```
+
+When the source tree *is* present, the general translator serves the vendor
+assets from `static/vendor/` instead, so they can be swapped without a rebuild;
+the log line above says which source was used. To build a ~15 MB smaller binary
+that requires `static/vendor/` to be deployed beside it, use
+`cargo build --release --no-default-features`.
+
+Put both behind a TLS-terminating proxy: browsers only grant microphone access
+on HTTPS or `localhost`, and both apps redirect plain-HTTP visitors to HTTPS
+when they see an `X-Forwarded-Proto` header.
 
 ## Using it as a library
 

@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use axum::{
     extract::{DefaultBodyLimit, State},
     http::header,
@@ -7,7 +9,14 @@ use axum::{
     Json, Router,
 };
 use serde_json::Value;
-use voice_translations::{asr, translate, tts, AppState, Config};
+use voice_translations::{
+    asr,
+    cli::{Cli, CliSpec},
+    translate, tts, AppState, Config,
+};
+
+/// Vendored assets on disk, relative to the working directory.
+const VENDOR_DIR: &str = "static/vendor";
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -18,7 +27,26 @@ async fn main() -> anyhow::Result<()> {
         )
         .init();
 
-    let cfg = Config::load("config.toml")?;
+    let Some(cli) = Cli::parse(&CliSpec {
+        app: "voice-translations",
+        version: env!("CARGO_PKG_VERSION"),
+        about: "Real-time speech transcription and translation.",
+        env_var: "VOICE_TRANSLATIONS_CONFIG",
+        default_config: "config.toml",
+    })?
+    else {
+        return Ok(()); // --help or --version
+    };
+
+    // Log the resolved absolute path: which configuration a service ended up
+    // with should never be a guess.
+    tracing::info!(
+        "loading configuration from {}",
+        std::fs::canonicalize(&cli.config)
+            .unwrap_or_else(|_| cli.config.clone())
+            .display()
+    );
+    let cfg = Config::load(&cli.config)?;
     let addr = cfg.listen_addr()?;
     let state = AppState::new(cfg);
 
@@ -29,13 +57,21 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/config", get(api_config))
         .route("/api/transcribe", post(asr::api_transcribe))
         .route("/api/translate", post(translate::api_translate))
-        .route("/api/tts", post(tts::api_tts))
-        // Vendored Silero VAD + onnxruntime-web assets (large binaries, served
-        // from disk rather than embedded in the executable).
-        .nest_service(
-            "/vendor",
-            tower_http::services::ServeDir::new("static/vendor"),
-        )
+        .route("/api/tts", post(tts::api_tts));
+
+    // Vendored Silero VAD + onnxruntime-web assets. Served from disk when the
+    // source tree is there, so they can be swapped without a rebuild; a
+    // deployed binary has no source tree and falls back to the copy compiled
+    // into it.
+    let app = if Path::new(VENDOR_DIR).is_dir() {
+        tracing::info!("serving vendor assets from {VENDOR_DIR}");
+        app.nest_service("/vendor", tower_http::services::ServeDir::new(VENDOR_DIR))
+    } else {
+        tracing::info!("serving vendor assets embedded in the binary");
+        app.nest("/vendor", voice_translations::assets::vendor_router())
+    };
+
+    let app = app
         .layer(DefaultBodyLimit::max(32 * 1024 * 1024))
         .layer(middleware::from_fn(voice_translations::force_https))
         .with_state(state);

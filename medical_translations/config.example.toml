@@ -6,7 +6,9 @@
 
 [server]
 host = "127.0.0.1"
-port = 8080
+# Deliberately not 8080: the general-purpose voice-translations app defaults to
+# that, and the two are meant to be able to run side by side.
+port = 8090
 
 [audio]
 # Silence duration (ms) that ends a sentence/utterance. Clinical speech has

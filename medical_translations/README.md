@@ -54,11 +54,44 @@ negation, drug name, or body part may be touched while tidying.
 
 ```sh
 cp config.example.toml config.toml   # then fill in your endpoints + API keys
-cargo run --release
+cargo run --release -p medical-translations -- --config medical_translations/config.toml
 ```
 
-Open http://127.0.0.1:8080, choose the specialty and the two languages, press
+Open http://127.0.0.1:8090, choose the specialty and the two languages, press
 **Start listening**, and speak.
+
+`--config` is worth passing explicitly: `cargo run` sets the working directory
+to the workspace root, where `config.toml` is the *general* translator's. Both
+apps log the absolute path of the config they loaded, so check that line if
+something looks wrong. Running from this directory instead needs no flag:
+
+```sh
+cd medical_translations && cargo run --release
+```
+
+## Build and deploy
+
+This app is a member of the workspace rooted one level up, so both binaries
+build together into a shared `target/`:
+
+```sh
+cargo build --release                            # both apps
+cargo build --release -p medical-translations    # just this one
+```
+
+The result is self-contained — the Silero VAD and onnxruntime assets are
+compiled in — so a deployment is one binary plus one config file, in any
+directory:
+
+```sh
+./medical-translations --config /etc/medical.toml
+# or
+MEDICAL_TRANSLATIONS_CONFIG=/etc/medical.toml ./medical-translations
+```
+
+It defaults to port 8090 rather than 8080 specifically so it can run beside the
+general-purpose translator. See the [workspace README](../README.md#deploying)
+for deploying both together.
 
 > Browsers only allow microphone access on `localhost` or HTTPS origins. On a
 > phone or tablet at the bedside, a plain `http://<lan-ip>:8080` URL will load

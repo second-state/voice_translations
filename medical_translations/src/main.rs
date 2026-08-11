@@ -24,7 +24,11 @@ use axum::{
     Router,
 };
 
-use voice_translations::{assets, AppState};
+use voice_translations::{
+    assets,
+    cli::{Cli, CliSpec},
+    AppState,
+};
 
 use crate::{api::MedicalState, config::AppConfig};
 
@@ -37,7 +41,27 @@ async fn main() -> anyhow::Result<()> {
         )
         .init();
 
-    let cfg = AppConfig::load("config.toml")?;
+    let Some(cli) = Cli::parse(&CliSpec {
+        app: "medical-translations",
+        version: env!("CARGO_PKG_VERSION"),
+        about: "Real-time interpreting for patient/clinician conversations.",
+        env_var: "MEDICAL_TRANSLATIONS_CONFIG",
+        default_config: "config.toml",
+    })?
+    else {
+        return Ok(()); // --help or --version
+    };
+
+    // This app and the general translator both default to `config.toml`, so
+    // the resolved absolute path is logged: running one from the other's
+    // directory would otherwise load the wrong file silently.
+    tracing::info!(
+        "loading configuration from {}",
+        std::fs::canonicalize(&cli.config)
+            .unwrap_or_else(|_| cli.config.clone())
+            .display()
+    );
+    let cfg = AppConfig::load(&cli.config)?;
     let addr = cfg.base.listen_addr()?;
     let state = MedicalState {
         base: AppState::new(cfg.base),

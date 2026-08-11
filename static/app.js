@@ -122,15 +122,26 @@ function segmentKey(audio) {
   ].join(':');
 }
 
+// Re-entrancy guard: a second tap while the VAD model is still loading must
+// not create a second MicVAD instance (each would fire onSpeechEnd for every
+// utterance, duplicating messages, and the first instance would leak).
+let micBusy = false;
+
 async function toggleMic() {
-  if (state.running) {
-    await stopMic();
-  } else {
-    try {
+  if (micBusy) return;
+  micBusy = true;
+  $('micBtn').disabled = true;
+  try {
+    if (state.running) {
+      await stopMic();
+    } else {
       await startMic();
-    } catch (err) {
-      setStatus('error', 'Mic error: ' + err.message);
     }
+  } catch (err) {
+    setStatus('error', 'Mic error: ' + err.message);
+  } finally {
+    micBusy = false;
+    $('micBtn').disabled = false;
   }
 }
 

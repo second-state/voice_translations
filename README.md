@@ -55,3 +55,58 @@ Open http://127.0.0.1:8080, press **Start listening**, and speak.
 | `[tts]` | `endpoint`, `api_key`, `model`, `voice` | Optional; adds read-aloud buttons to every sentence |
 
 `config.toml` is git-ignored; never commit real credentials.
+
+## Using it as a library
+
+The crate is also a library, so another Axum app can reuse the pipeline and
+specialize it for a domain instead of forking it. Every stage is a plain
+function taking an `AppState`:
+
+```rust
+use voice_translations::{asr, translate, tts, AppState, Config};
+
+let state = AppState::new(Config::load("config.toml")?);
+
+// Transcribe, optionally priming the recognizer with domain vocabulary.
+let opts = asr::TranscribeOptions {
+    prompt: Some("apixaban, ejection fraction, atrial fibrillation".into()),
+    ..Default::default()
+};
+let heard = asr::transcribe(&state, &wav_bytes, &opts).await?;
+
+// Translate, splicing domain instructions into the system prompt. They land
+// after the general dictation-cleanup rules and before the rule that keeps the
+// response free of commentary.
+let req = translate::TranslateRequest {
+    text: heard.text,
+    target_lang: "Spanish".into(),
+    source_lang: heard.language,
+    domain_prompt: Some("Never convert or drop a dose.".into()),
+    ..Default::default()
+};
+let response = translate::translate_sse(state, req);   // streaming SSE
+```
+
+Other pieces worth reusing:
+
+| Item | Purpose |
+| --- | --- |
+| `asr::parse_audio_form` | Pulls the `audio` upload plus arbitrary extra text fields out of a multipart request |
+| `asr::normalize_language` | ISO codes and lowercase names to the display names used throughout |
+| `translate::build_system_prompt` | Inspect or rebuild the exact prompt the model will get |
+| `tts::synthesize` | Text to audio, with a per-request voice override |
+| `Config::client_view` | The settings JSON the browser needs, to merge your own keys into |
+| `force_https` | Middleware that upgrades plain-HTTP visitors behind a proxy (browsers need HTTPS for microphone access) |
+| `assets::vendor_router` | The VAD/onnxruntime assets, compiled in — enable the `embed-assets` feature |
+
+Enable `embed-assets` when you depend on this crate, since a dependency cannot
+reach this crate's `static/` tree at runtime:
+
+```toml
+voice-translations = { git = "https://github.com/second-state/voice_translations", features = ["embed-assets"] }
+```
+
+[`medical_translations`](medical_translations/) is a worked example: it adds a
+medical-specialty layer — a vocabulary primer per specialty for the recognizer,
+interpreting rules for the translator, and a two-party patient/clinician UI —
+without changing anything in this crate's own behavior.

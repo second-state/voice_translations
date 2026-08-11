@@ -1,0 +1,100 @@
+# Copy this file to config.toml and fill in your credentials.
+# config.toml is git-ignored and must never be committed.
+#
+# The [server] [audio] [asr] [llm] [tts] sections are the upstream
+# voice_translations settings; [medical] is this app's own.
+
+[server]
+host = "127.0.0.1"
+port = 8080
+
+[audio]
+# Silence duration (ms) that ends a sentence/utterance. Clinical speech has
+# more thinking pauses than casual conversation — a clinician working out a
+# dose, a patient recalling when a symptom started — so the default is
+# generous. Lower it if turns feel slow to come back.
+sentence_break_ms = 1200
+# Utterances shorter than this (ms) are discarded as noise.
+min_speech_ms = 250
+# Force a sentence break if one utterance runs longer than this (ms).
+max_utterance_ms = 30000
+# Silero VAD speech probability above which a frame counts as speech (0-1).
+# Lower it (e.g. 0.35) to pick up a patient speaking quietly from across an
+# exam room; raise it (e.g. 0.6) in a noisy ward.
+vad_positive_threshold = 0.5
+# Silero VAD speech probability below which a frame counts as silence (0-1).
+# Keep it below vad_positive_threshold.
+vad_negative_threshold = 0.35
+# Audio (ms) prepended before the detected speech onset so the first syllable
+# is not clipped.
+pre_speech_pad_ms = 300
+
+[medical]
+# Specialty selected when the page loads. Valid ids:
+#   primary_care, emergency, pediatrics, cardiology, oncology, orthopedics,
+#   dentistry, obgyn, psychiatry, dermatology, gastroenterology, neurology,
+#   endocrinology, pulmonology, ophthalmology, urology_nephrology, pharmacy,
+#   anesthesia, physical_therapy
+default_specialty = "primary_care"
+
+# The two sides of the encounter. ISO 639-1 codes or full names both work.
+clinician_language = "en"
+patient_language = "es"
+
+# Languages offered in the two pickers. The two above are always included.
+# Trim this to the languages your clinic actually sees.
+languages = [
+    "en", "es", "zh", "yue", "vi", "tl", "ko", "ar", "ru", "ht",
+    "pt", "fr", "hi", "bn", "ur", "fa", "ja", "so", "am", "ne",
+    "my", "uk", "pl", "de", "it",
+]
+
+# When to send the specialty's vocabulary primer to the ASR service, which
+# biases it toward drug names and clinical terms:
+#   "auto"   - only when the turn is known to be English, i.e. when the user
+#              taps Clinician/Patient to name the speaker (default). The
+#              primers are written in English, and a Whisper-family recognizer
+#              given an English primer with non-English audio tends to answer
+#              in English, which would send the whole turn through the
+#              pipeline backwards.
+#   "always" - every utterance, including auto-detected ones. Best term
+#              accuracy if your ASR service ignores primer language; verify
+#              with your provider before using it.
+#   "never"  - disable the primer entirely.
+asr_primer = "auto"
+
+# Optional distinct voices for read-aloud, so the room can hear which side a
+# rendered turn belongs to. Both fall back to [tts] voice.
+#clinician_voice = "alloy"
+#patient_voice = "nova"
+
+# Start with automatic read-aloud of every finished interpretation.
+speak_translations = false
+
+[asr]
+# OpenAI-compatible base URL; the server appends /audio/transcriptions.
+endpoint = "https://api.example.com/v1"
+api_key = "your-asr-api-key"
+model = "whisper-1"
+
+[llm]
+# OpenAI-compatible base URL; the server appends /chat/completions.
+endpoint = "https://api.example.com/v1"
+api_key = "your-llm-api-key"
+model = "gpt-4o-mini"
+# How many past turns of this encounter to include as context.
+context_messages = 5
+# Sampling temperature. Interpreting wants the literal reading, not a creative
+# one; if your model honors it, keep this low.
+temperature = 0.2
+
+[tts]
+# OpenAI-compatible base URL; the server appends /audio/speech.
+# Remove this whole section to hide the read-aloud buttons in the UI.
+endpoint = "https://api.example.com/v1"
+api_key = "your-tts-api-key"
+# e.g. "gpt-4o-mini-tts", or "elevenlabs/eleven_multilingual_v2" on gateways
+# that expose ElevenLabs (better multilingual quality, which matters when the
+# patient's language is the one being read aloud).
+model = "gpt-4o-mini-tts"
+voice = "alloy"

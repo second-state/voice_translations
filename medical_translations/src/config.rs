@@ -31,8 +31,8 @@ impl AppConfig {
         // Parsed twice against two independent structs: the upstream config
         // ignores `[medical]`, and this one ignores everything else, so
         // neither crate has to know about the other's settings.
-        let base = toml::from_str(&raw)
-            .with_context(|| format!("failed to parse {}", path.display()))?;
+        let base =
+            toml::from_str(&raw).with_context(|| format!("failed to parse {}", path.display()))?;
         let root: FileRoot = toml::from_str(&raw)
             .with_context(|| format!("failed to parse [medical] in {}", path.display()))?;
         let medical = root.medical.normalized()?;
@@ -161,12 +161,10 @@ impl MedicalConfig {
         let mut languages: Vec<String> = Vec::new();
         // Both configured languages must be selectable even if the operator
         // trimmed the list, and the UI keys off exact names, so de-duplicate.
-        for lang in self
-            .languages
-            .iter()
-            .map(|l| normalize_language(l))
-            .chain([self.clinician_language.clone(), self.patient_language.clone()])
-        {
+        for lang in self.languages.iter().map(|l| normalize_language(l)).chain([
+            self.clinician_language.clone(),
+            self.patient_language.clone(),
+        ]) {
             if !lang.is_empty() && !languages.contains(&lang) {
                 languages.push(lang);
             }

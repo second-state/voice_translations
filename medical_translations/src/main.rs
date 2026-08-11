@@ -18,6 +18,7 @@ use std::sync::Arc;
 use axum::{
     extract::DefaultBodyLimit,
     http::header,
+    middleware,
     response::{Html, IntoResponse},
     routing::{get, post},
     Router,
@@ -31,9 +32,8 @@ use crate::{api::MedicalState, config::AppConfig};
 async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt()
         .with_env_filter(
-            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
-                "medical_translations=info,voice_translations=info".into()
-            }),
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| "medical_translations=info,voice_translations=info".into()),
         )
         .init();
 
@@ -64,6 +64,9 @@ async fn main() -> anyhow::Result<()> {
         // upstream crate's `embed-assets` feature.
         .nest("/vendor", assets::vendor_router())
         .layer(DefaultBodyLimit::max(32 * 1024 * 1024))
+        // Microphone access requires HTTPS, so a plain-HTTP tunnel URL would
+        // load the page and then silently have no microphone API.
+        .layer(middleware::from_fn(voice_translations::force_https))
         .with_state(state);
 
     tracing::info!("listening on http://{addr}");

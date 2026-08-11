@@ -64,7 +64,13 @@ const VENDOR: &[(&str, &[u8], &str)] = &[
 ];
 
 /// Router serving the embedded assets, to be nested under a mount point.
-pub fn vendor_router() -> Router {
+///
+/// Generic over the surrounding app's state type (these routes need no state)
+/// so it can be nested directly into a stateful router.
+pub fn vendor_router<S>() -> Router<S>
+where
+    S: Clone + Send + Sync + 'static,
+{
     Router::new().route("/{*file}", get(serve))
 }
 

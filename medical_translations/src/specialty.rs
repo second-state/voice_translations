@@ -635,7 +635,10 @@ mod tests {
     fn unknown_ids_fall_back_to_the_default() {
         assert!(find(DEFAULT_SPECIALTY).is_some());
         assert_eq!(find_or_default(None).id, DEFAULT_SPECIALTY);
-        assert_eq!(find_or_default(Some("not_a_specialty")).id, DEFAULT_SPECIALTY);
+        assert_eq!(
+            find_or_default(Some("not_a_specialty")).id,
+            DEFAULT_SPECIALTY
+        );
         assert_eq!(find_or_default(Some("cardiology")).id, "cardiology");
         assert_eq!(find_or_default(Some(" Cardiology ")).id, "cardiology");
     }

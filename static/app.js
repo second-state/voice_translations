@@ -106,6 +106,21 @@ function sameLang(a, b) {
 let vadInstance = null;
 let utterStart = 0;
 let maxTimer = null;
+let lastSegment = { key: '', at: 0 };
+
+// Fingerprint a speech segment cheaply (length plus a few probe samples).
+// The VAD can deliver the same segment twice when a natural speech end races
+// the max-utterance force-break; identical audio yields an identical key.
+function segmentKey(audio) {
+  const probe = (i) => (audio[i] || 0).toFixed(6);
+  return [
+    audio.length,
+    probe(0),
+    probe(audio.length >> 2),
+    probe(audio.length >> 1),
+    probe(audio.length - 1),
+  ].join(':');
+}
 
 async function toggleMic() {
   if (state.running) {
@@ -182,10 +197,17 @@ async function startMic() {
       onSpeechEnd: (audio) => {
         clearTimeout(maxTimer);
         if (state.running) setStatus('listening');
+        const key = segmentKey(audio);
+        const now = Date.now();
+        if (key === lastSegment.key && now - lastSegment.at < 3000) {
+          console.warn('duplicate VAD segment dropped');
+          return;
+        }
+        lastSegment = { key, at: now };
         // `audio` is Float32Array PCM at 16 kHz containing exactly the
         // detected speech segment (plus pre-speech padding). Quiet/distant
         // speakers are boosted to a healthy level before transcription.
-        handleUtterance(encodeWav(normalizePeak(audio), 16000), utterStart || Date.now(), Date.now());
+        handleUtterance(encodeWav(normalizePeak(audio), 16000), utterStart || now, now);
       },
     });
   }

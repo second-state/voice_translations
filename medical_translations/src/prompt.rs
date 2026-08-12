@@ -161,41 +161,6 @@ pub fn translation_prompt(specialty: &Specialty, speaker: Speaker, editing: bool
     )
 }
 
-/// Target-language notes for languages whose clinical register differs from
-/// what a general translation model produces by default.
-///
-/// The library layer already forces colloquial Hong Kong Cantonese for the
-/// Cantonese target; this adds the *clinical* vocabulary layer: the terms
-/// patients and clinicians in Hong Kong actually use, including the routine
-/// English code-mixing of HK healthcare.
-pub fn language_notes(target_lang: &str) -> Option<&'static str> {
-    match target_lang.trim().to_ascii_lowercase().as_str() {
-        "cantonese" | "yue" => Some(
-            "CANTONESE (HONG KONG) CLINICAL NOTES:\n\
-             - Use the medical vocabulary actually spoken in Hong Kong clinics \
-             and hospitals: 覆診 (follow-up visit), 開刀 (operation), 食藥 (take \
-             medication - never 吃藥), 打針 (injection), 抽血 (blood draw), \
-             照X光 / 照超聲波 / 做CT / 做MRI (imaging), 藥物敏感 (drug allergy), \
-             血壓高 (high blood pressure), 糖尿病 (diabetes), 心臟病發 (heart \
-             attack), 中風 (stroke), 發燒 (fever), 頭暈 (dizziness), 氣促 \
-             (shortness of breath), 作嘔 / 想嘔 (nausea), 肚屙 (diarrhoea), \
-             痰 (phlegm), 傷口 (wound), 拆線 (remove stitches), 麻醉 (anaesthesia), \
-             照胃鏡 / 照腸鏡 (endoscopy / colonoscopy), 洗血 (dialysis), 吊鹽水 \
-             (IV drip).\n\
-             - Hong Kong clinicians and patients routinely mix English clinical \
-             terms into Cantonese. Keep drug names, test names (CT, MRI, X光), \
-             and clinical terms in English exactly where a Hong Kong speaker \
-             would - do not force a Chinese rendering of a term that is said in \
-             English in HK practice.\n\
-             - When the patient speaks Mandarin or the clinician's turn arrives \
-             in another language, interpret the meaning into spoken Hong Kong \
-             Cantonese as above; never fall back to Standard Written Chinese \
-             for the medical content.",
-        ),
-        _ => None,
-    }
-}
-
 /// The vocabulary primer for the speech recognizer.
 ///
 /// Returned as the specialty's term list preceded by a short framing clause,

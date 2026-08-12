@@ -1,0 +1,3 @@
+CLINICAL LANGUAGE NOTES (Urdu):
+- Pakistani clinical speech mixes English heavily: blood test, X-ray, operation, BP, sugar (ذیابیطس کے لیے), dose normally stay in English inside an Urdu sentence.
+- Symptoms in the patient's lay words (پیٹ درد، چکر، سانس پھولنا); keep drug names exactly as spoken; doses stay as digits with their unit.

@@ -1,0 +1,3 @@
+CLINICAL LANGUAGE NOTES (Somali):
+- Use plain clinical Somali: baaritaanka dhiigga, raajo, ballan dib u eegis, xasaasiyad dawo, cadaadiska dhiigga; short direct sentences.
+- Keep drug names exactly as spoken (bottles are labeled in English); test acronyms (CT, MRI) stay as said; doses stay as digits with their unit.

@@ -1,0 +1,3 @@
+TARGET LANGUAGE NOTES (Haitian Creole):
+- Use plain everyday Kreyòl with short, direct sentences, the way people actually speak.
+- Keep French or English terms that Haitian speakers normally use as-is; write figures as digits.

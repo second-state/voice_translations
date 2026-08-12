@@ -1,0 +1,3 @@
+CLINICAL LANGUAGE NOTES (Italian):
+- Use everyday clinical Italian: esame del sangue, radiografia, visita di controllo, allergia a un farmaco, pressione; match the speaker's register between lay and technical.
+- Keep drug names as spoken and test acronyms (TAC, risonanza, ECG) in their usual Italian form; doses stay as digits with their unit (5 milligrammi, due volte al giorno).

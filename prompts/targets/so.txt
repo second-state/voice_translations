@@ -1,0 +1,3 @@
+TARGET LANGUAGE NOTES (Somali):
+- Use plain, respectful spoken Somali with direct sentences.
+- Keep the English or Italian loanwords Somali speakers normally use; write figures as digits.

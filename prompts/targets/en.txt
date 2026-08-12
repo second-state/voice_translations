@@ -1,0 +1,3 @@
+TARGET LANGUAGE NOTES (English):
+- Use natural everyday spoken English, matching the speaker's register: casual stays casual, formal stays formal.
+- Keep names, brands, and acronyms exactly as spoken; write figures as digits.

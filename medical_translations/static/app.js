@@ -412,7 +412,11 @@ async function handleUtterance(blob, start, end) {
       return;
     }
     msg.sourceText = text;
-    msg.sourceLang = msg.role ? langFor(msg.role) : (langName(data.language) || state.clinicianLang);
+    // What the recognizer itself reported, kept for the deviation flag. When
+    // the language was pinned, some services echo the pin; others report what
+    // they actually heard, which is the interesting case.
+    msg.heardLang = langName(data.language) || null;
+    msg.sourceLang = msg.role ? langFor(msg.role) : (msg.heardLang || state.clinicianLang);
     msg.role ??= roleFor(msg.sourceLang);
     msg.targetLang = langFor(otherRole(msg.role));
     updateMessageHead(msg);
@@ -593,7 +597,11 @@ function renderMessage(msg) {
   if (msg.role) el.dataset.role = msg.role;
   el.innerHTML = `
     <div class="msg-head">
-      <span class="role-badge"></span>
+      <span class="role-toggle" title="Who spoke this turn">
+        <button type="button" data-set-role="clinician">Clinician</button>
+        <button type="button" data-set-role="patient">Patient</button>
+      </span>
+      <span class="lang-warn" hidden></span>
       <time>${fmtClock(msg.start)}</time>
       <span class="msg-dur">${((msg.end - msg.start) / 1000).toFixed(1)}s</span>
       <span class="lang-badge"></span>
@@ -602,7 +610,13 @@ function renderMessage(msg) {
       <div class="blob-lang"><span class="blob-label">Spoken</span></div>
       <div class="blob-text pending">Transcribing…</div>
     </div>`;
-  el.querySelector('.role-badge').textContent = msg.role ? roleLabel(msg.role) : 'Listening…';
+  for (const btn of el.querySelectorAll('[data-set-role]')) {
+    btn.disabled = true;
+    btn.addEventListener('click', () => reassignRole(msg, btn.dataset.setRole));
+  }
+  if (msg.role) {
+    el.querySelector(`[data-set-role="${msg.role}"]`).classList.add('on');
+  }
   if (state.cfg.tts_enabled) {
     el.querySelector('.source .blob-lang')
       .appendChild(makeSpeakBtn(() => msg.clean?.text || msg.sourceText, () => msg.role));
@@ -618,10 +632,46 @@ function roleLabel(role) {
 
 function updateMessageHead(msg) {
   msg.el.dataset.role = msg.role;
-  msg.el.querySelector('.role-badge').textContent = roleLabel(msg.role);
+  for (const btn of msg.el.querySelectorAll('[data-set-role]')) {
+    btn.disabled = !msg.sourceText;
+    btn.classList.toggle('on', btn.dataset.setRole === msg.role);
+    btn.title = btn.dataset.setRole === msg.role
+      ? 'Speaker of this turn'
+      : 'Reassign this turn and re-interpret';
+  }
   msg.el.querySelector('.lang-badge').textContent = sameLang(msg.sourceLang, msg.targetLang)
     ? msg.sourceLang
     : `${msg.sourceLang} → ${msg.targetLang}`;
+
+  // Flag a turn whose detected language is not what this speaker's preset
+  // says it should be: either the wrong preset, or the wrong speaker.
+  const warn = msg.el.querySelector('.lang-warn');
+  const expected = langFor(msg.role);
+  if (msg.heardLang && !sameLang(msg.heardLang, expected)) {
+    warn.hidden = false;
+    warn.textContent = `⚠ sounds like ${msg.heardLang}, expected ${expected}`;
+  } else {
+    warn.hidden = true;
+  }
+}
+
+// Reassign a finished turn to the other speaker: the direction flips, so the
+// interpretation is discarded and re-run toward the new listener's language.
+function reassignRole(msg, role) {
+  if (!msg.sourceText || msg.role === role) return;
+  msg.role = role;
+  msg.targetLang = langFor(otherRole(role));
+  msg.el.querySelector('.translation')?.remove();
+  msg.el.querySelector('.same-lang-note')?.remove();
+  for (const n of msg.el.querySelectorAll('.number-flag')) n.remove();
+  updateMessageHead(msg);
+  if (sameLang(msg.sourceLang, msg.targetLang)) {
+    addSameLangNote(msg);
+    return;
+  }
+  msg.translation = { text: '', done: false };
+  addTranslationBlob(msg);
+  streamTranslation(msg).then(() => checkNumbers(msg));
 }
 
 function updateSourceBlob(msg) {

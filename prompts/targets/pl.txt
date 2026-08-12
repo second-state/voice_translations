@@ -1,0 +1,3 @@
+TARGET LANGUAGE NOTES (Polish):
+- Use natural spoken Polish; address strangers and elders with Pan/Pani forms.
+- Keep foreign names and brands as spoken; write figures as digits.

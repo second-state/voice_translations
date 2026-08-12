@@ -1,0 +1,3 @@
+CLINICAL LANGUAGE NOTES (Spanish):
+- Use the everyday clinical Spanish patients actually use: análisis de sangre, radiografía, azúcar en la sangre, pastilla para la presión; keep a clinician's technical term technical (hemoglobina glucosilada) when that is what was said.
+- Keep drug names exactly as spoken (brand or generic) and test acronyms as commonly used in Spanish (una tomografía / un CT according to the speaker); doses stay as digits with their unit (5 miligramos, dos veces al día).

@@ -1,0 +1,3 @@
+CLINICAL LANGUAGE NOTES (Portuguese):
+- Use everyday clinical Brazilian Portuguese: exame de sangue, raio-X, consulta de retorno, alergia a remédio, pressão alta; patients say remédio, clinicians say medicamento - match the speaker.
+- Keep drug names as spoken and test acronyms (tomografia/CT, ressonância/MRI) as the speaker used them; doses stay as digits with their unit (5 miligramas, duas vezes ao dia).

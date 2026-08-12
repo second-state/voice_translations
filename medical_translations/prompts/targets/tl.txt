@@ -1,0 +1,4 @@
+CLINICAL LANGUAGE NOTES (Tagalog):
+- Philippine healthcare speech is Taglish: blood test, X-ray, check-up, blood pressure, maintenance (for daily meds) normally stay in English inside a Tagalog sentence; do not force pure Tagalog terms nobody uses.
+- Use po consistently toward patients and elders; symptoms in the patient's lay words (masakit ang tiyan, nahihilo, hirap huminga).
+- Keep drug names exactly as spoken; doses stay as digits with their unit.

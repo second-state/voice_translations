@@ -1,0 +1,3 @@
+CLINICAL LANGUAGE NOTES (Vietnamese):
+- Use everyday clinical Vietnamese: xét nghiệm máu, chụp X-quang, tái khám, uống thuốc, tiêm, dị ứng thuốc, cao huyết áp; address the patient with respectful kinship terms (cô, bác, ông, bà) as a Vietnamese clinician would.
+- Keep drug names as spoken and test acronyms (CT, MRI) in their usual form; doses stay as digits with their unit (5 miligam, ngày hai lần).

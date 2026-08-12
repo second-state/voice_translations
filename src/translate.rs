@@ -144,9 +144,10 @@ pub fn build_system_prompt(req: &TranslateRequest) -> String {
          register of the original."
     ));
 
-    if let Some(notes) = target_language_notes(&req.target_lang) {
+    if let Some(notes) = crate::lang_notes::notes_for(req.source_lang.as_deref(), &req.target_lang)
+    {
         system.push_str("\n\n");
-        system.push_str(notes);
+        system.push_str(&notes);
     }
 
     if let Some(domain) = req.domain_prompt.as_deref().map(str::trim) {
@@ -163,34 +164,6 @@ pub fn build_system_prompt(req: &TranslateRequest) -> String {
         req.target_lang
     ));
     system
-}
-
-/// Extra rendering rules some target languages need, spliced into the system
-/// prompt between the cleanup rules and the domain prompt.
-///
-/// Cantonese is the motivating case: without this, models default to Standard
-/// Written Chinese in traditional characters, which is *read* by Hong Kong
-/// speakers but is not what anyone *says*. Applies to the same-language
-/// polishing pass as well, so a Cantonese transcript stays colloquial.
-pub fn target_language_notes(target_lang: &str) -> Option<&'static str> {
-    match target_lang.trim().to_ascii_lowercase().as_str() {
-        "cantonese" | "yue" => Some(
-            "TARGET LANGUAGE NOTE - Cantonese here means Hong Kong Cantonese. \
-             Write authentic colloquial spoken Cantonese in traditional Chinese \
-             characters, with Cantonese grammar and function words \
-             (嘅, 咗, 緊, 喺, 唔, 冇, 佢哋, 啲, 咁, 嚟, 畀, 乜嘢, 點解, 而家, 聽日), \
-             phrased exactly as a Hong Kong native speaker would say it aloud: \
-             「我哋聽日去醫院」, never 「我們明天去醫院」. Never output Standard \
-             Written Chinese (書面語) or Mandarin phrasing transliterated into \
-             traditional characters. This applies with full force when the \
-             speaker is speaking Mandarin: translate the meaning into how a \
-             Hong Konger would say it, do not just convert the characters. \
-             Keep the English words Hong Kong speakers naturally mix into \
-             speech (OK, book, check, send) where the speaker's meaning calls \
-             for them.",
-        ),
-        _ => None,
-    }
 }
 
 /// Whether this request polishes a transcript in place rather than translating

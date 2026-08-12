@@ -23,6 +23,7 @@ use voice_translations::{
 
 use crate::{
     config::MedicalConfig,
+    lang,
     prompt::{self, Speaker},
     specialty::{self, SPECIALTIES},
 };
@@ -65,9 +66,10 @@ pub async fn api_transcribe(
     let mut form = asr::parse_audio_form(&mut multipart).await?;
     let spec = specialty::find_or_default(form.fields.get("specialty").map(String::as_str));
 
-    if state.cfg.send_primer(form.options.language.as_deref()) {
-        form.options.prompt = Some(prompt::asr_primer(spec));
-    }
+    // English turns get the specialty's own primer; other pinned languages get
+    // that language's general clinical primer.
+    form.options.prompt =
+        lang::primer_for(state.cfg.asr_primer, form.options.language.as_deref(), spec);
 
     tracing::info!(
         specialty = spec.id,
@@ -116,7 +118,9 @@ pub async fn api_translate(
     // an interpretation; the domain prompt is framed differently for it.
     let editing = translate::is_editing(&upstream);
     let mut domain = prompt::translation_prompt(spec, speaker, editing);
-    if let Some(notes) = prompt::language_notes(&upstream.target_lang) {
+    // The base pipeline already adds the general per-language rendering notes;
+    // this is the clinical layer on top.
+    if let Some(notes) = lang::clinical_notes(&upstream.target_lang) {
         domain.push_str("\n\n");
         domain.push_str(notes);
     }

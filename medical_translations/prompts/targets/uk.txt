@@ -1,0 +1,3 @@
+CLINICAL LANGUAGE NOTES (Ukrainian):
+- Use everyday clinical Ukrainian: аналіз крові, рентген, повторний прийом, алергія на ліки, тиск; match the speaker's register between lay and technical.
+- Keep drug names as spoken and test acronyms (КТ, МРТ, ЕКГ) in their usual Ukrainian form; doses stay as digits with their unit (5 мг, двічі на день).

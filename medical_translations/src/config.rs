@@ -47,21 +47,24 @@ struct FileRoot {
     medical: MedicalConfig,
 }
 
-/// When to send the specialty vocabulary primer to the speech recognizer.
+/// When to send a vocabulary primer to the speech recognizer.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum AsrPrimer {
-    /// Send it only when the utterance is known to be English.
+    /// Send it only when the utterance's language is known (the UI pinned it
+    /// by naming the speaker): English turns get the specialty's own primer,
+    /// other offered languages get that language's general clinical primer
+    /// from `prompts/primers/`.
     ///
-    /// The primers are written in English, and a Whisper-family recognizer
-    /// given a primer in one language and audio in another tends to emit the
-    /// primer's language — which would silently turn a patient's Spanish into
-    /// English and send the whole turn through the pipeline backwards. Pinning
-    /// "who is speaking" in the UI is what makes a turn known-English, so the
-    /// primer fires on exactly the turns that carry the dense jargon.
+    /// A primer must be in the language the recognizer is about to hear: a
+    /// Whisper-family recognizer given a primer in one language and audio in
+    /// another tends to emit the primer's language — which would silently
+    /// turn a patient's Spanish into English and send the whole turn through
+    /// the pipeline backwards. That is why unknown-language turns get none.
     #[default]
     Auto,
-    /// Send it on every utterance, including auto-detected ones.
+    /// Send one on every utterance: the English specialty primer when the
+    /// language is unknown. Riskier with Whisper-family recognizers.
     Always,
     /// Never send it; the recognizer gets audio only.
     Never,
@@ -105,7 +108,9 @@ impl Default for MedicalConfig {
 
 /// Offered by default: the languages most often needed by interpreter
 /// services in general practice, plus the app's own working language.
-const DEFAULT_LANGUAGES: &[&str] = &[
+/// Every entry has a primer and clinical notes file in `prompts/`
+/// (enforced by tests in [`crate::lang`]).
+pub const DEFAULT_LANGUAGES: &[&str] = &[
     "English",
     "Spanish",
     "Chinese",
@@ -172,16 +177,6 @@ impl MedicalConfig {
         self.languages = languages;
         Ok(self)
     }
-
-    /// Whether to prime the recognizer for an utterance whose language is
-    /// `pinned` (`None` when the UI leaves detection to the recognizer).
-    pub fn send_primer(&self, pinned: Option<&str>) -> bool {
-        match self.asr_primer {
-            AsrPrimer::Never => false,
-            AsrPrimer::Always => true,
-            AsrPrimer::Auto => pinned.is_some_and(|lang| normalize_language(lang) == "English"),
-        }
-    }
 }
 
 #[cfg(test)]
@@ -228,24 +223,5 @@ mod tests {
     fn unknown_specialty_is_a_startup_error() {
         let err = config("[medical]\ndefault_specialty = \"astrology\"\n").unwrap_err();
         assert!(err.to_string().contains("not a known specialty"));
-    }
-
-    #[test]
-    fn auto_primer_only_fires_on_pinned_english() {
-        let cfg = config("").unwrap();
-        assert!(cfg.send_primer(Some("en")));
-        assert!(cfg.send_primer(Some("English")));
-        assert!(!cfg.send_primer(Some("es")));
-        assert!(!cfg.send_primer(None));
-    }
-
-    #[test]
-    fn primer_policy_overrides_apply() {
-        let always = config("[medical]\nasr_primer = \"always\"\n").unwrap();
-        assert!(always.send_primer(None));
-        assert!(always.send_primer(Some("es")));
-
-        let never = config("[medical]\nasr_primer = \"never\"\n").unwrap();
-        assert!(!never.send_primer(Some("en")));
     }
 }

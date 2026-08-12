@@ -10,6 +10,7 @@
 
 mod api;
 mod config;
+mod lang;
 mod prompt;
 mod specialty;
 

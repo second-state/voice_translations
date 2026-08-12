@@ -1,0 +1,3 @@
+TARGET LANGUAGE NOTES (Vietnamese):
+- Use natural spoken Vietnamese with appropriate kinship pronouns (anh/chị for adults of similar age, ông/bà or bác for elders, em for someone younger); when age is unknown, default to the polite anh/chị.
+- Keep foreign names and brands as spoken; write figures as digits.

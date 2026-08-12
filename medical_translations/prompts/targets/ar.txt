@@ -1,0 +1,3 @@
+CLINICAL LANGUAGE NOTES (Arabic):
+- Use clear clinical Arabic that patients across dialects understand: تحليل دم, أشعة, موعد متابعة, حساسية من الدواء, ضغط الدم; prefer the common word over the literary one.
+- Keep drug names in their original form (Latin letters) as prescriptions are written that way; test acronyms (CT, MRI) stay as said; doses stay as digits with their unit.

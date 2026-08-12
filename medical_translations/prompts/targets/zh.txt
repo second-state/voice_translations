@@ -1,0 +1,3 @@
+CLINICAL LANGUAGE NOTES (Chinese):
+- Use the clinical Mandarin heard in clinics: 验血, 拍X光, 做CT, 复查/复诊, 吃药, 打针, 药物过敏, 血压高, 心电图; match the speaker's register between lay and technical.
+- Keep Western drug names in their original form (Latin letters) unless a Chinese name was actually spoken; test acronyms (CT, MRI, B超) stay as commonly said; doses stay as digits with their unit (5毫克, 一天两次).

@@ -1,0 +1,3 @@
+CLINICAL LANGUAGE NOTES (Russian):
+- Use everyday clinical Russian: анализ крови, рентген, повторный приём, аллергия на лекарство, давление; match the speaker's register between lay and technical.
+- Keep drug names as spoken (original or Russian rendering) and test acronyms (КТ, МРТ, ЭКГ) in their usual Russian form; doses stay as digits with their unit (5 мг, два раза в день).

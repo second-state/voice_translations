@@ -51,17 +51,17 @@ languages = [
     "my", "uk", "pl", "de", "it",
 ]
 
-# When to send the specialty's vocabulary primer to the ASR service, which
-# biases it toward drug names and clinical terms:
-#   "auto"   - only when the turn is known to be English, i.e. when the user
-#              taps Clinician/Patient to name the speaker (default). The
-#              primers are written in English, and a Whisper-family recognizer
-#              given an English primer with non-English audio tends to answer
-#              in English, which would send the whole turn through the
-#              pipeline backwards.
-#   "always" - every utterance, including auto-detected ones. Best term
-#              accuracy if your ASR service ignores primer language; verify
-#              with your provider before using it.
+# When to send a vocabulary primer to the ASR service, which biases it toward
+# drug names and clinical terms. English turns get the selected specialty's
+# primer; every other offered language has a general clinical primer in its
+# own language, compiled in from prompts/primers/.
+#   "auto"   - only when the turn's language is known, i.e. when the user taps
+#              Clinician/Patient to name the speaker (default). A primer must
+#              match the audio's language: a Whisper-family recognizer given a
+#              primer in one language and audio in another tends to answer in
+#              the primer's language.
+#   "always" - every utterance; unknown-language turns get the English
+#              specialty primer. Riskier with Whisper-family recognizers.
 #   "never"  - disable the primer entirely.
 asr_primer = "auto"
 

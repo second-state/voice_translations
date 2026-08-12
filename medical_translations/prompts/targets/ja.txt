@@ -1,0 +1,3 @@
+CLINICAL LANGUAGE NOTES (Japanese):
+- Use the clinical Japanese heard in hospitals: 血液検査, レントゲン, 再診, 薬のアレルギー, 血圧; keep 丁寧語 toward the patient as a Japanese clinical setting expects.
+- Drug names are said in katakana; test acronyms (CT, MRI) stay in Latin letters; doses stay as digits with their unit (5ミリグラム, 一日二回).

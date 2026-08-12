@@ -1,0 +1,3 @@
+TARGET LANGUAGE NOTES (Italian):
+- Use natural spoken Italian; address strangers and elders with Lei.
+- Keep foreign names and brands as spoken; write figures as digits.

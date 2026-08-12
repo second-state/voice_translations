@@ -34,6 +34,7 @@
 pub mod asr;
 pub mod cli;
 pub mod config;
+pub mod lang_notes;
 pub mod translate;
 pub mod tts;
 

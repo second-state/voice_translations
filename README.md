@@ -139,9 +139,9 @@ use voice_translations::{asr, translate, tts, AppState, Config};
 
 let state = AppState::new(Config::load("config.toml")?);
 
-// Transcribe, optionally priming the recognizer with domain vocabulary.
+// Transcribe, optionally pinning the expected language.
 let opts = asr::TranscribeOptions {
-    prompt: Some("apixaban, ejection fraction, atrial fibrillation".into()),
+    language: Some("es".into()),
     ..Default::default()
 };
 let heard = asr::transcribe(&state, &wav_bytes, &opts).await?;

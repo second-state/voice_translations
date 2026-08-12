@@ -26,12 +26,6 @@ pub struct TranscribeOptions {
     pub mime: Option<String>,
     /// ISO 639-1 hint that pins the spoken language instead of detecting it.
     pub language: Option<String>,
-    /// Vocabulary primer (the `prompt` field of the OpenAI audio API): a
-    /// sample of the jargon, drug names, and proper nouns expected in this
-    /// audio. The recognizer treats it as preceding context, which biases it
-    /// toward those spellings instead of common-word lookalikes. Keep it
-    /// under ~200 tokens; services silently truncate longer primers.
-    pub prompt: Option<String>,
 }
 
 /// An `audio` upload together with the text fields that came with it.
@@ -55,9 +49,8 @@ pub async fn api_transcribe(
     Ok(Json(transcribe(&state, &form.audio, &form.options).await?))
 }
 
-/// Pull the `audio` file and the recognized text fields (`language`,
-/// `prompt`) out of a multipart request, keeping any other text field in
-/// [`AudioForm::fields`].
+/// Pull the `audio` file and the recognized `language` text field out of a
+/// multipart request, keeping any other text field in [`AudioForm::fields`].
 pub async fn parse_audio_form(multipart: &mut Multipart) -> Result<AudioForm> {
     let mut audio: Option<Vec<u8>> = None;
     let mut options = TranscribeOptions::default();
@@ -79,7 +72,6 @@ pub async fn parse_audio_form(multipart: &mut Multipart) -> Result<AudioForm> {
                 }
                 match name.as_str() {
                     "language" => options.language = Some(value),
-                    "prompt" => options.prompt = Some(value),
                     _ => {
                         fields.insert(name, value);
                     }
@@ -155,9 +147,6 @@ async fn request_transcription(
         .text("response_format", response_format.to_string());
     if let Some(language) = &options.language {
         form = form.text("language", language.clone());
-    }
-    if let Some(prompt) = &options.prompt {
-        form = form.text("prompt", prompt.clone());
     }
 
     let url = format!(

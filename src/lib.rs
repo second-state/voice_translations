@@ -5,8 +5,8 @@
 //! pipeline is also exposed as a plain function so other Axum apps can reuse
 //! the machinery and specialize it for a domain:
 //!
-//! * [`asr::transcribe`] — audio bytes to text, with an optional vocabulary
-//!   primer that biases the recognizer toward domain jargon.
+//! * [`asr::transcribe`] — audio bytes to text, with optional language
+//!   pinning.
 //! * [`translate::translate_sse`] — a streaming translation response, with an
 //!   optional [`translate::TranslateRequest::domain_prompt`] spliced into the
 //!   system prompt.
@@ -22,7 +22,7 @@
 //! # async fn example() -> anyhow::Result<()> {
 //! let state = AppState::new(Config::load("config.toml")?);
 //! let opts = asr::TranscribeOptions {
-//!     prompt: Some("mitral regurgitation, atrial fibrillation".into()),
+//!     language: Some("es".into()),
 //!     ..Default::default()
 //! };
 //! let result = asr::transcribe(&state, b"...wav bytes...", &opts).await?;

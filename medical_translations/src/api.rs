@@ -55,25 +55,15 @@ pub async fn api_config(State(state): State<MedicalState>) -> Json<Value> {
     Json(view)
 }
 
-/// POST /api/transcribe — multipart `audio`, plus optional `language` and
-/// `specialty` fields. The specialty selects the vocabulary primer sent to the
-/// recognizer.
+/// POST /api/transcribe — multipart `audio`, plus an optional `language`
+/// field pinning the expected language.
 pub async fn api_transcribe(
     State(state): State<MedicalState>,
     mut multipart: Multipart,
 ) -> Result<Json<TranscribeResponse>, AppError> {
-    let mut form = asr::parse_audio_form(&mut multipart).await?;
-    let spec = specialty::find_or_default(form.fields.get("specialty").map(String::as_str));
-
-    // English turns get the specialty's own primer; other pinned languages get
-    // that language's general clinical primer.
-    form.options.prompt =
-        lang::primer_for(state.cfg.asr_primer, form.options.language.as_deref(), spec);
-
+    let form = asr::parse_audio_form(&mut multipart).await?;
     tracing::info!(
-        specialty = spec.id,
         language = form.options.language.as_deref().unwrap_or("auto"),
-        primed = form.options.prompt.is_some(),
         "transcribing utterance"
     );
     Ok(Json(

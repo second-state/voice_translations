@@ -179,6 +179,6 @@ voice-translations = { git = "https://github.com/second-state/voice_translations
 ```
 
 [`medical_translations`](medical_translations/) is a worked example: it adds a
-medical-specialty layer — a vocabulary primer per specialty for the recognizer,
-interpreting rules for the translator, and a two-party patient/clinician UI —
-without changing anything in this crate's own behavior.
+medical-specialty layer — interpreting rules and per-specialty terminology
+guidance for the translator, and a two-party patient/clinician UI — without
+changing anything in this crate's own behavior.

@@ -4,7 +4,7 @@
 use std::{fs, path::Path};
 
 use anyhow::{Context, Result};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
 use voice_translations::asr::normalize_language;
 
@@ -47,29 +47,6 @@ struct FileRoot {
     medical: MedicalConfig,
 }
 
-/// When to send a vocabulary primer to the speech recognizer.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize, Serialize)]
-#[serde(rename_all = "lowercase")]
-pub enum AsrPrimer {
-    /// Send it only when the utterance's language is known (the UI pinned it
-    /// by naming the speaker): English turns get the specialty's own primer,
-    /// other offered languages get that language's general clinical primer
-    /// from `prompts/primers/`.
-    ///
-    /// A primer must be in the language the recognizer is about to hear: a
-    /// Whisper-family recognizer given a primer in one language and audio in
-    /// another tends to emit the primer's language — which would silently
-    /// turn a patient's Spanish into English and send the whole turn through
-    /// the pipeline backwards. That is why unknown-language turns get none.
-    #[default]
-    Auto,
-    /// Send one on every utterance: the English specialty primer when the
-    /// language is unknown. Riskier with Whisper-family recognizers.
-    Always,
-    /// Never send it; the recognizer gets audio only.
-    Never,
-}
-
 #[derive(Debug, Deserialize)]
 #[serde(default)]
 pub struct MedicalConfig {
@@ -81,8 +58,6 @@ pub struct MedicalConfig {
     pub patient_language: String,
     /// Languages offered in both pickers (ISO 639-1 codes or names).
     pub languages: Vec<String>,
-    /// When to prime the recognizer with specialty vocabulary.
-    pub asr_primer: AsrPrimer,
     /// Voice used to read clinician turns aloud; falls back to `[tts] voice`.
     pub clinician_voice: Option<String>,
     /// Voice used to read patient turns aloud; falls back to `[tts] voice`.
@@ -96,7 +71,6 @@ impl Default for MedicalConfig {
             clinician_language: "English".into(),
             patient_language: "Spanish".into(),
             languages: DEFAULT_LANGUAGES.iter().map(|l| (*l).into()).collect(),
-            asr_primer: AsrPrimer::default(),
             clinician_voice: None,
             patient_voice: None,
         }
@@ -105,7 +79,7 @@ impl Default for MedicalConfig {
 
 /// Offered by default: the languages most often needed by interpreter
 /// services in general practice, plus the app's own working language.
-/// Every entry has a primer and clinical notes file in `prompts/`
+/// Every entry has a clinical notes file in `prompts/targets/`
 /// (enforced by tests in [`crate::lang`]).
 pub const DEFAULT_LANGUAGES: &[&str] = &[
     "English",
@@ -178,7 +152,7 @@ impl MedicalConfig {
 
 #[cfg(test)]
 mod tests {
-    use super::{AsrPrimer, MedicalConfig};
+    use super::MedicalConfig;
 
     fn config(toml: &str) -> anyhow::Result<MedicalConfig> {
         let root: super::FileRoot = toml::from_str(toml)?;
@@ -191,7 +165,6 @@ mod tests {
         assert_eq!(cfg.clinician_language, "English");
         assert_eq!(cfg.patient_language, "Spanish");
         assert!(cfg.languages.contains(&"Spanish".to_string()));
-        assert_eq!(cfg.asr_primer, AsrPrimer::Auto);
     }
 
     #[test]

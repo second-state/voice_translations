@@ -1,23 +1,16 @@
 //! The medical specialties the app can be tuned to.
 //!
-//! Each entry carries two pieces of domain knowledge:
-//!
-//! * [`Specialty::asr_primer`] — a vocabulary sample handed to the speech
-//!   recognizer, which biases it toward drug names, anatomy, and abbreviations
-//!   that it would otherwise render as common-word lookalikes ("Lasix" as
-//!   "lay six", "hyponatremia" as "hypo notremia").
-//! * [`Specialty::guidance`] — the terminology and accuracy notes appended to
-//!   the translation system prompt, on top of the general interpreting rules
-//!   in [`crate::prompt`].
-//!
-//! The primers are deliberately written as term lists rather than prose: a
-//! recognizer treats the primer as preceding context, and a list biases
-//! spelling without tempting the model to continue a sentence.
+//! Each entry carries one piece of domain knowledge:
+//! [`Specialty::guidance`] — the terminology and accuracy notes appended to
+//! the translation system prompt, on top of the general interpreting rules
+//! in [`crate::prompt`]. The translator uses it both to interpret faithfully
+//! and to repair phonetic mishearings the recognizer makes on specialty terms
+//! ("Lasix" as "lay six", "hyponatremia" as "hypo notremia").
 
 use serde::Serialize;
 
-/// One medical specialty, with the prompt material that specializes both the
-/// recognizer and the translator to it.
+/// One medical specialty, with the prompt material that specializes the
+/// translator to it.
 #[derive(Debug, Clone, Copy, Serialize)]
 pub struct Specialty {
     /// Stable identifier used on the wire and in `config.toml`.
@@ -28,9 +21,6 @@ pub struct Specialty {
     pub icon: &'static str,
     /// One-line description of the kinds of visit this covers.
     pub blurb: &'static str,
-    /// Vocabulary sample for the speech recognizer (English).
-    #[serde(skip)]
-    pub asr_primer: &'static str,
     /// Terminology and accuracy notes for the translator.
     #[serde(skip)]
     pub guidance: &'static str,
@@ -59,13 +49,6 @@ pub static SPECIALTIES: &[Specialty] = &[
         label: "Primary care / family medicine",
         icon: "🩺",
         blurb: "Routine visits, chronic disease follow-up, screening, referrals",
-        asr_primer: "hypertension, hyperlipidemia, type 2 diabetes, prediabetes, hemoglobin A1c, \
-             fasting glucose, LDL, HDL, triglycerides, BMI, CBC, comprehensive metabolic panel, \
-             TSH, urinalysis, lisinopril, amlodipine, losartan, metformin, atorvastatin, \
-             simvastatin, levothyroxine, omeprazole, albuterol, ibuprofen, acetaminophen, \
-             hydrochlorothiazide, colonoscopy, mammogram, Pap smear, shingles vaccine, \
-             tetanus booster, influenza vaccine, referral, prior authorization, refill, \
-             blood pressure 130 over 80, follow up in three months",
         guidance: "PRIMARY CARE NOTES:\n\
              - Screening and follow-up intervals are instructions, not small talk: \"come back \
              in three months\", \"repeat the labs in two weeks\", \"you are due for a \
@@ -83,13 +66,6 @@ pub static SPECIALTIES: &[Specialty] = &[
         label: "Emergency / urgent care",
         icon: "🚑",
         blurb: "Triage, acute injury and illness, time-critical decisions",
-        asr_primer: "triage, chief complaint, onset, chest pain, shortness of breath, \
-             abdominal pain, altered mental status, syncope, anaphylaxis, epinephrine, \
-             naloxone, sepsis, laceration, sutures, fracture, dislocation, concussion, \
-             head injury, loss of consciousness, EKG, troponin, D-dimer, CT scan, \
-             chest X-ray, IV fluids, normal saline, morphine, fentanyl, ondansetron, \
-             nothing by mouth, NPO, last oral intake, allergies, blood thinners, \
-             pain scale zero to ten, vital signs, oxygen saturation, next of kin, consent",
         guidance: "EMERGENCY NOTES:\n\
              - Timing is diagnostic. \"When did it start?\", \"how long has it been going on?\", \
              \"when did you last eat?\", \"when did you last take it?\" and every answer to them \
@@ -110,12 +86,6 @@ pub static SPECIALTIES: &[Specialty] = &[
         label: "Pediatrics",
         icon: "🧸",
         blurb: "Well-child visits, immunizations, childhood illness",
-        asr_primer: "well child visit, growth chart, percentile, developmental milestones, \
-             immunizations, MMR, DTaP, varicella, rotavirus, hepatitis B, pneumococcal, \
-             otitis media, ear infection, croup, bronchiolitis, RSV, hand foot and mouth \
-             disease, febrile seizure, amoxicillin, azithromycin, acetaminophen, ibuprofen, \
-             milligrams per kilogram, weight based dosing, breastfeeding, formula, latch, \
-             wet diapers, colic, reflux, tummy time, car seat, sleep on the back",
         guidance: "PEDIATRIC NOTES:\n\
              - The caregiver usually speaks for the child. Keep their framing exactly as spoken \
              (\"she has had a fever since Friday\"); do not convert it to first person, and do \
@@ -136,13 +106,6 @@ pub static SPECIALTIES: &[Specialty] = &[
         label: "Cardiology",
         icon: "❤️",
         blurb: "Heart disease, rhythm problems, procedures and anticoagulation",
-        asr_primer: "atrial fibrillation, atrial flutter, myocardial infarction, angina, \
-             congestive heart failure, ejection fraction, echocardiogram, EKG, Holter monitor, \
-             stress test, cardiac catheterization, angioplasty, stent, bypass surgery, CABG, \
-             pacemaker, defibrillator, ICD, ablation, murmur, arrhythmia, bradycardia, \
-             tachycardia, palpitations, edema, orthopnea, warfarin, INR, apixaban, \
-             rivaroxaban, clopidogrel, metoprolol, carvedilol, lisinopril, furosemide, \
-             Lasix, statin, nitroglycerin, blood thinner, beats per minute, millimeters of mercury",
         guidance: "CARDIOLOGY NOTES:\n\
              - Anticoagulation is the most dangerous content in this specialty. \"Blood \
              thinner\", the drug name, the dose, the INR value, and any instruction to hold, \
@@ -164,12 +127,6 @@ pub static SPECIALTIES: &[Specialty] = &[
         label: "Oncology",
         icon: "🎗️",
         blurb: "Cancer diagnosis, staging, treatment planning, goals of care",
-        asr_primer: "biopsy, pathology, staging, stage three, TNM, metastasis, metastatic, \
-             lymph node, tumor marker, CT scan, PET scan, MRI, chemotherapy, cycle, infusion, \
-             port, radiation therapy, immunotherapy, targeted therapy, clinical trial, \
-             remission, recurrence, progression, prognosis, palliative care, hospice, \
-             neutropenia, anemia, nausea, neuropathy, alopecia, mastectomy, lumpectomy, \
-             resection, oncologist, informed consent, second opinion, five year survival",
         guidance: "ONCOLOGY NOTES:\n\
              - Prognosis and probability wording is the content most often distorted by \
              interpreters trying to be kind. Percentages, survival figures, \"we cannot cure \
@@ -194,13 +151,6 @@ pub static SPECIALTIES: &[Specialty] = &[
         label: "Orthopedics & sports medicine",
         icon: "🦴",
         blurb: "Fractures, joints, spine, surgery and rehabilitation",
-        asr_primer: "fracture, hairline fracture, displaced, sprain, strain, ACL, MCL, \
-             meniscus, rotator cuff, labrum, tendinitis, bursitis, osteoarthritis, \
-             herniated disc, sciatica, scoliosis, spinal stenosis, carpal tunnel, \
-             plantar fasciitis, dislocation, arthroscopy, arthroplasty, total knee \
-             replacement, total hip replacement, ORIF, cast, splint, brace, sling, \
-             crutches, walker, weight bearing, non weight bearing, range of motion, \
-             physical therapy, MRI, X-ray, cortisone injection, left knee, right shoulder",
         guidance: "ORTHOPEDIC NOTES:\n\
              - Side is the single most dangerous word in this specialty. Left, right, both, and \
              bilateral must be reproduced exactly, and must never be dropped because the target \
@@ -222,13 +172,6 @@ pub static SPECIALTIES: &[Specialty] = &[
         label: "Dentistry & oral surgery",
         icon: "🦷",
         blurb: "Exams, restorations, extractions, periodontics, orthodontics",
-        asr_primer: "cavity, dental caries, filling, composite, amalgam, crown, bridge, \
-             veneer, inlay, onlay, root canal, endodontic treatment, extraction, wisdom tooth, \
-             third molar, impacted, molar, premolar, incisor, canine, upper left quadrant, \
-             gingivitis, periodontitis, gum recession, plaque, tartar, scaling and root \
-             planing, deep cleaning, abscess, swelling, sensitivity to cold, local anesthetic, \
-             lidocaine, novocaine, nitrous oxide, bitewing X-ray, panoramic, fluoride, \
-             sealant, denture, partial, implant, braces, retainer, night guard, bite, occlusion",
         guidance: "DENTAL NOTES:\n\
              - Tooth identification must be exact: the tooth number, the name (upper left first \
              molar), and the quadrant. Never approximate a tooth's position or let the side drop.\n\
@@ -249,14 +192,6 @@ pub static SPECIALTIES: &[Specialty] = &[
         label: "Obstetrics & gynecology",
         icon: "🤰",
         blurb: "Prenatal care, labor and delivery, gynecologic and reproductive health",
-        asr_primer: "pregnancy, gestational age, weeks pregnant, first trimester, prenatal \
-             visit, ultrasound, due date, estimated date of delivery, fetal heart rate, \
-             contractions, cervix, dilated, effaced, membranes, water broke, epidural, \
-             induction, cesarean section, vaginal delivery, breech, preeclampsia, gestational \
-             diabetes, glucose tolerance test, miscarriage, ectopic pregnancy, postpartum, \
-             last menstrual period, menstrual cycle, contraception, IUD, birth control pill, \
-             Pap smear, HPV, fibroids, endometriosis, menopause, hot flashes, prenatal vitamins, \
-             folic acid, amniocentesis",
         guidance: "OBSTETRIC AND GYNECOLOGIC NOTES:\n\
              - Gestational age, dates, and counts are the backbone of this specialty: \"32 weeks \
              and 4 days\", \"due on the 14th\", \"gravida 2 para 1\", \"contractions every five \
@@ -278,13 +213,6 @@ pub static SPECIALTIES: &[Specialty] = &[
         label: "Psychiatry & mental health",
         icon: "🧠",
         blurb: "Mood, anxiety, psychosis, substance use, medication and therapy",
-        asr_primer: "major depression, generalized anxiety, panic attack, bipolar disorder, \
-             mania, schizophrenia, psychosis, hallucinations, delusions, PTSD, OCD, ADHD, \
-             insomnia, suicidal ideation, self harm, safety plan, hospitalization, \
-             sertraline, fluoxetine, escitalopram, citalopram, venlafaxine, bupropion, \
-             trazodone, quetiapine, risperidone, aripiprazole, lithium, lamotrigine, \
-             lorazepam, clonazepam, buprenorphine, naltrexone, cognitive behavioral therapy, \
-             withdrawal, relapse, side effects, dose increase, tapering",
         guidance: "MENTAL HEALTH NOTES:\n\
              - Anything about suicide, self-harm, harming others, or a plan or means for them \
              must be carried across completely and literally, with the speaker's exact degree of \
@@ -309,13 +237,6 @@ pub static SPECIALTIES: &[Specialty] = &[
         label: "Dermatology",
         icon: "🧴",
         blurb: "Skin, hair and nail conditions, lesions, topical treatment",
-        asr_primer: "rash, lesion, mole, nevus, melanoma, basal cell carcinoma, squamous cell, \
-             biopsy, shave biopsy, punch biopsy, eczema, atopic dermatitis, contact dermatitis, \
-             psoriasis, acne, rosacea, hives, urticaria, shingles, herpes zoster, impetigo, \
-             cellulitis, tinea, ringworm, fungal infection, vitiligo, alopecia, hidradenitis, \
-             topical steroid, hydrocortisone, triamcinolone, clobetasol, tretinoin, \
-             benzoyl peroxide, doxycycline, isotretinoin, emollient, cryotherapy, \
-             sunscreen SPF 30, itching, pruritus, blister, pustule, scaling",
         guidance: "DERMATOLOGY NOTES:\n\
              - How a lesion looks and changes is the diagnosis: colour, border, size in \
              millimetres, raised or flat, itchy or painful, spreading or shrinking, how long it \
@@ -337,14 +258,6 @@ pub static SPECIALTIES: &[Specialty] = &[
         label: "Gastroenterology",
         icon: "🩻",
         blurb: "Digestive symptoms, endoscopy, liver and bowel disease",
-        asr_primer: "heartburn, acid reflux, GERD, gastritis, peptic ulcer, H pylori, \
-             irritable bowel syndrome, inflammatory bowel disease, Crohn's disease, \
-             ulcerative colitis, celiac disease, diverticulitis, colonoscopy, upper endoscopy, \
-             polyp, hemorrhoids, constipation, diarrhea, bloating, nausea, vomiting, \
-             blood in the stool, black stools, melena, jaundice, hepatitis B, hepatitis C, \
-             cirrhosis, fatty liver, gallstones, pancreatitis, omeprazole, pantoprazole, \
-             famotidine, mesalamine, bowel prep, clear liquids, nothing by mouth after midnight, \
-             lactose intolerance, gluten",
         guidance: "GASTROENTEROLOGY NOTES:\n\
              - Bowel and stool descriptions are clinical data, not embarrassment to be tidied \
              up: frequency per day, consistency, colour, blood, black or tarry, mucus, urgency, \
@@ -367,13 +280,6 @@ pub static SPECIALTIES: &[Specialty] = &[
         label: "Neurology",
         icon: "⚡",
         blurb: "Stroke, seizures, headache, memory and nerve disorders",
-        asr_primer: "stroke, TIA, transient ischemic attack, seizure, epilepsy, aura, \
-             convulsion, migraine, cluster headache, multiple sclerosis, Parkinson's disease, \
-             tremor, Alzheimer's disease, dementia, memory loss, neuropathy, numbness, \
-             tingling, weakness, paralysis, facial droop, slurred speech, aphasia, vertigo, \
-             dizziness, syncope, concussion, MRI, CT scan, EEG, lumbar puncture, \
-             levetiracetam, lamotrigine, gabapentin, sumatriptan, carbidopa levodopa, \
-             tissue plasminogen activator, last known well",
         guidance: "NEUROLOGY NOTES:\n\
              - For any sudden deficit, the time of onset decides the treatment. \"When were you \
              last completely normal?\", \"what time did it start?\", \"did you wake up with \
@@ -395,13 +301,6 @@ pub static SPECIALTIES: &[Specialty] = &[
         label: "Endocrinology & diabetes",
         icon: "💉",
         blurb: "Diabetes management, thyroid, hormones, bone health",
-        asr_primer: "type 1 diabetes, type 2 diabetes, insulin, units of insulin, basal, \
-             bolus, sliding scale, glargine, Lantus, lispro, Humalog, NPH, insulin pen, \
-             glucometer, continuous glucose monitor, blood sugar, fasting glucose, \
-             hemoglobin A1c, hypoglycemia, hyperglycemia, ketones, diabetic ketoacidosis, \
-             metformin, glipizide, semaglutide, Ozempic, empagliflozin, carbohydrate counting, \
-             hypothyroidism, hyperthyroidism, levothyroxine, TSH, goiter, thyroid nodule, \
-             osteoporosis, vitamin D, calcium, bone density scan, cortisol, adrenal",
         guidance: "ENDOCRINOLOGY NOTES:\n\
              - Insulin is dosed in UNITS. Never render units as millilitres, never as \
              milligrams, and never drop the word. A confusion between units and millilitres is a \
@@ -423,13 +322,6 @@ pub static SPECIALTIES: &[Specialty] = &[
         label: "Pulmonology & respiratory",
         icon: "🫁",
         blurb: "Asthma, COPD, breathing tests, inhalers, sleep apnea",
-        asr_primer: "asthma, COPD, chronic bronchitis, emphysema, pneumonia, pulmonary \
-             fibrosis, pulmonary embolism, tuberculosis, wheezing, shortness of breath, \
-             sputum, phlegm, chronic cough, spirometry, peak flow, pulmonary function test, \
-             oxygen saturation, supplemental oxygen, nebulizer, inhaler, spacer, albuterol, \
-             Ventolin, fluticasone, budesonide formoterol, Symbicort, tiotropium, prednisone, \
-             rescue inhaler, controller inhaler, CPAP, sleep apnea, sleep study, \
-             smoking cessation, chest X-ray, CT chest",
         guidance: "PULMONOLOGY NOTES:\n\
              - Rescue and controller inhalers are used differently and confusing them is \
              dangerous. Keep the device name, whether it is the daily one or the as-needed one, \
@@ -451,13 +343,6 @@ pub static SPECIALTIES: &[Specialty] = &[
         label: "Ophthalmology & optometry",
         icon: "👁️",
         blurb: "Vision changes, glaucoma, cataracts, retinal disease, eye drops",
-        asr_primer: "visual acuity, twenty twenty, blurry vision, double vision, floaters, \
-             flashes of light, curtain over the vision, glaucoma, intraocular pressure, \
-             cataract, macular degeneration, diabetic retinopathy, retinal detachment, \
-             conjunctivitis, dry eye, corneal abrasion, uveitis, dilating drops, \
-             latanoprost, timolol, artificial tears, prednisolone drops, anti-VEGF injection, \
-             laser treatment, cataract surgery, intraocular lens, myopia, hyperopia, \
-             astigmatism, presbyopia, prescription, right eye, left eye, both eyes",
         guidance: "OPHTHALMOLOGY NOTES:\n\
              - Which eye is the critical fact in every sentence here: right, left, or both. It \
              must never be dropped, guessed, or swapped, including in drop instructions and \
@@ -479,13 +364,6 @@ pub static SPECIALTIES: &[Specialty] = &[
         label: "Urology & nephrology",
         icon: "🚿",
         blurb: "Urinary symptoms, kidney disease, dialysis, prostate health",
-        asr_primer: "urinary tract infection, burning with urination, frequency, urgency, \
-             nocturia, hematuria, blood in the urine, kidney stone, renal colic, lithotripsy, \
-             ureter, bladder, prostate, benign prostatic hyperplasia, PSA, prostate biopsy, \
-             erectile dysfunction, incontinence, catheter, cystoscopy, chronic kidney disease, \
-             stage three, creatinine, GFR, dialysis, hemodialysis, peritoneal dialysis, \
-             fistula, transplant, tamsulosin, finasteride, ciprofloxacin, nitrofurantoin, \
-             fluid restriction, potassium, phosphorus",
         guidance: "UROLOGY AND NEPHROLOGY NOTES:\n\
              - Urinary symptoms need their precise distinctions preserved: burning, urgency, \
              frequency, hesitancy, a weak stream, incomplete emptying, getting up at night, and \
@@ -507,13 +385,6 @@ pub static SPECIALTIES: &[Specialty] = &[
         label: "Pharmacy & medication counseling",
         icon: "💊",
         blurb: "Prescriptions, dosing, interactions, adherence, refills",
-        asr_primer: "prescription, refill, generic, brand name, tablet, capsule, \
-             milligrams, millilitres, teaspoon, once daily, twice daily, three times a day, \
-             every eight hours, as needed, with food, on an empty stomach, at bedtime, \
-             take the full course, do not crush, extended release, side effect, \
-             drug interaction, allergy, rash, over the counter, ibuprofen, acetaminophen, \
-             amoxicillin, prednisone, warfarin, metformin, atorvastatin, lisinopril, \
-             albuterol inhaler, taper, expiration date, refrigerate, prior authorization, copay",
         guidance: "MEDICATION COUNSELING NOTES:\n\
              - Dose, unit, route, frequency, and duration form one indivisible instruction. \
              Every part must appear in the translation exactly as spoken: \"500 milligrams, by \
@@ -537,13 +408,6 @@ pub static SPECIALTIES: &[Specialty] = &[
         label: "Anesthesia & pre-op",
         icon: "😴",
         blurb: "Pre-operative assessment, anesthesia consent, recovery",
-        asr_primer: "general anesthesia, local anesthesia, regional block, spinal, epidural, \
-             sedation, intubation, breathing tube, laryngeal mask, propofol, midazolam, \
-             fentanyl, ketamine, nothing by mouth, NPO, fasting, clear liquids until, \
-             nothing after midnight, last meal, blood thinners, hold your aspirin, \
-             malignant hyperthermia, previous reaction to anesthesia, sore throat, \
-             postoperative nausea, PACU, recovery room, pain scale, informed consent, \
-             ASA class, airway assessment, loose teeth, sleep apnea, CPAP",
         guidance: "ANESTHESIA AND PRE-OPERATIVE NOTES:\n\
              - Fasting instructions are the most safety-critical text in a pre-op conversation. \
              Keep the exact cut-off time, what is still allowed until when, and what is \
@@ -564,12 +428,6 @@ pub static SPECIALTIES: &[Specialty] = &[
         label: "Physical therapy & rehab",
         icon: "🤸",
         blurb: "Movement assessment, exercise prescription, recovery plans",
-        asr_primer: "range of motion, flexion, extension, abduction, rotation, strengthening, \
-             stretching, repetitions, three sets of ten, resistance band, gait, limp, \
-             weight bearing, crutches, walker, cane, balance, proprioception, posture, \
-             ergonomics, core stability, ice for fifteen minutes, heat, home exercise program, \
-             pain scale, flare up, tightness, stiffness, spasm, rotator cuff, hamstring, \
-             quadriceps, lower back, physical therapist, sessions per week, progress",
         guidance: "PHYSICAL THERAPY NOTES:\n\
              - An exercise prescription is a set of numbers: how many repetitions, how many \
              sets, how many times a day, how many days a week, how long to hold, how much \
@@ -606,23 +464,10 @@ mod tests {
     }
 
     #[test]
-    fn every_specialty_carries_both_prompts() {
+    fn every_specialty_carries_its_prompt_material() {
         for s in SPECIALTIES {
             assert!(!s.label.is_empty(), "{} has no label", s.id);
             assert!(!s.blurb.is_empty(), "{} has no blurb", s.id);
-            assert!(
-                s.asr_primer.len() > 100,
-                "{} has a suspiciously short ASR primer",
-                s.id
-            );
-            // Recognizers truncate long primers; ~1400 chars stays under the
-            // usual ~224-token ceiling with room to spare.
-            assert!(
-                s.asr_primer.len() < 1400,
-                "{} has an ASR primer likely to be truncated ({} chars)",
-                s.id,
-                s.asr_primer.len()
-            );
             assert!(
                 s.guidance.len() > 200,
                 "{} has a suspiciously short guidance block",

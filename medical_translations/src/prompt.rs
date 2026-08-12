@@ -1,11 +1,7 @@
-//! Composition of the domain prompts handed to the two upstream services.
-//!
-//! Two prompts are built here, from the same specialty entry:
-//!
-//! * [`asr_primer`] — a vocabulary sample for the speech recognizer.
-//! * [`translation_prompt`] — the medical interpreting rules plus the
-//!   specialty's terminology notes, spliced into the base system prompt by
-//!   [`voice_translations::translate::build_system_prompt`].
+//! Composition of the domain prompt handed to the translation service:
+//! [`translation_prompt`] — the medical interpreting rules plus the
+//! specialty's terminology notes, spliced into the base system prompt by
+//! [`voice_translations::translate::build_system_prompt`].
 //!
 //! The rules below are the app's whole reason to exist. A general-purpose
 //! translator optimizes for fluency; a medical interpreter optimizes for
@@ -96,6 +92,27 @@ the target language, including honorifics where that language requires them.\n\
 a folk diagnosis with no clinical equivalent, carry the term over as spoken \
 rather than mapping it onto the nearest Western diagnosis.";
 
+/// Permission — tightly bounded — to repair recognizer mishearings.
+///
+/// The interpreting rules forbid adding anything the speaker did not say;
+/// without this block, that rule would also forbid fixing "lay six" back to
+/// Lasix. Restoring what the speaker actually said is not adding information,
+/// but the boundary has to be explicit: figures have no phonetic redundancy,
+/// so a "corrected" number is a guessed number.
+pub const ASR_CORRECTION: &str = "\
+TRANSCRIPT MISHEARINGS\n\
+The text you receive is machine-recognized speech and may contain \
+mishearings. When a word or phrase is phonetically close to a clinical term \
+that fits this specialty and the surrounding context - \"lay six\" for Lasix, \
+\"hypo natremia\" for hyponatremia, \"metz formin\" for metformin - render the \
+intended term. This is restoring what the speaker said, not adding \
+information. Two hard limits:\n\
+- Never repair numbers, doses, units, times, or frequencies this way: a \
+misheard figure cannot be reconstructed from context, so render figures \
+exactly as they appear in the transcript.\n\
+- When a suspected mishearing is genuinely ambiguous between plausible terms, \
+keep what was transcribed rather than guessing.";
+
 /// The interpreting rules, framed for a first-person spoken translation.
 fn translation_framing(specialty: &Specialty, speaker: Speaker) -> String {
     let mut framing = format!(
@@ -156,27 +173,15 @@ pub fn translation_prompt(specialty: &Specialty, speaker: Speaker, editing: bool
     };
 
     format!(
-        "{framing}\n\n{INTERPRETING_RULES}\n\n{}",
+        "{framing}\n\n{INTERPRETING_RULES}\n\n{ASR_CORRECTION}\n\n{}",
         specialty.guidance
-    )
-}
-
-/// The vocabulary primer for the speech recognizer.
-///
-/// Returned as the specialty's term list preceded by a short framing clause,
-/// which is how recognizers that accept a `prompt` expect preceding context.
-pub fn asr_primer(specialty: &Specialty) -> String {
-    format!(
-        "Transcript of a {} visit. Expected terminology: {}.",
-        specialty.label.to_lowercase(),
-        specialty.asr_primer.trim_end_matches('.')
     )
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{asr_primer, translation_prompt, Speaker, INTERPRETING_RULES};
-    use crate::specialty::{find, SPECIALTIES};
+    use super::{translation_prompt, Speaker, ASR_CORRECTION, INTERPRETING_RULES};
+    use crate::specialty::find;
 
     #[test]
     fn speaker_parses_leniently() {
@@ -195,10 +200,21 @@ mod tests {
         let prompt = translation_prompt(cardiology, Speaker::Patient, false);
         assert!(prompt.contains("CLINICAL SETTING"));
         assert!(prompt.contains(INTERPRETING_RULES));
+        assert!(prompt.contains(ASR_CORRECTION));
         assert!(prompt.contains("CARDIOLOGY NOTES"));
         assert!(prompt.contains("Anticoagulation"));
         assert!(prompt.contains("FIRST person"));
         assert!(prompt.contains("patient (or a family member"));
+    }
+
+    #[test]
+    fn mishearing_repair_is_allowed_but_never_for_figures() {
+        let s = find("primary_care").unwrap();
+        for editing in [false, true] {
+            let prompt = translation_prompt(s, Speaker::Clinician, editing);
+            assert!(prompt.contains("TRANSCRIPT MISHEARINGS"));
+            assert!(prompt.contains("Never repair numbers"));
+        }
     }
 
     #[test]
@@ -219,15 +235,5 @@ mod tests {
         assert!(prompt.contains("never drop or alter a number"));
         // The specialty notes still apply while polishing.
         assert!(prompt.contains("MEDICATION COUNSELING NOTES"));
-    }
-
-    #[test]
-    fn every_specialty_produces_a_usable_primer() {
-        for s in SPECIALTIES {
-            let primer = asr_primer(s);
-            assert!(primer.starts_with("Transcript of a "));
-            assert!(primer.ends_with('.'));
-            assert!(!primer.contains(".."));
-        }
     }
 }

@@ -377,7 +377,6 @@ async function handleUtterance(blob, start, end) {
 
   const form = new FormData();
   form.append('audio', blob, `turn-${msg.id}.wav`);
-  form.append('specialty', msg.specialty);
 
   try {
     const resp = await fetch('/api/transcribe', { method: 'POST', body: form });

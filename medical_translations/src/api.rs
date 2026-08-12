@@ -115,7 +115,12 @@ pub async fn api_translate(
     // Same source and target language means the transcript-polishing pass, not
     // an interpretation; the domain prompt is framed differently for it.
     let editing = translate::is_editing(&upstream);
-    upstream.domain_prompt = Some(prompt::translation_prompt(spec, speaker, editing));
+    let mut domain = prompt::translation_prompt(spec, speaker, editing);
+    if let Some(notes) = prompt::language_notes(&upstream.target_lang) {
+        domain.push_str("\n\n");
+        domain.push_str(notes);
+    }
+    upstream.domain_prompt = Some(domain);
 
     tracing::info!(
         specialty = spec.id,

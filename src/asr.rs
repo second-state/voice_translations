@@ -222,7 +222,8 @@ pub fn normalize_language(raw: &str) -> String {
         "am" | "amh" | "amharic" => "Amharic",
         "so" | "som" | "somali" => "Somali",
         "ht" | "hat" | "haitian" | "haitian creole" => "Haitian Creole",
-        "yue" | "cantonese" => "Cantonese",
+        // "yue chinese" is whisper-large-v3's verbose_json label for Cantonese.
+        "yue" | "cantonese" | "yue chinese" | "zh-hk" | "zh-yue" => "Cantonese",
         "ro" | "ron" | "rum" | "romanian" => "Romanian",
         "el" | "ell" | "gre" | "greek" => "Greek",
         "hu" | "hun" | "hungarian" => "Hungarian",
@@ -264,5 +265,6 @@ mod tests {
         assert_eq!(normalize_language("tl"), "Tagalog");
         assert_eq!(normalize_language("ht"), "Haitian Creole");
         assert_eq!(normalize_language("yue"), "Cantonese");
+        assert_eq!(normalize_language("Yue Chinese"), "Cantonese");
     }
 }

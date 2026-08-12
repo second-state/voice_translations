@@ -7,12 +7,13 @@ if (location.protocol === 'http:'
   location.replace('https://' + location.host + location.pathname + location.search);
 }
 
-const ALL_LANGS = ['English', 'Chinese', 'Korean', 'Japanese', 'Icelandic', 'Norwegian'];
+const ALL_LANGS = ['English', 'Chinese', 'Cantonese', 'Korean', 'Japanese'];
 
 // ISO 639-1 codes (plus common country-code slips) -> display names, so
 // config values and ASR results always collapse onto the chip names above.
 const LANG_CODES = {
   en: 'English', ko: 'Korean', kr: 'Korean', zh: 'Chinese', cn: 'Chinese',
+  yue: 'Cantonese',
   ja: 'Japanese', jp: 'Japanese', es: 'Spanish', fr: 'French', de: 'German',
   it: 'Italian', pt: 'Portuguese', ru: 'Russian', ar: 'Arabic', hi: 'Hindi',
   vi: 'Vietnamese', th: 'Thai', id: 'Indonesian', nl: 'Dutch', tr: 'Turkish',

@@ -55,13 +55,14 @@ languages = [
 # drug names and clinical terms. English turns get the selected specialty's
 # primer; every other offered language has a general clinical primer in its
 # own language, compiled in from prompts/primers/.
-#   "auto"   - only when the turn's language is known, i.e. when the user taps
-#              Clinician/Patient to name the speaker (default). A primer must
-#              match the audio's language: a Whisper-family recognizer given a
-#              primer in one language and audio in another tends to answer in
-#              the primer's language.
-#   "always" - every utterance; unknown-language turns get the English
-#              specialty primer. Riskier with Whisper-family recognizers.
+#   "auto"   - only when the turn's language is known upfront (default). The
+#              UI auto-detects every turn, so this currently sends no primer;
+#              it is the safe setting for Whisper-family recognizers, which
+#              tend to answer in the primer's language when it does not match
+#              the audio.
+#   "always" - every utterance gets the English specialty primer. Best term
+#              accuracy if your ASR service ignores primer language; verify
+#              with your provider before using it.
 #   "never"  - disable the primer entirely.
 asr_primer = "auto"
 
@@ -69,9 +70,6 @@ asr_primer = "auto"
 # rendered turn belongs to. Both fall back to [tts] voice.
 #clinician_voice = "alloy"
 #patient_voice = "nova"
-
-# Start with automatic read-aloud of every finished interpretation.
-speak_translations = false
 
 [asr]
 # OpenAI-compatible base URL; the server appends /audio/transcriptions.

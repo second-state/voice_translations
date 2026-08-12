@@ -142,19 +142,6 @@ body {
 }
 .checkbox input { accent-color: var(--accent); }
 
-.segmented { display: flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
-.seg {
-  background: var(--panel-2);
-  color: var(--muted);
-  border: none;
-  border-right: 1px solid var(--border);
-  padding: 7px 13px;
-  font-size: 13px;
-  cursor: pointer;
-}
-.seg:last-child { border-right: none; }
-.seg.on { color: #fff; background: var(--accent); }
-.seg[data-mode="patient"].on { background: var(--patient); color: #06251d; }
 
 /* ---------- Messages ---------- */
 .messages {

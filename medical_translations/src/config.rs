@@ -87,8 +87,6 @@ pub struct MedicalConfig {
     pub clinician_voice: Option<String>,
     /// Voice used to read patient turns aloud; falls back to `[tts] voice`.
     pub patient_voice: Option<String>,
-    /// Start with automatic read-aloud of each finished translation enabled.
-    pub speak_translations: bool,
 }
 
 impl Default for MedicalConfig {
@@ -101,7 +99,6 @@ impl Default for MedicalConfig {
             asr_primer: AsrPrimer::default(),
             clinician_voice: None,
             patient_voice: None,
-            speak_translations: false,
         }
     }
 }

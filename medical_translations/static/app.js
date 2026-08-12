@@ -51,9 +51,6 @@ const state = {
   specialty: null,
   clinicianLang: 'English',
   patientLang: 'Spanish',
-  // 'auto' | 'clinician' | 'patient'
-  speakerMode: 'auto',
-  speakAloud: false,
   messages: [],
   running: false,
   sessionStart: null,
@@ -72,9 +69,6 @@ async function init() {
   state.cfg = await resp.json();
   state.clinicianLang = langName(state.cfg.clinician_language);
   state.patientLang = langName(state.cfg.patient_language);
-  state.speakAloud = !!state.cfg.speak_translations;
-  $('speakToggle').checked = state.speakAloud;
-  if (!state.cfg.tts_enabled) $('speakToggle').closest('.checkbox').style.display = 'none';
 
   renderSpecialties();
   renderLanguageSelects();
@@ -83,10 +77,6 @@ async function init() {
   $('exportBtn').addEventListener('click', exportTranscript);
   $('clearBtn').addEventListener('click', clearAll);
   $('swapBtn').addEventListener('click', swapLanguages);
-  $('speakToggle').addEventListener('change', (e) => { state.speakAloud = e.target.checked; });
-  for (const btn of $('speakerMode').querySelectorAll('.seg')) {
-    btn.addEventListener('click', () => setSpeakerMode(btn.dataset.mode));
-  }
   $('settingsToggle').addEventListener('click', () => {
     const collapsed = $('settings').classList.toggle('collapsed');
     const toggle = $('settingsToggle');
@@ -141,13 +131,6 @@ function swapLanguages() {
   $('patientLang').value = state.patientLang;
 }
 
-function setSpeakerMode(mode) {
-  state.speakerMode = mode;
-  for (const btn of $('speakerMode').querySelectorAll('.seg')) {
-    btn.classList.toggle('on', btn.dataset.mode === mode);
-  }
-}
-
 function langFor(role) {
   return role === 'clinician' ? state.clinicianLang : state.patientLang;
 }
@@ -156,7 +139,6 @@ function langFor(role) {
 // speaking, so an unexpected language still gets interpreted toward the care
 // team rather than being dropped.
 function roleFor(detectedLang) {
-  if (state.speakerMode !== 'auto') return state.speakerMode;
   return sameLang(detectedLang, state.clinicianLang) ? 'clinician' : 'patient';
 }
 
@@ -380,8 +362,9 @@ async function handleUtterance(blob, start, end) {
     end,
     specialty: state.specialty.id,
     specialtyLabel: state.specialty.label,
-    // Known upfront only when the user named the speaker.
-    role: state.speakerMode === 'auto' ? null : state.speakerMode,
+    // Inferred from the detected language once transcription returns; the
+    // per-turn Clinician/Patient toggle corrects a wrong guess.
+    role: null,
     sourceLang: null,
     targetLang: null,
     sourceText: '',
@@ -395,12 +378,6 @@ async function handleUtterance(blob, start, end) {
   const form = new FormData();
   form.append('audio', blob, `turn-${msg.id}.wav`);
   form.append('specialty', msg.specialty);
-  // Naming the speaker pins the recognizer's language, which also lets the
-  // server send the specialty vocabulary primer for that turn.
-  if (msg.role) {
-    const lang = langFor(msg.role);
-    form.append('language', NAME_TO_CODE[lang] || lang);
-  }
 
   try {
     const resp = await fetch('/api/transcribe', { method: 'POST', body: form });
@@ -416,7 +393,7 @@ async function handleUtterance(blob, start, end) {
     // the language was pinned, some services echo the pin; others report what
     // they actually heard, which is the interesting case.
     msg.heardLang = langName(data.language) || null;
-    msg.sourceLang = msg.role ? langFor(msg.role) : (msg.heardLang || state.clinicianLang);
+    msg.sourceLang = msg.heardLang || state.clinicianLang;
     msg.role ??= roleFor(msg.sourceLang);
     msg.targetLang = langFor(otherRole(msg.role));
     updateMessageHead(msg);
@@ -437,9 +414,6 @@ async function handleUtterance(blob, start, end) {
     }
     await Promise.all(jobs);
     checkNumbers(msg);
-    if (state.speakAloud && msg.translation?.text) {
-      queueSpeech(msg.translation.text, msg.role);
-    }
   } catch (err) {
     msg.el.classList.add('error');
     const blobText = msg.el.querySelector('.source .blob-text');
@@ -737,9 +711,6 @@ function setStatus(kind, detail) {
 /* ---------- Text-to-speech ---------- */
 
 let currentAudio = null;
-// Auto-play is serialized so two finished interpretations never talk over
-// each other in the room.
-let speechQueue = Promise.resolve();
 
 function makeSpeakBtn(getText, getSpeaker) {
   const btn = document.createElement('button');
@@ -748,11 +719,6 @@ function makeSpeakBtn(getText, getSpeaker) {
   btn.textContent = '🔊';
   btn.addEventListener('click', () => speakText(getText(), getSpeaker(), btn));
   return btn;
-}
-
-function queueSpeech(text, speaker) {
-  speechQueue = speechQueue.then(() => speakText(text, speaker)).catch(() => {});
-  return speechQueue;
 }
 
 async function speakText(text, speaker, btn) {

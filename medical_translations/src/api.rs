@@ -51,7 +51,6 @@ pub async fn api_config(State(state): State<MedicalState>) -> Json<Value> {
         obj.insert("clinician_language".into(), json!(cfg.clinician_language));
         obj.insert("patient_language".into(), json!(cfg.patient_language));
         obj.insert("languages".into(), json!(cfg.languages));
-        obj.insert("speak_translations".into(), json!(cfg.speak_translations));
     }
     Json(view)
 }

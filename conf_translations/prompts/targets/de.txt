@@ -1,3 +1,7 @@
+TARGET LANGUAGE NOTES (German):
+- Use natural spoken German; address strangers and elders with Sie.
+- Keep foreign names and brands as spoken; write figures as digits.
+
 CONFERENCE LANGUAGE NOTES (German):
 - The du/Sie choice is the register: Sie in business and formal calls, du among friends; consistent per speaker.
 - Business German uses its established anglicisms (das Meeting, die Deadline, das Feedback) - do not translate them into stiff German equivalents nobody says.

@@ -1,3 +1,0 @@
-TARGET LANGUAGE NOTES (Russian):
-- Use natural spoken Russian; address strangers and elders with вы.
-- Keep foreign names and brands as spoken; write figures as digits.

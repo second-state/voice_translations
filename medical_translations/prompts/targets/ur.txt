@@ -1,3 +1,8 @@
+TARGET LANGUAGE NOTES (Urdu):
+- Use natural spoken Urdu with the polite آپ toward strangers and elders.
+- Everyday Urdu keeps many English words; keep them in English where an Urdu speaker naturally would.
+- Write figures as digits.
+
 CLINICAL LANGUAGE NOTES (Urdu):
 - Pakistani clinical speech mixes English heavily: blood test, X-ray, operation, BP, sugar (ذیابیطس کے لیے), dose normally stay in English inside an Urdu sentence.
 - Symptoms in the patient's lay words (پیٹ درد، چکر، سانس پھولنا); keep drug names exactly as spoken; doses stay as digits with their unit.

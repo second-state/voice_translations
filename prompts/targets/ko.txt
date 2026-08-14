@@ -1,4 +1,0 @@
-TARGET LANGUAGE NOTES (Korean):
-- Use polite spoken Korean (해요체) by default, stepping up to 합쇼체 in formal settings and down only when the speaker is clearly casual with the listener.
-- Use honorific verb forms toward the listener where Korean requires them (드세요, 계세요).
-- Keep foreign names and brands in their usual Korean rendering or original form; write figures as digits.

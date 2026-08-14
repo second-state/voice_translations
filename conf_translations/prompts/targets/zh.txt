@@ -1,3 +1,8 @@
+TARGET LANGUAGE NOTES (Chinese):
+- Use natural spoken Mandarin in simplified characters, phrased the way people actually talk (你看呢 / 咱们 where natural), not stiff written prose.
+- Address strangers politely (您) when the setting calls for it.
+- Keep foreign names, brands, and acronyms in their original form when that is how people say them; write figures as digits.
+
 CONFERENCE LANGUAGE NOTES (Chinese):
 - Register in Mandarin runs through 您 vs 你, sentence-final particles (吧, 啊, 呗 in casual talk), and vocabulary weight (开会 vs 会议召开); business calls stay polite-neutral, friends get the particles.
 - Office Mandarin keeps common English terms where Chinese professionals use them (OK, deadline, PPT, offer); do not force translations of these in business or tech calls.

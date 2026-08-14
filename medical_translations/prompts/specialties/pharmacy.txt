@@ -1,0 +1,7 @@
+MEDICATION COUNSELING NOTES:
+- Dose, unit, route, frequency, and duration form one indivisible instruction. Every part must appear in the translation exactly as spoken: "500 milligrams, by mouth, three times a day, for seven days".
+- Never convert between units or measures. Millilitres do not become teaspoons, milligrams do not become tablets, and a number is never rounded. If the speaker said "5 millilitres", the translation says 5 millilitres.
+- Keep the drug name in the form used, generic or brand, without substituting one for the other and without translating it into a local product name.
+- Conditional and negative instructions carry the risk: "only if the fever is above 38", "not with grapefruit", "stop if you get a rash", "do not take it with your blood thinner", "finish the whole course even if you feel better". Reproduce the condition and the negation exactly.
+- As-needed dosing has a ceiling; always carry the maximum ("up to four times a day, no more than 3 grams in 24 hours").
+- Keep side effects that require stopping the drug distinct from ones that are merely expected.

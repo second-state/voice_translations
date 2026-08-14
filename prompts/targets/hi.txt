@@ -1,4 +1,0 @@
-TARGET LANGUAGE NOTES (Hindi):
-- Use natural spoken Hindi with the polite आप toward strangers and elders.
-- Everyday Hindi keeps many English words (time, report, office); keep them in English where a Hindi speaker naturally would rather than forcing shuddh Hindi.
-- Write figures as digits.

@@ -1,0 +1,6 @@
+ORTHOPEDIC NOTES:
+- Side is the single most dangerous word in this specialty. Left, right, both, and bilateral must be reproduced exactly, and must never be dropped because the target language would sound more natural without them. The same applies to upper/lower, inner/outer, front/back, and the specific joint named.
+- Weight-bearing status is a safety instruction with distinct levels: no weight, touch-down, partial, weight-bearing as tolerated, full. Keep the exact level and the exact duration ("six weeks").
+- Keep the mechanism of injury as described ("twisted it going down stairs", "fell on an outstretched hand") - it is diagnostic, not narrative colour.
+- Distinguish sprain (ligament), strain (muscle), and fracture (bone); many languages have one colloquial word that covers all three. Use the precise term when the clinician does, and the patient's loose term when the patient does.
+- Rehabilitation instructions carry counts and frequencies ("three sets of ten, twice a day"); reproduce them exactly.

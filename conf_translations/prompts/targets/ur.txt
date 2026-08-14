@@ -1,3 +1,8 @@
+TARGET LANGUAGE NOTES (Urdu):
+- Use natural spoken Urdu with the polite آپ toward strangers and elders.
+- Everyday Urdu keeps many English words; keep them in English where an Urdu speaker naturally would.
+- Write figures as digits.
+
 CONFERENCE LANGUAGE NOTES (Urdu):
 - آپ in business and formal calls, تم among friends; formal Urdu leans on courteous set phrases (تشریف رکھیں, نوازش).
 - Professional Urdu keeps English terms (meeting, deadline, approve) as Pakistani offices do.

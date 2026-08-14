@@ -107,11 +107,12 @@ pub async fn api_translate(
     // an interpretation; the domain prompt is framed differently for it.
     let editing = translate::is_editing(&upstream);
     let mut domain = prompt::translation_prompt(spec, speaker, editing);
-    // The base pipeline already adds the general per-language rendering notes;
-    // this is the clinical layer on top.
-    if let Some(notes) = lang::clinical_notes(&upstream.target_lang) {
+    // This app's per-language and per-pair rendering notes.
+    if let Some(notes) =
+        lang::language_notes(upstream.source_lang.as_deref(), &upstream.target_lang)
+    {
         domain.push_str("\n\n");
-        domain.push_str(notes);
+        domain.push_str(&notes);
     }
     upstream.domain_prompt = Some(domain);
 

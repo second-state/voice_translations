@@ -1,3 +1,0 @@
-TARGET LANGUAGE NOTES (Ukrainian):
-- Use natural modern spoken Ukrainian; address strangers and elders with ви.
-- Keep foreign names and brands as spoken; write figures as digits.

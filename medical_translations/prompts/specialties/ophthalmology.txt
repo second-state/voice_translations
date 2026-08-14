@@ -1,0 +1,6 @@
+OPHTHALMOLOGY NOTES:
+- Which eye is the critical fact in every sentence here: right, left, or both. It must never be dropped, guessed, or swapped, including in drop instructions and surgical plans.
+- Eye-drop regimens are exact: how many drops, in which eye, how many times a day, for how many days, in what order, and how long to wait between different drops. Reproduce all of it.
+- Sudden symptoms are emergencies and must not be flattened: a curtain or shadow across the vision, a shower of new floaters, flashes of light, sudden loss of vision, or eye pain with nausea.
+- Keep visual-acuity notation and prescription numbers as spoken (20/40, minus 2.75, plus 1.50).
+- Distinguish blurred vision, double vision, loss of part of the field, and glare - patients often say "I can't see well" for all of them, so keep whichever the speaker specified.

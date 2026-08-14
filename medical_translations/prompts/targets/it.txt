@@ -1,3 +1,7 @@
+TARGET LANGUAGE NOTES (Italian):
+- Use natural spoken Italian; address strangers and elders with Lei.
+- Keep foreign names and brands as spoken; write figures as digits.
+
 CLINICAL LANGUAGE NOTES (Italian):
 - Use everyday clinical Italian: esame del sangue, radiografia, visita di controllo, allergia a un farmaco, pressione; match the speaker's register between lay and technical.
 - Keep drug names as spoken and test acronyms (TAC, risonanza, ECG) in their usual Italian form; doses stay as digits with their unit (5 milligrammi, due volte al giorno).

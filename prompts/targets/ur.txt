@@ -1,4 +1,0 @@
-TARGET LANGUAGE NOTES (Urdu):
-- Use natural spoken Urdu with the polite آپ toward strangers and elders.
-- Everyday Urdu keeps many English words; keep them in English where an Urdu speaker naturally would.
-- Write figures as digits.

@@ -1,3 +1,7 @@
+TARGET LANGUAGE NOTES (Russian):
+- Use natural spoken Russian; address strangers and elders with вы.
+- Keep foreign names and brands as spoken; write figures as digits.
+
 CONFERENCE LANGUAGE NOTES (Russian):
 - The ты/вы choice is the register: вы in business and formal calls, ты among friends; keep it consistent per speaker.
 - Business Russian uses имя-отчество or name + вы politely; casual speech is particle-rich (ну, же, давай) - use them there and only there.

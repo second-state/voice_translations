@@ -1,3 +1,8 @@
+TARGET LANGUAGE NOTES (Korean):
+- Use polite spoken Korean (해요체) by default, stepping up to 합쇼체 in formal settings and down only when the speaker is clearly casual with the listener.
+- Use honorific verb forms toward the listener where Korean requires them (드세요, 계세요).
+- Keep foreign names and brands in their usual Korean rendering or original form; write figures as digits.
+
 CONFERENCE LANGUAGE NOTES (Korean):
 - Speech level is the register dial: 합쇼체 (-습니다) for formal events and high-stakes business, 해요체 as the business default, and 반말 only between friends when the source is clearly that casual. Never drift levels mid-call for the same speaker.
 - Business Korean keeps its English loans (미팅, 피드백, 데드라인) and job titles as address (김 부장님); use titles, not bare names, outside casual calls.

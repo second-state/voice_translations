@@ -1,0 +1,6 @@
+EMERGENCY NOTES:
+- Timing is diagnostic. "When did it start?", "how long has it been going on?", "when did you last eat?", "when did you last take it?" and every answer to them must keep the exact time, duration, and clock reference ("since 8 this morning", "about two hours ago", "since Tuesday").
+- Pain descriptions carry diagnostic weight: crushing, stabbing, burning, dull, pressure, tearing, radiating. Use the closest everyday equivalent, never a generic "pain".
+- Preserve pain-scale numbers exactly ("seven out of ten").
+- Allergy, anticoagulant, and last-dose answers are safety-critical. A "no" here must stay a clear "no", and an uncertain "I think so" must stay uncertain.
+- Urgency in the clinician's voice is information: keep imperative instructions imperative ("don't eat or drink anything", "stay on the stretcher") rather than softening them into suggestions.

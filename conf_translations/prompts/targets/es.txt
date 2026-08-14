@@ -1,3 +1,8 @@
+TARGET LANGUAGE NOTES (Spanish):
+- Use natural spoken Spanish in a neutral Latin American register unless the conversation clearly calls for peninsular usage.
+- Address strangers and elders with usted; match tú/vos only when the speaker's own register is clearly informal.
+- Keep names, brand names, and acronyms as spoken; write figures as digits.
+
 CONFERENCE LANGUAGE NOTES (Spanish):
 - The tú/usted choice is the register: usted in business and formal calls, tú among friends; keep the choice consistent for the same speaker across the call.
 - Business Spanish in international teams keeps common English loans (meeting, feedback, deadline) where a Latin American professional would; casual talk uses the region-neutral everyday word instead.

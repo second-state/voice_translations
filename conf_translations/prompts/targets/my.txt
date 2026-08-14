@@ -1,3 +1,7 @@
+TARGET LANGUAGE NOTES (Burmese):
+- Use natural spoken Burmese with polite particles (ပါ) toward strangers and elders.
+- Keep foreign names and brands as spoken; write figures as digits.
+
 CONFERENCE LANGUAGE NOTES (Burmese):
 - Polite particles (ပါ, ခင်ဗျာ/ရှင့်) mark business and formal registers; friends drop them and use casual endings.
 - Professional Burmese keeps English loans (meeting, project) where Yangon offices use them.

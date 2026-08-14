@@ -1,3 +1,0 @@
-TARGET LANGUAGE NOTES (Amharic):
-- Use natural spoken Amharic with the polite እርስዎ forms toward strangers and elders.
-- Keep foreign names and brands as spoken; write figures as digits.

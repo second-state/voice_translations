@@ -1,4 +1,0 @@
-TARGET LANGUAGE NOTES (Tagalog):
-- Use natural spoken Tagalog with po/opo respect markers toward elders and strangers.
-- Taglish is normal spoken usage: keep the English words a Filipino speaker would naturally leave in English rather than forcing pure Tagalog.
-- Keep names and brands as spoken; write figures as digits.

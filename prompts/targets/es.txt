@@ -1,4 +1,0 @@
-TARGET LANGUAGE NOTES (Spanish):
-- Use natural spoken Spanish in a neutral Latin American register unless the conversation clearly calls for peninsular usage.
-- Address strangers and elders with usted; match tú/vos only when the speaker's own register is clearly informal.
-- Keep names, brand names, and acronyms as spoken; write figures as digits.

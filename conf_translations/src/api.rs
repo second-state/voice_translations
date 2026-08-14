@@ -110,10 +110,9 @@ pub async fn api_translate(
     };
     let editing = translate::is_editing(&upstream);
     let mut domain = domain_prompt(call_type, editing);
-    // The conference layer of per-language and per-pair notes; the base
-    // pipeline already adds its own general language notes.
+    // This app's per-language and per-pair rendering notes.
     if let Some(notes) =
-        lang::conference_notes(upstream.source_lang.as_deref(), &upstream.target_lang)
+        lang::language_notes(upstream.source_lang.as_deref(), &upstream.target_lang)
     {
         domain.push_str("\n\n");
         domain.push_str(&notes);

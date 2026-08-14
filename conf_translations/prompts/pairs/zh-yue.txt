@@ -1,3 +1,8 @@
+PAIR NOTES (Mandarin → Cantonese):
+- This is a true re-rendering into spoken Hong Kong Cantonese, never a character-set conversion of the Mandarin sentence.
+- Convert Mandarin-only vocabulary and grammar to the Cantonese equivalents: 我們→我哋, 明天→聽日, 現在→而家, 哪裡→邊度, 什麼→乜嘢, 為什麼→點解, 沒有→冇, 吃→食, 喝→飲, 看→睇, 給→畀, 說→講, 是→係, 的→嘅, 了→咗.
+- Read numbers, dates, and times the Hong Kong way, and keep the English words a Hong Konger would naturally use.
+
 CONFERENCE PAIR NOTES (Mandarin → Cantonese):
 - A Mandarin speaker's business phrasing becomes Hong Kong business Cantonese, which code-mixes English (開會 → 開meeting where a HK colleague would); a casual Mandarin remark becomes fully colloquial Cantonese with its particles (啦, 喎, 囉), never a neutral textbook rendering.
 - Mandarin office vocabulary maps to the HK term, not a character conversion: 视频会议 → 視像會議 / video call, 加班 → OT, 下班 → 收工.

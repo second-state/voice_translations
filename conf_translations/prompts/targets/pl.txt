@@ -1,3 +1,7 @@
+TARGET LANGUAGE NOTES (Polish):
+- Use natural spoken Polish; address strangers and elders with Pan/Pani forms.
+- Keep foreign names and brands as spoken; write figures as digits.
+
 CONFERENCE LANGUAGE NOTES (Polish):
 - Pan/Pani forms in business and formal calls, ty among friends; consistent per speaker.
 - Business Polish tolerates common English loans (meeting, deadline, feedback) as Warsaw offices do.

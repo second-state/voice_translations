@@ -1,3 +1,0 @@
-TARGET LANGUAGE NOTES (Portuguese):
-- Use natural spoken Brazilian Portuguese by default (você register), stepping to o senhor / a senhora with elders and in formal settings.
-- Keep names and brands as spoken; write figures as digits.

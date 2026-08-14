@@ -27,7 +27,8 @@ the backend as 16 kHz WAV, which:
    (`/audio/transcriptions`) with automatic source-language detection.
 2. Translates the transcript with a streaming LLM request per target language,
    with the past few messages included as context and per-language rendering
-   notes (see `prompts/`) spliced into the system prompt. Streaming uses
+   notes (each app's `prompts/` directory) spliced into the system prompt via
+   its domain prompt. Streaming uses
    **SSE over POST** so it passes through Cloudflare proxies.
 3. Optionally reads any sentence aloud through an OpenAI-compatible TTS
    endpoint.
@@ -163,7 +164,7 @@ Other pieces worth reusing:
 | `asr::parse_audio_form` | Pulls the `audio` upload plus arbitrary extra text fields out of a multipart request |
 | `asr::normalize_language` | ISO codes and lowercase names to the display names used throughout |
 | `translate::build_system_prompt` | Inspect or rebuild the exact prompt the model will get |
-| `lang_notes::notes_for` | The per-target-language and per-pair rendering notes every translation already receives |
+| `lang_notes::compose` | Composes an app's own per-language and per-pair note tables (compiled-in text files) into prompt text |
 | `tts::synthesize` | Text to audio, with a per-request voice override |
 | `Config::client_view` | The settings JSON the browser needs, to merge your own keys into |
 | `cli::Cli` | The shared `--config` flag parsing every app uses |

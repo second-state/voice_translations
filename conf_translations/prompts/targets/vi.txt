@@ -1,3 +1,7 @@
+TARGET LANGUAGE NOTES (Vietnamese):
+- Use natural spoken Vietnamese with appropriate kinship pronouns (anh/chị for adults of similar age, ông/bà or bác for elders, em for someone younger); when age is unknown, default to the polite anh/chị.
+- Keep foreign names and brands as spoken; write figures as digits.
+
 CONFERENCE LANGUAGE NOTES (Vietnamese):
 - The pronoun pair is the register: anh/chị - em or ông/bà in business and formal calls; closer terms among friends only when the source is clearly that familiar. Never mix pairs for the same speaker.
 - Business Vietnamese keeps common English loans (deadline, meeting, feedback) as professionals do; casual talk prefers the everyday Vietnamese word.

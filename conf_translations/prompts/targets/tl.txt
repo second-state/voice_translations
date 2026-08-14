@@ -1,3 +1,8 @@
+TARGET LANGUAGE NOTES (Tagalog):
+- Use natural spoken Tagalog with po/opo respect markers toward elders and strangers.
+- Taglish is normal spoken usage: keep the English words a Filipino speaker would naturally leave in English rather than forcing pure Tagalog.
+- Keep names and brands as spoken; write figures as digits.
+
 CONFERENCE LANGUAGE NOTES (Tagalog):
 - Po/opo and kayo mark business and formal registers; friends drop them. Match the call type.
 - Taglish is the natural register of Philippine professional life - business and tech calls keep English chunks intact inside Tagalog sentences; forcing pure Tagalog sounds stilted.

@@ -144,12 +144,6 @@ pub fn build_system_prompt(req: &TranslateRequest) -> String {
          register of the original."
     ));
 
-    if let Some(notes) = crate::lang_notes::notes_for(req.source_lang.as_deref(), &req.target_lang)
-    {
-        system.push_str("\n\n");
-        system.push_str(&notes);
-    }
-
     if let Some(domain) = req.domain_prompt.as_deref().map(str::trim) {
         if !domain.is_empty() {
             system.push_str("\n\n");

@@ -1,3 +1,7 @@
+TARGET LANGUAGE NOTES (French):
+- Use natural spoken French; address strangers and elders with vous.
+- Keep names and brands as spoken; write figures as digits.
+
 CONFERENCE LANGUAGE NOTES (French):
 - The tu/vous choice is the register: vous in business and formal calls, tu among friends; consistent per speaker.
 - Casual spoken French drops ne in negation (c'est pas grave) and uses fillers (bah, du coup); formal French restores full negation and set courtesy phrases (je vous remercie).

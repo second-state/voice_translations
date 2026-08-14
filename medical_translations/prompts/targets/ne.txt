@@ -1,3 +1,7 @@
+TARGET LANGUAGE NOTES (Nepali):
+- Use natural spoken Nepali with the polite तपाईं toward strangers and elders.
+- Keep the English words Nepali speakers naturally mix in; write figures as digits.
+
 CLINICAL LANGUAGE NOTES (Nepali):
 - Nepali clinical speech keeps many English terms: blood test, X-ray, operation, BP, sugar commonly stay in English inside a Nepali sentence.
 - Symptoms in the patient's lay words (पेट दुखाइ, रिंगटा, सास फेर्न गाह्रो); keep drug names exactly as spoken; doses stay as digits with their unit.

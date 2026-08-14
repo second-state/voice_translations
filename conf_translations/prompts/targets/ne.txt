@@ -1,3 +1,7 @@
+TARGET LANGUAGE NOTES (Nepali):
+- Use natural spoken Nepali with the polite तपाईं toward strangers and elders.
+- Keep the English words Nepali speakers naturally mix in; write figures as digits.
+
 CONFERENCE LANGUAGE NOTES (Nepali):
 - तपाईं in business and formal calls, तिमी among friends (तँ only for the closest banter); consistent per speaker.
 - Professional Nepali keeps English loans (meeting, deadline) as Kathmandu offices do.

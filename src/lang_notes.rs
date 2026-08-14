@@ -1,21 +1,16 @@
-//! Per-target-language and per-pair rendering notes, written as text files
-//! under `prompts/` and compiled into the binary.
+//! Language-code resolution and note-table composition.
 //!
-//! Every translation request automatically receives the target language's
-//! notes (register, formality, script conventions) plus, when one exists, a
-//! note for the exact source→target pair — Mandarin→Cantonese being the
-//! motivating case, where character conversion masquerades as translation.
-//!
-//! Downstream apps layer their own domain files on top through
-//! [`crate::translate::TranslateRequest::domain_prompt`]; these base notes are
-//! general-purpose and domain-free.
+//! This module carries **no prompt content**. Apps write their per-language
+//! and per-pair rendering notes as text files in their own `prompts/`
+//! directories, compile them into `(key, contents)` tables with
+//! `include_str!`, and hand those tables to [`compose`] when building a
+//! [`crate::translate::TranslateRequest::domain_prompt`]. See
+//! `conf_translations` and `medical_translations` for the pattern.
 
-/// Compile a `(key, file contents)` table out of `prompts/<dir>/<key>.txt`.
-macro_rules! note_files {
-    ($dir:literal, $($key:literal),* $(,)?) => {
-        &[ $( ($key, include_str!(concat!("../prompts/", $dir, "/", $key, ".txt"))) ),* ]
-    };
-}
+/// A compiled-in table of `(key, file contents)` pairs, keyed by ISO language
+/// code (`"ko"`) for target notes or `"<src>-<tgt>"` (`"zh-yue"`) for pair
+/// notes.
+pub type NoteTable = &'static [(&'static str, &'static str)];
 
 /// Display name (as produced by [`crate::asr::normalize_language`]) → ISO code
 /// used in prompt file names.
@@ -47,15 +42,6 @@ const LANG_CODES: &[(&str, &str)] = &[
     ("Italian", "it"),
 ];
 
-/// One rendering-notes file per target language.
-static TARGET_NOTES: &[(&str, &str)] = note_files!(
-    "targets", "en", "es", "zh", "yue", "vi", "tl", "ko", "ar", "ru", "ht", "pt", "fr", "hi", "bn",
-    "ur", "fa", "ja", "so", "am", "ne", "my", "uk", "pl", "de", "it",
-);
-
-/// Extra notes for specific source→target pairs, keyed `"<src>-<tgt>"`.
-static PAIR_NOTES: &[(&str, &str)] = note_files!("pairs", "zh-yue", "yue-zh");
-
 /// ISO code for a language given as a code, a display name, or anything
 /// [`crate::asr::normalize_language`] understands. `None` when unknown.
 pub fn lang_code(lang: &str) -> Option<&'static str> {
@@ -77,32 +63,32 @@ pub fn lang_code(lang: &str) -> Option<&'static str> {
         .map(|(_, code)| *code)
 }
 
-fn lookup(table: &'static [(&str, &str)], key: &str) -> Option<&'static str> {
+fn lookup(table: NoteTable, key: &str) -> Option<&'static str> {
     table
         .iter()
         .find(|(k, _)| *k == key)
         .map(|(_, text)| text.trim())
 }
 
-/// The rendering notes for one target language, if any exist.
-pub fn target_notes(target_lang: &str) -> Option<&'static str> {
-    lookup(TARGET_NOTES, lang_code(target_lang)?)
-}
-
-/// The notes for one exact source→target pair, if any exist.
-pub fn pair_notes(source_lang: &str, target_lang: &str) -> Option<&'static str> {
-    let key = format!("{}-{}", lang_code(source_lang)?, lang_code(target_lang)?);
-    lookup(PAIR_NOTES, &key)
-}
-
-/// Everything the system prompt should say about rendering into
-/// `target_lang`: the target's own notes plus any pair-specific notes.
-pub fn notes_for(source_lang: Option<&str>, target_lang: &str) -> Option<String> {
+/// Everything an app's note tables say about rendering into `target_lang`:
+/// the target's own notes plus, when the source is known and a file exists,
+/// the notes for the exact source→target pair. Language arguments may be ISO
+/// codes or display names.
+pub fn compose(
+    targets: NoteTable,
+    pairs: NoteTable,
+    source_lang: Option<&str>,
+    target_lang: &str,
+) -> Option<String> {
+    let target = lang_code(target_lang)?;
     let mut out = String::new();
-    if let Some(notes) = target_notes(target_lang) {
+    if let Some(notes) = lookup(targets, target) {
         out.push_str(notes);
     }
-    if let Some(pair) = source_lang.and_then(|src| pair_notes(src, target_lang)) {
+    if let Some(pair) = source_lang
+        .and_then(lang_code)
+        .and_then(|src| lookup(pairs, &format!("{src}-{target}")))
+    {
         if !out.is_empty() {
             out.push_str("\n\n");
         }
@@ -113,17 +99,10 @@ pub fn notes_for(source_lang: Option<&str>, target_lang: &str) -> Option<String>
 
 #[cfg(test)]
 mod tests {
-    use super::{lang_code, notes_for, pair_notes, target_notes, LANG_CODES, TARGET_NOTES};
+    use super::{compose, lang_code};
 
-    #[test]
-    fn every_language_has_target_notes() {
-        for (name, code) in LANG_CODES {
-            let notes =
-                target_notes(name).unwrap_or_else(|| panic!("no target notes for {name} ({code})"));
-            assert!(!notes.is_empty());
-        }
-        assert_eq!(LANG_CODES.len(), TARGET_NOTES.len());
-    }
+    const TARGETS: super::NoteTable = &[("yue", "target notes"), ("ko", "korean notes")];
+    const PAIRS: super::NoteTable = &[("zh-yue", "pair notes")];
 
     #[test]
     fn languages_resolve_from_code_or_name() {
@@ -137,20 +116,15 @@ mod tests {
     }
 
     #[test]
-    fn cantonese_notes_demand_spoken_hong_kong_cantonese() {
-        let notes = target_notes("Cantonese").unwrap();
-        assert!(notes.contains("我哋聽日去醫院"));
-        assert!(notes.contains("書面語"));
-    }
-
-    #[test]
-    fn mandarin_to_cantonese_gets_the_pair_notes() {
-        assert!(pair_notes("Chinese", "Cantonese").unwrap().contains("聽日"));
-        assert!(pair_notes("Cantonese", "Chinese").unwrap().contains("明天"));
-        assert!(pair_notes("English", "Cantonese").is_none());
-
-        let combined = notes_for(Some("zh"), "yue").unwrap();
-        assert!(combined.contains("TARGET LANGUAGE NOTE"));
-        assert!(combined.contains("PAIR NOTES"));
+    fn compose_stacks_target_and_pair_notes() {
+        let combined = compose(TARGETS, PAIRS, Some("Chinese"), "Cantonese").unwrap();
+        assert_eq!(combined, "target notes\n\npair notes");
+        // No pair file for this direction: target notes alone.
+        assert_eq!(
+            compose(TARGETS, PAIRS, Some("en"), "ko").unwrap(),
+            "korean notes"
+        );
+        // Unknown target: nothing.
+        assert!(compose(TARGETS, PAIRS, None, "Klingon").is_none());
     }
 }

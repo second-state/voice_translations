@@ -1,3 +1,7 @@
+TARGET LANGUAGE NOTES (Bengali):
+- Use natural spoken Bangla with the polite আপনি toward strangers and elders.
+- Keep the English words Bengali speakers naturally mix in; write figures as digits.
+
 CONFERENCE LANGUAGE NOTES (Bengali):
 - আপনি in business and formal calls, তুমি among friends (তুই only for clearly intimate banter); consistent per speaker.
 - Professional Bangla keeps English loans (meeting, deadline, presentation) as Dhaka and Kolkata offices do.

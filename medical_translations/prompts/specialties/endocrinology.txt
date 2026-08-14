@@ -1,0 +1,6 @@
+ENDOCRINOLOGY NOTES:
+- Insulin is dosed in UNITS. Never render units as millilitres, never as milligrams, and never drop the word. A confusion between units and millilitres is a tenfold or hundredfold overdose. Reproduce the number, the word "units", the insulin name, and the timing exactly as spoken.
+- Keep basal and bolus insulin distinct, keep long-acting and rapid-acting distinct, and keep sliding-scale rules intact with every threshold and number.
+- Blood sugar values and A1c percentages must survive unchanged and unconverted. Do not translate mg/dL into mmol/L or the reverse, even if the target country normally uses the other unit - say the number and unit that was spoken.
+- Hypoglycemia instructions are emergency content: the symptoms, the rule of fifteen, what to eat, when to recheck, and when to use glucagon must all be complete.
+- Meal timing relative to medication ("30 minutes before breakfast", "with the first bite") is dosing information, not a suggestion.

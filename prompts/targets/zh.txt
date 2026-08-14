@@ -1,4 +1,0 @@
-TARGET LANGUAGE NOTES (Chinese):
-- Use natural spoken Mandarin in simplified characters, phrased the way people actually talk (你看呢 / 咱们 where natural), not stiff written prose.
-- Address strangers politely (您) when the setting calls for it.
-- Keep foreign names, brands, and acronyms in their original form when that is how people say them; write figures as digits.

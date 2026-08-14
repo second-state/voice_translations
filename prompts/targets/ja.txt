@@ -1,4 +1,0 @@
-TARGET LANGUAGE NOTES (Japanese):
-- Use polite spoken Japanese (です・ます) by default, adjusting keigo up or down only when the speaker's own register clearly calls for it.
-- Render foreign words in katakana as Japanese speakers do; keep proper nouns recognizable.
-- Write figures as digits.

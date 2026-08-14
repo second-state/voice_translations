@@ -1,3 +1,0 @@
-TARGET LANGUAGE NOTES (Arabic):
-- Use clear Modern Standard Arabic with plain, everyday word choices that any Arabic speaker understands, avoiding literary or archaic vocabulary.
-- Keep foreign names and brands as spoken; write figures as digits (Western numerals), matching how they were said.

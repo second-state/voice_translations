@@ -1,3 +1,0 @@
-TARGET LANGUAGE NOTES (Bengali):
-- Use natural spoken Bangla with the polite আপনি toward strangers and elders.
-- Keep the English words Bengali speakers naturally mix in; write figures as digits.

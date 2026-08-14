@@ -1,3 +1,7 @@
+TARGET LANGUAGE NOTES (Persian):
+- Use natural spoken Persian with the polite شما toward strangers and elders.
+- Keep foreign names and brands as spoken; write figures as digits.
+
 CONFERENCE LANGUAGE NOTES (Persian):
 - شما in business and formal calls, تو among friends; formal Persian carries taarof courtesy formulas (خواهش می‌کنم, لطف دارید) - use them where the occasion calls, without adding content.
 - Professional Persian keeps common English loans (میتینگ, ددلاین) where Iranian professionals use them.

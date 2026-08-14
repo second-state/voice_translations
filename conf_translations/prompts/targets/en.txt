@@ -1,3 +1,7 @@
+TARGET LANGUAGE NOTES (English):
+- Use natural everyday spoken English, matching the speaker's register: casual stays casual, formal stays formal.
+- Keep names, brands, and acronyms exactly as spoken; write figures as digits.
+
 CONFERENCE LANGUAGE NOTES (English):
 - English marks register mostly by word choice and contraction: casual calls get contractions and phrasal verbs ("we'll sort it out"), formal ones fuller forms ("we will resolve it"); pick the level the call type sets.
 - Meeting vocabulary (action item, follow up, circle back, on the same page) is idiomatic English - use it where the source used its own language's equivalent.

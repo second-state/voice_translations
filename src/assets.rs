@@ -27,37 +27,37 @@ use axum::{
 const VENDOR: &[(&str, &[u8], &str)] = &[
     (
         "bundle.min.js",
-        include_bytes!("../static/vendor/bundle.min.js"),
+        include_bytes!("../vendor/bundle.min.js"),
         "application/javascript; charset=utf-8",
     ),
     (
         "vad.worklet.bundle.min.js",
-        include_bytes!("../static/vendor/vad.worklet.bundle.min.js"),
+        include_bytes!("../vendor/vad.worklet.bundle.min.js"),
         "application/javascript; charset=utf-8",
     ),
     (
         "ort.wasm.min.js",
-        include_bytes!("../static/vendor/ort.wasm.min.js"),
+        include_bytes!("../vendor/ort.wasm.min.js"),
         "application/javascript; charset=utf-8",
     ),
     (
         "ort-wasm-simd-threaded.mjs",
-        include_bytes!("../static/vendor/ort-wasm-simd-threaded.mjs"),
+        include_bytes!("../vendor/ort-wasm-simd-threaded.mjs"),
         "text/javascript; charset=utf-8",
     ),
     (
         "ort-wasm-simd-threaded.wasm",
-        include_bytes!("../static/vendor/ort-wasm-simd-threaded.wasm"),
+        include_bytes!("../vendor/ort-wasm-simd-threaded.wasm"),
         "application/wasm",
     ),
     (
         "silero_vad_v5.onnx",
-        include_bytes!("../static/vendor/silero_vad_v5.onnx"),
+        include_bytes!("../vendor/silero_vad_v5.onnx"),
         "application/octet-stream",
     ),
     (
         "silero_vad_legacy.onnx",
-        include_bytes!("../static/vendor/silero_vad_legacy.onnx"),
+        include_bytes!("../vendor/silero_vad_legacy.onnx"),
         "application/octet-stream",
     ),
 ];

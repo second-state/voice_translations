@@ -22,9 +22,9 @@ use voice_translations::{
 };
 
 use crate::{
-    call_type::{self, CallType, CALL_TYPES},
+    call_type::{self, CALL_TYPES},
     config::ConferenceConfig,
-    lang,
+    lang, prompt,
 };
 
 /// The upstream pipeline state plus this app's own settings.
@@ -75,25 +75,6 @@ pub struct ConfTranslateRequest {
     pub call_type: Option<String>,
 }
 
-/// The domain prompt for one turn: the call setting plus the type's register
-/// and terminology notes. Applies equally to the same-language polishing pass
-/// (`editing`), where register must survive cleanup.
-fn domain_prompt(call_type: &CallType, editing: bool) -> String {
-    let task = if editing {
-        "You are polishing the raw transcript of one utterance from this call for the record; \
-         keep the speaker's own register while cleaning it up."
-    } else {
-        "You are translating one utterance of this call live; the register notes below govern \
-         how it should sound in the target language."
-    };
-    format!(
-        "CALL SETTING\nThis is a live conference call: {}. {}\n\n{}",
-        call_type.blurb.to_lowercase(),
-        task,
-        call_type.guidance
-    )
-}
-
 /// POST /api/translate — streams the translated utterance back as SSE.
 pub async fn api_translate(
     State(state): State<ConfState>,
@@ -109,7 +90,7 @@ pub async fn api_translate(
         domain_prompt: None,
     };
     let editing = translate::is_editing(&upstream);
-    let mut domain = domain_prompt(call_type, editing);
+    let mut domain = prompt::domain_prompt(call_type, editing);
     // This app's per-language and per-pair rendering notes.
     if let Some(notes) =
         lang::language_notes(upstream.source_lang.as_deref(), &upstream.target_lang)
@@ -147,8 +128,7 @@ pub async fn api_tts(
 
 #[cfg(test)]
 mod tests {
-    use super::{domain_prompt, ConfTranslateRequest};
-    use crate::call_type::find;
+    use super::ConfTranslateRequest;
 
     #[test]
     fn translate_request_defaults_the_optional_fields() {
@@ -156,18 +136,5 @@ mod tests {
             serde_json::from_str(r#"{"text":"hello","target_lang":"Korean"}"#).unwrap();
         assert!(req.call_type.is_none());
         assert!(req.context.is_empty());
-    }
-
-    #[test]
-    fn domain_prompt_carries_setting_and_guidance() {
-        let business = find("business").unwrap();
-        let prompt = domain_prompt(business, false);
-        assert!(prompt.contains("CALL SETTING"));
-        assert!(prompt.contains("translating one utterance"));
-        assert!(prompt.contains("BUSINESS MEETING NOTES"));
-
-        let editing = domain_prompt(business, true);
-        assert!(editing.contains("polishing the raw transcript"));
-        assert!(editing.contains("BUSINESS MEETING NOTES"));
     }
 }

@@ -2,13 +2,11 @@ use std::{convert::Infallible, time::Duration};
 
 use anyhow::{Context, Result};
 use axum::{
-    extract::State,
     http::{header, HeaderName},
     response::{
         sse::{Event, KeepAlive, Sse},
         IntoResponse,
     },
-    Json,
 };
 use futures::StreamExt;
 use serde::Deserialize;
@@ -40,15 +38,6 @@ pub struct ContextPair {
     pub source: String,
     #[serde(default)]
     pub translation: String,
-}
-
-/// POST /api/translate — streams the translation back as Server-Sent Events
-/// over the POST response body.
-pub async fn api_translate(
-    State(state): State<AppState>,
-    Json(req): Json<TranslateRequest>,
-) -> impl IntoResponse {
-    translate_sse(state, req)
 }
 
 /// Stream a translation as Server-Sent Events over the POST response body

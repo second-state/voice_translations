@@ -17,7 +17,7 @@ its own configuration file, and can run side by side:
 
 The browser runs the [Silero VAD](https://github.com/snakers4/silero-vad)
 neural network locally (via [@ricky0123/vad-web](https://github.com/ricky0123/vad)
-and onnxruntime-web, vendored under `static/vendor/` and compiled into each
+and onnxruntime-web, vendored under `vendor/` and compiled into each
 app binary — no CDN required) to detect human speech. Audio is only sent to
 the server when the model detects a speech segment; sentence breaks are a
 configurable silence gap (default 1200 ms). Each detected utterance is sent to
@@ -172,7 +172,7 @@ Other pieces worth reusing:
 | `assets::vendor_router` | The VAD/onnxruntime assets, compiled in — enable the `embed-assets` feature |
 
 Enable `embed-assets` when you depend on this crate, since a dependency cannot
-reach this crate's `static/` tree at runtime:
+reach this crate's `vendor/` tree at runtime:
 
 ```toml
 voice-translations = { git = "https://github.com/second-state/voice_translations", features = ["embed-assets"] }

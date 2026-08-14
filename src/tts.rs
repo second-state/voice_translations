@@ -1,24 +1,12 @@
 use anyhow::{anyhow, Context, Result};
 use axum::{
     body::Bytes,
-    extract::State,
     http::header,
     response::{IntoResponse, Response},
-    Json,
 };
-use serde::Deserialize;
 use serde_json::json;
 
-use crate::{AppError, AppState};
-
-#[derive(Debug, Deserialize)]
-pub struct TtsRequest {
-    pub text: String,
-    /// Overrides `[tts] voice` for this utterance; lets an app give different
-    /// speakers different voices.
-    #[serde(default)]
-    pub voice: Option<String>,
-}
+use crate::AppState;
 
 /// Per-request overrides for [`synthesize`].
 #[derive(Debug, Default, Clone)]
@@ -39,21 +27,6 @@ impl IntoResponse for Speech {
     fn into_response(self) -> Response {
         ([(header::CONTENT_TYPE, self.content_type)], self.bytes).into_response()
     }
-}
-
-/// POST /api/tts — forwards the text to the configured OpenAI-compatible
-/// speech endpoint and returns the audio bytes.
-pub async fn api_tts(
-    State(state): State<AppState>,
-    Json(req): Json<TtsRequest>,
-) -> Result<Response, AppError> {
-    let options = SpeechOptions {
-        voice: req.voice,
-        ..Default::default()
-    };
-    Ok(synthesize(&state, &req.text, &options)
-        .await?
-        .into_response())
 }
 
 /// Read `text` aloud with the configured speech service.

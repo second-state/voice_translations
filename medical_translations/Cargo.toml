@@ -9,7 +9,7 @@ license = "Apache-2.0"
 # The speech pipeline (VAD assets, ASR, streaming LLM translation, TTS) comes
 # from the upstream voice translator; this crate supplies the medical domain
 # knowledge on top of it. `embed-assets` compiles the Silero VAD and
-# onnxruntime-web files into this binary, since the upstream `static/` tree is
+# onnxruntime-web files into this binary, since the upstream `vendor/` tree is
 # not reachable at runtime from a dependency.
 #
 # Building from a clone of this app alone? Swap the path for the git source:

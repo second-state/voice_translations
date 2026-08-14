@@ -1,14 +1,11 @@
 use std::collections::HashMap;
 
 use anyhow::{anyhow, Context, Result};
-use axum::{
-    extract::{Multipart, State},
-    Json,
-};
+use axum::extract::Multipart;
 use serde::Serialize;
 use serde_json::Value;
 
-use crate::{AppError, AppState};
+use crate::AppState;
 
 #[derive(Debug, Serialize)]
 pub struct TranscribeResponse {
@@ -37,16 +34,6 @@ pub struct AudioForm {
     /// name, so a downstream app can carry its own metadata (a specialty, a
     /// speaker role) on the same multipart request.
     pub fields: HashMap<String, String>,
-}
-
-/// POST /api/transcribe — accepts a multipart form with an `audio` file and
-/// forwards it to the configured OpenAI-compatible transcription endpoint.
-pub async fn api_transcribe(
-    State(state): State<AppState>,
-    mut multipart: Multipart,
-) -> Result<Json<TranscribeResponse>, AppError> {
-    let form = parse_audio_form(&mut multipart).await?;
-    Ok(Json(transcribe(&state, &form.audio, &form.options).await?))
 }
 
 /// Pull the `audio` file and the recognized `language` text field out of a

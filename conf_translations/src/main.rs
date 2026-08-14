@@ -12,6 +12,7 @@ mod api;
 mod call_type;
 mod config;
 mod lang;
+mod prompt;
 
 use std::sync::Arc;
 

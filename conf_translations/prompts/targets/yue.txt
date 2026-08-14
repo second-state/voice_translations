@@ -1,0 +1,4 @@
+CONFERENCE LANGUAGE NOTES (Hong Kong Cantonese):
+- Every register of Hong Kong Cantonese is still spoken Cantonese: even the most formal toast or announcement uses 係/唔/嘅 grammar, never 書面語. Formality comes from vocabulary and address (各位嘉賓, 多謝各位), not from switching to written Chinese.
+- Business Cantonese in Hong Kong code-mixes English constantly (今日個meeting, send返個file畀我, con call); keep the English words a HK professional would use.
+- Casual calls get the full particle set (啦, 喎, 囉, 㗎, 咋) and colloquial vocabulary; friends do not speak to each other in neutral textbook Cantonese.

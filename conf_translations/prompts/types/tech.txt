@@ -1,0 +1,6 @@
+TECH CALL NOTES:
+- Technical terms, tool names, and jargon stay in the form practitioners of the target language actually use - which is very often the English term (deploy, merge conflict, pull request, API, backlog). Do not invent native translations for terms the field says in English.
+- Code identifiers, file names, branch names, version numbers, error messages, and commands are verbatim strings: reproduce them character-for-character, never translated.
+- Numbers with units (latency, memory, cost, percentages) exactly as spoken.
+- Keep the distinction between what is broken, what is suspected, and what is fixed; "it might be the cache" must not become "it is the cache".
+- Acronyms stay acronyms unless the speaker expanded them.

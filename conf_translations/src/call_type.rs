@@ -49,110 +49,42 @@ pub static CALL_TYPES: &[CallType] = &[
         label: "Business meeting",
         icon: "💼",
         blurb: "Status meetings, negotiations, sales calls, planning sessions",
-        guidance: "BUSINESS MEETING NOTES:\n\
-             - Numbers, prices, percentages, dates, and deadlines are the contract in the making: \
-             render every figure and its currency or unit exactly as spoken, and never round or \
-             restate one in a different unit.\n\
-             - Keep the line between a commitment and a hedge exactly where the speaker put it: \
-             \"we will deliver by Friday\" and \"we should be able to deliver by Friday\" are \
-             different promises, and \"I'll look into it\" is not \"yes\".\n\
-             - Company names, product names, and project code names stay exactly as spoken; do \
-             not translate a product name or expand an acronym the speaker left as an acronym.\n\
-             - Use the professional register of the target language's business culture, including \
-             the forms of address it expects, without making the speaker sound stiffer or more \
-             casual than they were.\n\
-             - Action items must survive translation with their owner, task, and due date intact.",
+        guidance: include_str!("../prompts/types/business.txt"),
     },
     CallType {
         id: "formal",
         label: "Formal event",
         icon: "🎩",
         blurb: "Ceremonies, official announcements, diplomatic exchanges, speeches",
-        guidance: "FORMAL EVENT NOTES:\n\
-             - Use the elevated, courteous register the occasion calls for in the target \
-             language; a toast, a welcome address, or an official statement must sound like one.\n\
-             - Titles, honorifics, and forms of address are part of the content: render them with \
-             the target language's own conventions (Dr., Excellency, 教授, 先生/女士, 님) and \
-             never drop or downgrade one.\n\
-             - Ritual and set phrases (congratulations, condolences, welcomes, thanks) get the \
-             target language's equivalent set phrase, not a literal gloss.\n\
-             - Preserve the ceremony's exactness: names of people, institutions, and awards \
-             letter-perfect, and quoted or cited passages clearly marked as such.\n\
-             - Never inject casual fillers or contractions that lower the register below what the \
-             speaker used.",
+        guidance: include_str!("../prompts/types/formal.txt"),
     },
     CallType {
         id: "friends",
         label: "Friends & family",
         icon: "😄",
         blurb: "Casual catch-ups, group chats, banter between friends and relatives",
-        guidance: "CASUAL CONVERSATION NOTES:\n\
-             - Keep it as relaxed as the speakers are: everyday words, contractions, the target \
-             language's own casual particles and interjections. Formal register here is a \
-             translation error.\n\
-             - Jokes, teasing, sarcasm, and affectionate insults must land as jokes: carry the \
-             tone, and swap idioms and slang for the target language's own equivalents rather \
-             than translating them word-for-word into nonsense.\n\
-             - Nicknames and pet names stay as the speaker used them.\n\
-             - Emotional warmth, excitement, and complaint-for-fun should come through at the \
-             same temperature - do not flatten enthusiasm into politeness.\n\
-             - Kinship terms matter across languages (auntie, 表哥, 이모): pick the target term a \
-             native speaker would use for the same relationship, and keep it consistent.",
+        guidance: include_str!("../prompts/types/friends.txt"),
     },
     CallType {
         id: "politics",
         label: "Politics & current affairs",
         icon: "🏛️",
         blurb: "Political discussion, debate, policy talk, news commentary",
-        guidance: "POLITICAL DISCUSSION NOTES:\n\
-             - Positions must cross the language barrier unmoved: never soften, sharpen, or \
-             both-sides a speaker's stated view, and keep loaded terms as loaded as the speaker \
-             made them.\n\
-             - Attribution and epistemic markers are content: \"allegedly\", \"according to\", \
-             \"claims\", \"denies\" must be preserved exactly - dropping one turns a report into \
-             an assertion.\n\
-             - Use the canonical target-language names for institutions, offices, parties, \
-             treaties, and policies (the UN, 國會, la Casa Blanca), and keep politicians' names \
-             in their standard rendering.\n\
-             - Rhetorical devices - repetition, irony, pointed questions - are the argument; \
-             reproduce the device, not a summary of it.\n\
-             - Statistics, dates, vote counts, and margins exactly as spoken.",
+        guidance: include_str!("../prompts/types/politics.txt"),
     },
     CallType {
         id: "book_club",
         label: "Book club",
         icon: "📚",
         blurb: "Literature discussion, reading groups, author talks",
-        guidance: "BOOK CLUB NOTES:\n\
-             - Titles of books, stories, and poems get the published target-language title when a \
-             well-known translation exists; otherwise keep the original title as spoken. Author \
-             names stay in their standard rendering.\n\
-             - Quoted passages are quotes: mark them clearly and translate them with more care \
-             for the author's voice than for conversational smoothness.\n\
-             - Literary terms (unreliable narrator, foreshadowing, 伏筆, motif) get the target \
-             language's established term, not an improvised paraphrase.\n\
-             - Interpretive nuance is the whole conversation: \"I read it as...\", \"maybe she \
-             meant...\", \"it felt to me like...\" must keep their tentativeness, and disagreement \
-             about a book must stay as strong or as mild as spoken.\n\
-             - Character names stay as the speaker said them, consistently.",
+        guidance: include_str!("../prompts/types/book_club.txt"),
     },
     CallType {
         id: "tech",
         label: "Tech & engineering",
         icon: "🛠️",
         blurb: "Engineering standups, code reviews, product and architecture calls",
-        guidance: "TECH CALL NOTES:\n\
-             - Technical terms, tool names, and jargon stay in the form practitioners of the \
-             target language actually use - which is very often the English term (deploy, merge \
-             conflict, pull request, API, backlog). Do not invent native translations for terms \
-             the field says in English.\n\
-             - Code identifiers, file names, branch names, version numbers, error messages, and \
-             commands are verbatim strings: reproduce them character-for-character, never \
-             translated.\n\
-             - Numbers with units (latency, memory, cost, percentages) exactly as spoken.\n\
-             - Keep the distinction between what is broken, what is suspected, and what is fixed; \
-             \"it might be the cache\" must not become \"it is the cache\".\n\
-             - Acronyms stay acronyms unless the speaker expanded them.",
+        guidance: include_str!("../prompts/types/tech.txt"),
     },
 ];
 

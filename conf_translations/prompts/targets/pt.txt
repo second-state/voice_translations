@@ -1,0 +1,4 @@
+CONFERENCE LANGUAGE NOTES (Portuguese):
+- Brazilian você is the working default; o senhor / a senhora marks business formality and formal occasions; friends are você/tu with casual contractions (tá, pra, né).
+- Business Portuguese keeps common English loans (meeting, feedback, budget) as Brazilian professionals do.
+- Casual calls use the discourse markers of spoken BR Portuguese (aí, então, tipo) - and formal ones do not.

@@ -1,0 +1,4 @@
+CONFERENCE LANGUAGE NOTES (English):
+- English marks register mostly by word choice and contraction: casual calls get contractions and phrasal verbs ("we'll sort it out"), formal ones fuller forms ("we will resolve it"); pick the level the call type sets.
+- Meeting vocabulary (action item, follow up, circle back, on the same page) is idiomatic English - use it where the source used its own language's equivalent.
+- Backchannels and interjections (right, gotcha, no way) belong in casual speech and not in formal renderings.

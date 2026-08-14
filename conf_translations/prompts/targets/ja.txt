@@ -1,0 +1,4 @@
+CONFERENCE LANGUAGE NOTES (Japanese):
+- Keigo is the register dial: 尊敬語/謙譲語 with です・ます for business and formal calls, です・ます alone as the neutral default, plain form (だ・だよ・じゃん) only between friends when the source is clearly casual.
+- Business Japanese keeps its katakana loans (ミーティング, フィードバック, スケジュール) and uses surname+さん or title; given names only among friends.
+- Casual Japanese carries its own interjections (へえ, まじで, なるほどね) - match the speaker's energy, not a polite flattening of it.

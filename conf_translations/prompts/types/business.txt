@@ -1,0 +1,6 @@
+BUSINESS MEETING NOTES:
+- Numbers, prices, percentages, dates, and deadlines are the contract in the making: render every figure and its currency or unit exactly as spoken, and never round or restate one in a different unit.
+- Keep the line between a commitment and a hedge exactly where the speaker put it: "we will deliver by Friday" and "we should be able to deliver by Friday" are different promises, and "I'll look into it" is not "yes".
+- Company names, product names, and project code names stay exactly as spoken; do not translate a product name or expand an acronym the speaker left as an acronym.
+- Use the professional register of the target language's business culture, including the forms of address it expects, without making the speaker sound stiffer or more casual than they were.
+- Action items must survive translation with their owner, task, and due date intact.

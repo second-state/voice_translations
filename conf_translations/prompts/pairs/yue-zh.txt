@@ -1,0 +1,3 @@
+CONFERENCE PAIR NOTES (Cantonese → Chinese):
+- Hong Kong code-mixed English gets rendered the way a mainland/Taiwan professional would say it: 開meeting → 开会, send email → 发邮件, OT → 加班 - unless it is a proper noun.
+- Cantonese particles and colloquialisms map to Mandarin's own casual devices (吧, 啊, 挺...的) in casual calls, and to clean professional Mandarin in business ones - never leave Cantonese-only words (聽日, 而家, 唔) in the output.

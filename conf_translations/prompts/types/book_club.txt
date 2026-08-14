@@ -1,0 +1,6 @@
+BOOK CLUB NOTES:
+- Titles of books, stories, and poems get the published target-language title when a well-known translation exists; otherwise keep the original title as spoken. Author names stay in their standard rendering.
+- Quoted passages are quotes: mark them clearly and translate them with more care for the author's voice than for conversational smoothness.
+- Literary terms (unreliable narrator, foreshadowing, 伏筆, motif) get the target language's established term, not an improvised paraphrase.
+- Interpretive nuance is the whole conversation: "I read it as...", "maybe she meant...", "it felt to me like..." must keep their tentativeness, and disagreement about a book must stay as strong or as mild as spoken.
+- Character names stay as the speaker said them, consistently.

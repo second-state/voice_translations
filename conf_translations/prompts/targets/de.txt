@@ -1,0 +1,4 @@
+CONFERENCE LANGUAGE NOTES (German):
+- The du/Sie choice is the register: Sie in business and formal calls, du among friends; consistent per speaker.
+- Business German uses its established anglicisms (das Meeting, die Deadline, das Feedback) - do not translate them into stiff German equivalents nobody says.
+- Casual German keeps its particles (halt, mal, doch, na ja); formal German drops them for measured phrasing.

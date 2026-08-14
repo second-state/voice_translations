@@ -1,9 +1,8 @@
 //! The vendored Silero VAD + onnxruntime-web assets, compiled into the
 //! binary.
 //!
-//! Enabled by the `embed-assets` feature. This crate's own binary serves these
-//! files from `static/vendor/` on disk instead, but a crate that depends on
-//! this one has no access to this source tree at runtime, so it mounts
+//! Enabled by the `embed-assets` feature. A crate that depends on this one
+//! has no access to this source tree at runtime, so it mounts
 //! [`vendor_router`] and ships a single self-contained executable:
 //!
 //! ```no_run

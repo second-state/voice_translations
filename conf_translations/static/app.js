@@ -61,6 +61,7 @@ const state = {
   cfg: null,
   targets: new Set(),
   sourceOverride: 'auto',
+  callType: 'business',
   messages: [],
   running: false,
   sessionStart: null,
@@ -79,6 +80,7 @@ async function init() {
   for (const lang of state.cfg.default_targets) state.targets.add(langName(lang));
   renderLangChips();
   renderSourceSelect();
+  renderCallTypeSelect();
   $('micBtn').addEventListener('click', toggleMic);
   $('exportBtn').addEventListener('click', exportSrt);
   $('clearBtn').addEventListener('click', clearAll);
@@ -106,6 +108,25 @@ function renderLangChips() {
     });
     wrap.appendChild(chip);
   }
+}
+
+// The kind of call shapes the register of every translation; changing it
+// affects utterances from that point on.
+function renderCallTypeSelect() {
+  const sel = $('callType');
+  sel.innerHTML = '';
+  for (const t of state.cfg.call_types || []) {
+    const opt = document.createElement('option');
+    opt.value = t.id;
+    opt.textContent = `${t.icon} ${t.label}`;
+    opt.title = t.blurb;
+    sel.appendChild(opt);
+  }
+  state.callType = state.cfg.default_type || state.callType;
+  sel.value = state.callType;
+  sel.addEventListener('change', () => {
+    state.callType = sel.value;
+  });
 }
 
 function renderSourceSelect() {
@@ -423,6 +444,7 @@ async function streamPolish(msg, targetLang, context, entry, els, fallbackText) 
         text: msg.sourceText,
         source_lang: msg.sourceLang,
         target_lang: targetLang,
+        call_type: state.callType,
         context,
       }),
     });

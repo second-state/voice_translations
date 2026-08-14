@@ -1,12 +1,13 @@
-# Two apps ship from this workspace, each a standalone binary with its own
+# This package is a pure library: the speech pipeline (VAD assets, ASR,
+# streaming LLM translation, TTS) that every app in this workspace builds on.
+# The apps live in subfolders, each a standalone binary with its own
 # configuration file:
-#   voice-translations    — the general-purpose translator (this package)
-#   medical-translations  — the patient/clinician interpreter, built on this
-#                           package as a library
+#   conf-translations     — the conference-call translator
+#   medical-translations  — the patient/clinician interpreter
 # `cargo build --release` builds both into target/release/.
 [workspace]
-members = ["medical_translations"]
-default-members = [".", "medical_translations"]
+members = ["conf_translations", "medical_translations"]
+default-members = [".", "conf_translations", "medical_translations"]
 
 [package]
 name = "voice-translations"
@@ -16,25 +17,18 @@ description = "Real-time speech transcription and translation over OpenAI-compat
 repository = "https://github.com/second-state/voice_translations"
 license = "Apache-2.0"
 
-# The crate is both the bundled web app and a library that other Axum apps
-# build domain-specific translators on (see `medical_translations`).
+# A library that Axum apps build domain-specific translators on (see
+# `conf_translations` and `medical_translations`). There is no binary here.
 [lib]
 name = "voice_translations"
 path = "src/lib.rs"
 
-[[bin]]
-name = "voice-translations"
-path = "src/main.rs"
-
 [features]
-# Assets are embedded by default so a released binary is self-contained: it
-# runs from any directory with nothing beside it but a config file. When the
-# source tree *is* present the binary still prefers `static/vendor/` on disk,
-# so the assets can be swapped without a rebuild. Turn this off
-# (`--no-default-features`) for a ~15 MB smaller binary that requires
-# `static/vendor/` to be deployed alongside it.
+# Assets are embedded by default so the app binaries built on this library
+# are self-contained: they run from any directory with nothing beside them
+# but a config file.
 default = ["embed-assets"]
-# Compile the Silero VAD + onnxruntime-web assets into the binary and expose
+# Compile the Silero VAD + onnxruntime-web assets in and expose
 # `assets::vendor_router()`. Dependent crates need this, since they cannot
 # reach this crate's source tree at runtime.
 embed-assets = []

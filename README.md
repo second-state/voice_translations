@@ -1,39 +1,65 @@
-# Voice Translator
+# Voice Translations
 
-Real-time voice transcription and translation web app built with Rust (Axum).
+Real-time voice transcription and translation for the web, built with Rust
+(Axum).
 
-> **Two apps ship from this repository.** This one is the general-purpose
-> translator: no domain prompts, no specialty selector. Its sibling,
-> [`medical_translations/`](medical_translations/), is a patient/clinician
-> interpreter built on this crate as a library. They are separate binaries with
-> separate configuration files and separate default ports, and can run side by
-> side — see [Building both apps](#building-both-apps).
+This repository is a **pure library crate plus the apps built on it**. The
+root package, `voice-translations`, ships no binary: it is the speech pipeline
+every app reuses. The apps live in subfolders, each a standalone binary with
+its own configuration file, and can run side by side:
 
-The browser runs the [Silero VAD](https://github.com/snakers4/silero-vad) neural
-network locally (via [@ricky0123/vad-web](https://github.com/ricky0123/vad) and
-onnxruntime-web, vendored under `static/vendor/` — no CDN required) to detect
-human speech. Audio is only sent to the server when the model detects a speech
-segment; sentence breaks are a configurable silence gap (default 1200 ms). Each
-detected utterance is sent to the backend as 16 kHz WAV, which:
+| App | What it is | Source |
+| --- | --- | --- |
+| [`conf_translations/`](conf_translations/) | Conference-call translator: pick target languages, and a call-type selector (business, formal, friends, politics, book club, tech) tunes the register of every translation | `conf_translations/` |
+| [`medical_translations/`](medical_translations/) | Patient/clinician interpreter: two-party turns, per-specialty terminology rules, safety-first interpreting prompts | `medical_translations/` |
 
-1. Forwards the audio to an OpenAI-compatible ASR endpoint (`/audio/transcriptions`)
-   with automatic source-language detection.
-2. Translates the transcript into every language selected in the UI — one
-   streaming LLM request per target language, all running in parallel, with the
-   past few messages included as context. Streaming uses **SSE over POST** so it
-   passes through Cloudflare proxies.
+## The pipeline (what the library does)
 
-If the detected source language matches a selected target language, translation
-is skipped for that language and the original text is shown instead.
+The browser runs the [Silero VAD](https://github.com/snakers4/silero-vad)
+neural network locally (via [@ricky0123/vad-web](https://github.com/ricky0123/vad)
+and onnxruntime-web, vendored under `static/vendor/` and compiled into each
+app binary — no CDN required) to detect human speech. Audio is only sent to
+the server when the model detects a speech segment; sentence breaks are a
+configurable silence gap (default 1200 ms). Each detected utterance is sent to
+the backend as 16 kHz WAV, which:
 
-Every message carries a timestamp, and the transcript (source or any target
-language) can be exported as an SRT subtitle file.
+1. Forwards the audio to an OpenAI-compatible ASR endpoint
+   (`/audio/transcriptions`) with automatic source-language detection.
+2. Translates the transcript with a streaming LLM request per target language,
+   with the past few messages included as context and per-language rendering
+   notes (see `prompts/`) spliced into the system prompt. Streaming uses
+   **SSE over POST** so it passes through Cloudflare proxies.
+3. Optionally reads any sentence aloud through an OpenAI-compatible TTS
+   endpoint.
 
-## Setup
+Every message carries a timestamp, and transcripts can be exported (SRT in the
+conference app, a labeled transcript in the medical app).
+
+## Building and running the apps
+
+The repository is a Cargo workspace, so one command builds every app into a
+shared `target/`:
 
 ```sh
+cargo build --release                          # all apps
+cargo build --release -p conf-translations     # just the conference app
+cargo build --release -p medical-translations  # just the medical one
+```
+
+| | Conference translator | Medical interpreter |
+| --- | --- | --- |
+| Binary | `target/release/conf-translations` | `target/release/medical-translations` |
+| Source | `conf_translations/` | `medical_translations/` |
+| Example config | `conf_translations/config.example.toml` | `medical_translations/config.example.toml` |
+| Default port | 8080 | 8090 |
+| Config env var | `CONF_TRANSLATIONS_CONFIG` | `MEDICAL_TRANSLATIONS_CONFIG` |
+
+To run one from its folder:
+
+```sh
+cd conf_translations
 cp config.example.toml config.toml   # then fill in your endpoints + API keys
-cargo run --release -p voice-translations
+cargo run --release -p conf-translations
 ```
 
 Open http://127.0.0.1:8080, press **Start listening**, and speak.
@@ -45,10 +71,22 @@ Open http://127.0.0.1:8080, press **Start listening**, and speak.
 > quick testing enable the Chrome flag
 > `chrome://flags/#unsafely-treat-insecure-origin-as-secure` for that origin.
 
-## Configuration (`config.toml`)
+All binaries take the same flags:
+
+```
+-c, --config <path>   Configuration file to load [default: config.toml]
+-h, --help            Print help
+-V, --version         Print the version
+```
+
+## Configuration
+
+Every app reads one `config.toml`: the library's sections plus the app's own
+section (`[conference]`, `[medical]`). The shared sections:
 
 | Section | Key | Meaning |
 | --- | --- | --- |
+| `[server]` | `host`, `port` | Listen address |
 | `[audio]` | `sentence_break_ms` | Silence gap that ends a sentence (default 1200) |
 | `[audio]` | `min_speech_ms` | Discard speech segments shorter than this |
 | `[audio]` | `max_utterance_ms` | Force a break for very long utterances |
@@ -61,78 +99,37 @@ Open http://127.0.0.1:8080, press **Start listening**, and speak.
 | `[llm]` | `context_messages` | Past messages sent as translation context |
 | `[tts]` | `endpoint`, `api_key`, `model`, `voice` | Optional; adds read-aloud buttons to every sentence |
 
-`config.toml` is git-ignored; never commit real credentials.
-
-## Building both apps
-
-The repository is a Cargo workspace with two members, so one command builds
-both binaries into a shared `target/`:
-
-```sh
-cargo build --release              # both apps
-cargo build --release -p voice-translations     # just this one
-cargo build --release -p medical-translations   # just the medical one
-```
-
-| | General translator | Medical interpreter |
-| --- | --- | --- |
-| Binary | `target/release/voice-translations` | `target/release/medical-translations` |
-| Source | `src/`, `static/` | `medical_translations/` |
-| Example config | `config.example.toml` | `medical_translations/config.example.toml` |
-| Default port | 8080 | 8090 |
-| Config env var | `VOICE_TRANSLATIONS_CONFIG` | `MEDICAL_TRANSLATIONS_CONFIG` |
-
-Both binaries take the same flags:
-
-```
--c, --config <path>   Configuration file to load [default: config.toml]
--h, --help            Print help
--V, --version         Print the version
-```
+`config.toml` is git-ignored in every folder; never commit real credentials.
 
 ## Deploying
 
-Each binary is self-contained: the Silero VAD and onnxruntime assets are
-compiled in, so a deployment is **one binary plus one config file**, and it can
-live anywhere. Copy both apps to the same directory and give each its own
+Each app binary is self-contained: the Silero VAD and onnxruntime assets are
+compiled in, so a deployment is **one binary plus one config file**, and it
+can live anywhere. Copy the apps to the same directory and give each its own
 config:
 
 ```sh
-scp target/release/{voice-translations,medical-translations} server:/opt/translate/
-scp config.toml server:/opt/translate/generic.toml
+scp target/release/{conf-translations,medical-translations} server:/opt/translate/
+scp conf_translations/config.toml server:/opt/translate/conference.toml
 scp medical_translations/config.toml server:/opt/translate/medical.toml
 
 # on the server, in /opt/translate:
-./voice-translations   --config generic.toml    # :8080
-./medical-translations --config medical.toml    # :8090
+./conf-translations    --config conference.toml  # :8080
+./medical-translations --config medical.toml     # :8090
 ```
 
-Both apps log the **absolute path** of the configuration they loaded at
-startup. This matters because both default to `config.toml` in the working
-directory, so launching one from the other's directory would otherwise pick up
-the wrong file silently:
+Every app logs the **absolute path** of the configuration it loaded at
+startup. This matters because they all default to `config.toml` in the working
+directory, so launching one from another's directory would otherwise pick up
+the wrong file silently.
 
-```
-INFO voice_translations: loading configuration from /opt/translate/generic.toml
-INFO voice_translations: serving vendor assets embedded in the binary
-INFO voice_translations: listening on http://127.0.0.1:8080
-```
+Put the apps behind a TLS-terminating proxy: browsers only grant microphone
+access on HTTPS or `localhost`, and every app redirects plain-HTTP visitors to
+HTTPS when it sees an `X-Forwarded-Proto` header.
 
-When the source tree *is* present, the general translator serves the vendor
-assets from `static/vendor/` instead, so they can be swapped without a rebuild;
-the log line above says which source was used. To build a ~15 MB smaller binary
-that requires `static/vendor/` to be deployed beside it, use
-`cargo build --release --no-default-features`.
+## Using the library
 
-Put both behind a TLS-terminating proxy: browsers only grant microphone access
-on HTTPS or `localhost`, and both apps redirect plain-HTTP visitors to HTTPS
-when they see an `X-Forwarded-Proto` header.
-
-## Using it as a library
-
-The crate is also a library, so another Axum app can reuse the pipeline and
-specialize it for a domain instead of forking it. Every stage is a plain
-function taking an `AppState`:
+Every stage of the pipeline is a plain function taking an `AppState`:
 
 ```rust
 use voice_translations::{asr, translate, tts, AppState, Config};
@@ -166,8 +163,10 @@ Other pieces worth reusing:
 | `asr::parse_audio_form` | Pulls the `audio` upload plus arbitrary extra text fields out of a multipart request |
 | `asr::normalize_language` | ISO codes and lowercase names to the display names used throughout |
 | `translate::build_system_prompt` | Inspect or rebuild the exact prompt the model will get |
+| `lang_notes::notes_for` | The per-target-language and per-pair rendering notes every translation already receives |
 | `tts::synthesize` | Text to audio, with a per-request voice override |
 | `Config::client_view` | The settings JSON the browser needs, to merge your own keys into |
+| `cli::Cli` | The shared `--config` flag parsing every app uses |
 | `force_https` | Middleware that upgrades plain-HTTP visitors behind a proxy (browsers need HTTPS for microphone access) |
 | `assets::vendor_router` | The VAD/onnxruntime assets, compiled in — enable the `embed-assets` feature |
 
@@ -178,7 +177,7 @@ reach this crate's `static/` tree at runtime:
 voice-translations = { git = "https://github.com/second-state/voice_translations", features = ["embed-assets"] }
 ```
 
-[`medical_translations`](medical_translations/) is a worked example: it adds a
-medical-specialty layer — interpreting rules and per-specialty terminology
-guidance for the translator, and a two-party patient/clinician UI — without
-changing anything in this crate's own behavior.
+The two apps in this workspace are worked examples: `conf_translations` adds a
+call-type layer to a broadcast translator, and `medical_translations` adds
+interpreting rules, per-specialty terminology, and a two-party UI — neither
+changes anything in the library's own behavior.

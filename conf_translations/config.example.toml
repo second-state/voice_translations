@@ -60,3 +60,8 @@ api_key = "your-tts-api-key"
 # that expose ElevenLabs (better multilingual quality).
 model = "gpt-4o-mini-tts"
 voice = "alloy"
+
+[conference]
+# Call type selected when the page loads. One of: business, formal, friends,
+# politics, book_club, tech.
+default_type = "business"

@@ -1,9 +1,9 @@
 //! Real-time speech transcription and translation over OpenAI-compatible
 //! services.
 //!
-//! This crate ships a complete web app (`src/main.rs`), but every stage of the
-//! pipeline is also exposed as a plain function so other Axum apps can reuse
-//! the machinery and specialize it for a domain:
+//! This crate is a pure library: every stage of the pipeline is a plain
+//! function that an Axum app composes and specializes for its domain — see
+//! `conf_translations` and `medical_translations` in this workspace:
 //!
 //! * [`asr::transcribe`] — audio bytes to text, with optional language
 //!   pinning.

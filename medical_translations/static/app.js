@@ -94,9 +94,11 @@ async function init() {
 
   renderSpecialties();
   renderLanguageSelects();
+  restoreHistory();
+  window.addEventListener('beforeunload', saveHistory);
 
   $('micBtn').addEventListener('click', toggleMic);
-  $('exportBtn').addEventListener('click', exportTranscript);
+  $('exportBtn').addEventListener('click', exportSrt);
   $('clearBtn').addEventListener('click', clearAll);
   $('swapBtn').addEventListener('click', swapLanguages);
   $('settingsToggle').addEventListener('click', () => {
@@ -419,6 +421,7 @@ async function handleUtterance(blob, start, end) {
     msg.targetLang = langFor(otherRole(msg.role));
     updateMessageHead(msg);
     updateSourceBlob(msg);
+    saveHistory();
 
     // The source blob streams a disfluency-free version of the raw transcript;
     // the interpretation streams in parallel into its own blob.
@@ -435,6 +438,7 @@ async function handleUtterance(blob, start, end) {
     }
     await Promise.all(jobs);
     checkNumbers(msg);
+    saveHistory();
   } catch (err) {
     msg.el.classList.add('error');
     const blobText = msg.el.querySelector('.source .blob-text');
@@ -621,10 +625,6 @@ function renderMessage(msg) {
   autoscroll(true);
 }
 
-function roleLabel(role) {
-  return role === 'clinician' ? 'Clinician' : 'Patient';
-}
-
 function updateMessageHead(msg) {
   msg.el.dataset.role = msg.role;
   for (const btn of msg.el.querySelectorAll('[data-set-role]')) {
@@ -662,11 +662,15 @@ function reassignRole(msg, role) {
   updateMessageHead(msg);
   if (sameLang(msg.sourceLang, msg.targetLang)) {
     addSameLangNote(msg);
+    saveHistory();
     return;
   }
   msg.translation = { text: '', done: false };
   addTranslationBlob(msg);
-  streamTranslation(msg).then(() => checkNumbers(msg));
+  streamTranslation(msg).then(() => {
+    checkNumbers(msg);
+    saveHistory();
+  });
 }
 
 function updateSourceBlob(msg) {
@@ -706,13 +710,92 @@ function removeMessage(msg) {
   msg.el?.remove();
   const idx = state.messages.indexOf(msg);
   if (idx >= 0) state.messages.splice(idx, 1);
+  saveHistory();
 }
 
+// The Clear button is the ONLY thing that discards history; reloads restore it.
 function clearAll() {
   state.messages = [];
   msgCounter = 0;
   state.sessionStart = state.running ? Date.now() : null;
+  try { localStorage.removeItem(STORAGE_KEY); } catch { /* private mode */ }
   $('messages').innerHTML = emptyStateHtml;
+}
+
+/* ---------- History persistence ----------
+   The encounter survives page reloads via localStorage; only the Clear
+   button discards it. Turns are saved when their streams finish, plus a
+   best-effort save on unload for anything in flight. */
+
+const STORAGE_KEY = 'medical_translations_history';
+
+function saveHistory() {
+  try {
+    const messages = state.messages
+      .filter((m) => m.sourceText)
+      .map((m) => ({
+        id: m.id,
+        start: m.start,
+        end: m.end,
+        specialty: m.specialty,
+        specialtyLabel: m.specialtyLabel,
+        role: m.role,
+        sourceLang: m.sourceLang,
+        targetLang: m.targetLang,
+        heardLang: m.heardLang || null,
+        sourceText: m.sourceText,
+        cleanText: m.clean?.text || '',
+        translationText: m.translation?.text || '',
+      }));
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ sessionStart: state.sessionStart, messages })
+    );
+  } catch (err) {
+    console.warn('could not save history:', err.message);
+  }
+}
+
+function restoreHistory() {
+  let data = null;
+  try { data = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); } catch { return; }
+  if (!data || !Array.isArray(data.messages) || !data.messages.length) return;
+  state.sessionStart = data.sessionStart || null;
+  for (const saved of data.messages) {
+    const msg = {
+      id: saved.id,
+      start: saved.start,
+      end: saved.end,
+      specialty: saved.specialty,
+      specialtyLabel: saved.specialtyLabel,
+      role: saved.role,
+      sourceLang: saved.sourceLang,
+      targetLang: saved.targetLang,
+      heardLang: saved.heardLang,
+      sourceText: saved.sourceText,
+      clean: { text: saved.cleanText || '', done: true },
+      translation: null,
+      el: null,
+    };
+    msgCounter = Math.max(msgCounter, msg.id);
+    state.messages.push(msg);
+    renderMessage(msg);
+    updateMessageHead(msg);
+    updateSourceBlob(msg);
+    if (msg.clean.text) {
+      msg.el.querySelector('.source .blob-text').textContent = msg.clean.text;
+    }
+    if (saved.translationText) {
+      msg.translation = { text: saved.translationText, done: true };
+      addTranslationBlob(msg);
+      const el = msg.el.querySelector('.translation .blob-text');
+      el.classList.remove('streaming');
+      el.textContent = msg.translation.text;
+    } else if (sameLang(msg.sourceLang, msg.targetLang)) {
+      addSameLangNote(msg);
+    }
+  }
+  autoscroll(true);
 }
 
 function autoscroll(force) {
@@ -787,42 +870,45 @@ async function speakText(text, speaker, btn) {
 
 // One readable bilingual record of the encounter: each turn attributed, timed,
 // and paired with its interpretation.
-function exportTranscript() {
+// One SRT file: each cue spans the turn's time, with the polished spoken
+// text and its interpretation each on its own row. Raw ASR text is never
+// exported, and a same-language turn contributes a single row.
+function exportSrt() {
   const msgs = state.messages.filter((m) => m.sourceText);
   if (!msgs.length) {
     setStatus('error', 'Nothing to export yet');
     return;
   }
-  const started = new Date(state.sessionStart ?? msgs[0].start);
-  const specialties = [...new Set(msgs.map((m) => m.specialtyLabel))].join(', ');
-  const lines = [
-    'MEDICAL INTERPRETING TRANSCRIPT',
-    '='.repeat(60),
-    `Specialty:  ${specialties}`,
-    `Languages:  ${state.clinicianLang} (clinician) <-> ${state.patientLang} (patient)`,
-    `Started:    ${started.toLocaleString()}`,
-    `Turns:      ${msgs.length}`,
-    '',
-    'Machine-generated interpretation, produced live from speech. It is an aid,',
-    'not a certified medical interpretation, and has not been reviewed. Verify',
-    'anything clinical against the source before acting on or filing it.',
-    '='.repeat(60),
-    '',
-  ];
+  const base = state.sessionStart ?? msgs[0].start;
+  let n = 0;
+  let out = '';
   for (const m of msgs) {
-    const spoken = m.clean?.text || m.sourceText;
-    lines.push(`[${fmtClock(m.start)}] ${roleLabel(m.role).toUpperCase()} (${m.sourceLang})`);
-    lines.push(`  ${spoken}`);
-    if (m.translation?.text) {
-      lines.push(`  -> ${m.targetLang}: ${m.translation.text}`);
-    } else if (sameLang(m.sourceLang, m.targetLang)) {
-      lines.push('  -> (same language, not interpreted)');
-    }
-    if (m.sourceText !== spoken) lines.push(`  raw: ${m.sourceText}`);
-    lines.push('');
+    const rows = [];
+    const push = (text) => {
+      const t = (text || '').trim();
+      if (t && !rows.includes(t)) rows.push(t);
+    };
+    push(m.clean?.text);
+    push(m.translation?.text);
+    if (!rows.length) continue;
+    n++;
+    out += `${n}\n${fmtSrt(m.start - base)} --> ${fmtSrt(m.end - base)}\n${rows.join('\n')}\n\n`;
   }
-  const stamp = started.toISOString().slice(0, 16).replace(/[:T]/g, '-');
-  downloadFile(`encounter-${stamp}.txt`, lines.join('\n'));
+  if (!n) {
+    setStatus('error', 'Nothing to export yet');
+    return;
+  }
+  downloadFile('encounter.srt', out);
+}
+
+function fmtSrt(ms) {
+  ms = Math.max(0, Math.round(ms));
+  const h = Math.floor(ms / 3600000);
+  const m = Math.floor(ms / 60000) % 60;
+  const s = Math.floor(ms / 1000) % 60;
+  const frac = ms % 1000;
+  const p = (v, l = 2) => String(v).padStart(l, '0');
+  return `${p(h)}:${p(m)}:${p(s)},${p(frac, 3)}`;
 }
 
 function downloadFile(filename, content) {

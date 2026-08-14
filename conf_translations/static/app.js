@@ -81,6 +81,8 @@ async function init() {
   renderLangChips();
   renderSourceSelect();
   renderCallTypeSelect();
+  restoreHistory();
+  window.addEventListener('beforeunload', saveHistory);
   $('micBtn').addEventListener('click', toggleMic);
   $('exportBtn').addEventListener('click', exportSrt);
   $('clearBtn').addEventListener('click', clearAll);
@@ -384,6 +386,7 @@ async function handleUtterance(blob, start, end) {
     msg.sourceText = text;
     msg.sourceLang = override || langName(data.language) || state.cfg.default_source;
     updateSourceBlob(msg);
+    saveHistory();
 
     // The source blob streams a polished (filler-free) version of the raw
     // transcript; a target matching the source language mirrors it.
@@ -499,6 +502,7 @@ async function streamPolish(msg, targetLang, context, entry, els, fallbackText) 
       show((entry.text ? entry.text + ' ' : '') + '⚠ ' + err.message);
     }
   }
+  saveHistory();
 }
 
 function buildContext(msg, lang) {
@@ -565,15 +569,85 @@ function removeMessage(msg) {
   msg.el?.remove();
   const idx = state.messages.indexOf(msg);
   if (idx >= 0) state.messages.splice(idx, 1);
+  saveHistory();
 }
 
+// The Clear button is the ONLY thing that discards history; reloads restore it.
 function clearAll() {
   state.messages = [];
   msgCounter = 0;
   state.sessionStart = state.running ? Date.now() : null;
+  try { localStorage.removeItem(STORAGE_KEY); } catch { /* private mode */ }
   const container = $('messages');
   container.innerHTML = '<div id="empty" class="empty">Press <strong>Start listening</strong> and speak.<br>' +
     'Each sentence is transcribed, then translated into every selected language in parallel.</div>';
+}
+
+/* ---------- History persistence ----------
+   The transcript survives page reloads via localStorage; only the Clear
+   button (or a full removal) discards it. Streams are saved when they
+   finish, plus a best-effort save on unload for anything in flight. */
+
+const STORAGE_KEY = 'conf_translations_history';
+
+function saveHistory() {
+  try {
+    const messages = state.messages
+      .filter((m) => m.sourceText)
+      .map((m) => ({
+        id: m.id,
+        start: m.start,
+        end: m.end,
+        sourceLang: m.sourceLang,
+        sourceText: m.sourceText,
+        cleanText: m.cleanSource?.text || '',
+        translations: Object.fromEntries(
+          Object.entries(m.translations).map(([lang, t]) => [
+            lang,
+            { text: t.text || '', original: !!t.original },
+          ])
+        ),
+      }));
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ sessionStart: state.sessionStart, messages })
+    );
+  } catch (err) {
+    console.warn('could not save history:', err.message);
+  }
+}
+
+function restoreHistory() {
+  let data = null;
+  try { data = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); } catch { return; }
+  if (!data || !Array.isArray(data.messages) || !data.messages.length) return;
+  state.sessionStart = data.sessionStart || null;
+  for (const saved of data.messages) {
+    const msg = {
+      id: saved.id,
+      start: saved.start,
+      end: saved.end,
+      sourceLang: saved.sourceLang,
+      sourceText: saved.sourceText,
+      translations: {},
+      el: null,
+    };
+    msgCounter = Math.max(msgCounter, msg.id);
+    state.messages.push(msg);
+    renderMessage(msg);
+    updateSourceBlob(msg);
+    msg.cleanSource = { text: saved.cleanText || '', done: true, original: true };
+    if (msg.cleanSource.text) {
+      msg.el.querySelector('.source .blob-text').textContent = msg.cleanSource.text;
+    }
+    for (const [lang, t] of Object.entries(saved.translations || {})) {
+      msg.translations[lang] = t.original
+        ? msg.cleanSource
+        : { text: t.text || '', done: true };
+      addTranslationBlob(msg, lang);
+    }
+  }
+  autoscroll(true);
 }
 
 function autoscroll(force) {
@@ -638,31 +712,36 @@ async function speakText(text, btn) {
 
 /* ---------- SRT export ---------- */
 
-// One .srt file per track: the source as spoken, plus each selected language.
+// One SRT file: each cue spans the utterance's time, with the polished
+// source and every translated language on its own row. Raw ASR text is
+// never exported, and rows identical to an earlier row are folded (a
+// target matching the source language mirrors the polished source).
 function exportSrt() {
   const msgs = state.messages.filter((m) => m.sourceText);
   if (!msgs.length) {
     setStatus('error', 'Nothing to export yet');
     return;
   }
-  const tracks = [['source', (m) => m.cleanSource?.text || m.sourceText]]
-    .concat([...state.targets].map((lang) => [lang, (m) => m.translations[lang]?.text || '']));
-  let exported = 0;
-  for (const [track, textOf] of tracks) {
-    const base = state.sessionStart ?? msgs[0].start;
-    let n = 0;
-    let out = '';
-    for (const m of msgs) {
-      const text = (textOf(m) || '').trim();
-      if (!text) continue;
-      n++;
-      out += `${n}\n${fmtSrt(m.start - base)} --> ${fmtSrt(m.end - base)}\n${text}\n\n`;
-    }
-    if (!n) continue;
-    downloadFile(`transcript-${track.toLowerCase()}.srt`, out);
-    exported++;
+  const base = state.sessionStart ?? msgs[0].start;
+  let n = 0;
+  let out = '';
+  for (const m of msgs) {
+    const rows = [];
+    const push = (text) => {
+      const t = (text || '').trim();
+      if (t && !rows.includes(t)) rows.push(t);
+    };
+    push(m.cleanSource?.text);
+    for (const t of Object.values(m.translations)) push(t.text);
+    if (!rows.length) continue;
+    n++;
+    out += `${n}\n${fmtSrt(m.start - base)} --> ${fmtSrt(m.end - base)}\n${rows.join('\n')}\n\n`;
   }
-  if (!exported) setStatus('error', 'Nothing to export yet');
+  if (!n) {
+    setStatus('error', 'Nothing to export yet');
+    return;
+  }
+  downloadFile('transcript.srt', out);
 }
 
 function downloadFile(filename, content) {

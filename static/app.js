@@ -7,6 +7,28 @@ if (location.protocol === 'http:'
   location.replace('https://' + location.host + location.pathname + location.search);
 }
 
+/* Keep the screen awake while this tab is open: a live interpretation
+   session must not end because the device locked itself. The lock is
+   auto-released when the tab is hidden, so it is re-acquired on return,
+   and on first tap for browsers that only grant it after a gesture. */
+let wakeLock = null;
+
+async function keepScreenAwake() {
+  if (!('wakeLock' in navigator)) return;
+  try {
+    wakeLock = await navigator.wakeLock.request('screen');
+    wakeLock.addEventListener('release', () => { wakeLock = null; });
+  } catch (err) {
+    console.warn('screen wake lock unavailable:', err.message);
+  }
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && !wakeLock) keepScreenAwake();
+});
+document.addEventListener('click', () => { if (!wakeLock) keepScreenAwake(); }, { capture: true });
+keepScreenAwake();
+
 const ALL_LANGS = ['English', 'Chinese', 'Cantonese', 'Korean', 'Japanese'];
 
 // ISO 639-1 codes (plus common country-code slips) -> display names, so

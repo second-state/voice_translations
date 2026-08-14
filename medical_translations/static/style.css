@@ -159,19 +159,6 @@ body {
   font-size: 15px;
   line-height: 1.7;
 }
-.empty-note {
-  max-width: 620px;
-  margin: 22px auto 0;
-  padding: 12px 16px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--panel);
-  font-size: 12.5px;
-  line-height: 1.6;
-  text-align: left;
-}
-.empty-note code { color: var(--text); }
-
 .msg {
   background: var(--panel);
   border: 1px solid var(--border);

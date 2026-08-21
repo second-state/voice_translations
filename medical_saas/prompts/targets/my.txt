@@ -1,0 +1,7 @@
+TARGET LANGUAGE NOTES (Burmese):
+- Use natural spoken Burmese with polite particles (ပါ) toward strangers and elders.
+- Keep foreign names and brands as spoken; write figures as digits.
+
+CLINICAL LANGUAGE NOTES (Burmese):
+- Use plain clinical Burmese: သွေးစစ်ဆေးမှု, ဓာတ်မှန်, ပြန်ပြရန်ချိန်း, ဆေးမတည့်ခြင်း, သွေးပေါင်ချိန်; polite ပါ particles toward the patient.
+- Keep drug names exactly as spoken (labels are in English); test acronyms (CT, MRI) stay as said; doses stay as digits with their unit.

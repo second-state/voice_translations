@@ -1,0 +1,8 @@
+TARGET LANGUAGE NOTES (Hindi):
+- Use natural spoken Hindi with the polite आप toward strangers and elders.
+- Everyday Hindi keeps many English words (time, report, office); keep them in English where a Hindi speaker naturally would rather than forcing shuddh Hindi.
+- Write figures as digits.
+
+CLINICAL LANGUAGE NOTES (Hindi):
+- Indian clinical speech mixes English heavily: blood test, X-ray, operation, BP, sugar (for diabetes), dose normally stay in English inside a Hindi sentence; do not force shuddh Hindi terms nobody uses in clinics.
+- Symptoms in the patient's lay words (पेट दर्द, चक्कर, साँस फूलना); keep drug names exactly as spoken; doses stay as digits with their unit.

@@ -1,0 +1,7 @@
+ONCOLOGY NOTES:
+- Prognosis and probability wording is the content most often distorted by interpreters trying to be kind. Percentages, survival figures, "we cannot cure this", "this is treatable but not curable", "we hope", "we expect" must cross over with exactly the certainty the speaker used - neither softened nor hardened.
+- Stage, grade, and tumor size are numbers with clinical meaning: stage III, grade 2, 2.4 centimeters, three of twelve lymph nodes. Reproduce them exactly.
+- Treatment intent words (curative, palliative, adjuvant, neoadjuvant, maintenance) change what the patient is consenting to. Do not blur them into "treatment".
+- Keep regimen names, cycle counts, and schedules intact ("four cycles, every three weeks").
+- Some languages and families avoid naming cancer directly. Render what the speaker actually said - if the clinician says "cancer", say it; if the patient uses a euphemism, keep the euphemism. Do not introduce or remove the word on your own initiative.
+- Never add reassurance, hope, or consolation that was not spoken.

@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Medical Interpreter</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="logo">🩺</span>
+    <div class="brand-text">
+      <h1>Medical Interpreter</h1>
+      <span id="specialtyTag" class="brand-sub">Primary care</span>
+    </div>
+  </div>
+  <div class="mic-controls">
+    <div class="meter" title="Microphone level"><div id="meterFill" class="meter-fill"></div></div>
+    <span id="status" class="status idle">Idle</span>
+    <button id="micBtn" class="mic-btn">Start listening</button>
+  </div>
+</header>
+
+<!-- Who is signed in, what is left of this week's allowance, and the way to
+     lift the limit. Populated from /api/me. -->
+<section id="accountBar" class="account-bar" hidden>
+  <span class="account-email" id="accountEmail"></span>
+  <span class="plan-badge" id="planBadge"></span>
+  <span class="quota-wrap" id="quotaWrap">
+    <span class="quota-meter"><span id="quotaFill" class="quota-fill"></span></span>
+    <span class="quota-text" id="quotaText"></span>
+  </span>
+  <span class="spacer"></span>
+  <button id="upgradeBtn" class="btn accent" hidden>Subscribe for unlimited</button>
+  <button id="manageBtn" class="btn" hidden>Manage subscription</button>
+  <button id="logoutBtn" class="btn subtle">Log out</button>
+</section>
+
+<div id="quotaNotice" class="quota-notice" hidden></div>
+
+<button id="settingsToggle" class="settings-toggle" aria-expanded="true">Encounter setup ▾</button>
+<section id="settings" class="settings">
+
+  <div class="setting-row">
+    <label class="setting-label" for="specialty">Specialty</label>
+    <select id="specialty" class="select grow" title="Tunes both speech recognition and interpreting to this field"></select>
+    <span id="specialtyBlurb" class="hint"></span>
+  </div>
+
+  <div class="setting-row">
+    <label class="setting-label" for="clinicianLang">Clinician speaks</label>
+    <select id="clinicianLang" class="select"></select>
+    <button id="swapBtn" class="btn icon" title="Swap the two languages">⇄</button>
+    <label class="setting-label" for="patientLang">Patient speaks</label>
+    <select id="patientLang" class="select"></select>
+  </div>
+
+  <div class="setting-row">
+    <span class="hint">The speaker is detected from the language of each turn — use the Clinician/Patient buttons on a message to correct it.</span>
+    <span class="spacer"></span>
+    <button id="exportBtn" class="btn">Export</button>
+    <button id="clearBtn" class="btn subtle">Clear</button>
+  </div>
+
+</section>
+
+<main id="messages" class="messages">
+  <div id="empty" class="empty">
+    Pick the specialty and the two languages, then press <strong>Start listening</strong>.<br>
+    Each utterance is transcribed, attributed to the clinician or the patient, and interpreted into the other language.
+  </div>
+</main>
+
+<script src="/vendor/ort.wasm.min.js"></script>
+<script src="/vendor/bundle.min.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>

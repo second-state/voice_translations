@@ -4,10 +4,12 @@
 # configuration file:
 #   conf-translations     — the conference-call translator
 #   medical-translations  — the patient/clinician interpreter
+#   medical-saas          — the interpreter as a hosted service: accounts,
+#                           magic-link login, weekly word quota, Stripe plans
 # `cargo build --release` builds both into target/release/.
 [workspace]
-members = ["conf_translations", "medical_translations"]
-default-members = [".", "conf_translations", "medical_translations"]
+members = ["conf_translations", "medical_saas", "medical_translations"]
+default-members = [".", "conf_translations", "medical_saas", "medical_translations"]
 
 [package]
 name = "voice-translations"

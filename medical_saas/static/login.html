@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign in · Medical Interpreter</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body class="auth-body">
+
+<main class="auth-card">
+  <h1><span class="logo">🩺</span> Medical Interpreter</h1>
+  <p class="auth-lede">
+    Real-time interpreting between a patient and their care team.
+    Enter your email and we will send you a sign-in link — no password to
+    choose or forget.
+  </p>
+
+  <form id="loginForm" class="auth-form" autocomplete="on">
+    <label class="auth-label" for="email">Email address</label>
+    <input id="email" name="email" type="email" class="auth-input"
+           placeholder="you@clinic.org" required autocomplete="email" autofocus>
+    <button id="submitBtn" type="submit" class="mic-btn auth-submit">Email me a sign-in link</button>
+  </form>
+
+  <p id="authMsg" class="auth-msg" hidden></p>
+
+  <p class="auth-foot">
+    New here? The same link signs you up. Free accounts include
+    <strong id="freeWords">1,000</strong> interpreted words a week; a monthly
+    subscription removes the limit.
+  </p>
+</main>
+
+<script>
+'use strict';
+
+const $ = (id) => document.getElementById(id);
+
+// The free allowance is a server setting, so read it rather than hard-coding
+// a number that could drift out of date.
+fetch('/api/config')
+  .then((r) => (r.ok ? r.json() : null))
+  .then((cfg) => {
+    if (cfg && typeof cfg.free_words_per_week === 'number') {
+      $('freeWords').textContent = cfg.free_words_per_week.toLocaleString();
+    }
+  })
+  .catch(() => {});
+
+// An expired, reused, or unknown link lands back here with ?error=link.
+if (new URLSearchParams(location.search).get('error') === 'link') {
+  show('That sign-in link has expired or was already used. Request a new one.', 'error');
+}
+
+$('loginForm').addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  const email = $('email').value.trim();
+  if (!email) return;
+  const btn = $('submitBtn');
+  btn.disabled = true;
+  btn.textContent = 'Sending…';
+  try {
+    const resp = await fetch('/auth/request', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok) throw new Error(data.error || `HTTP ${resp.status}`);
+
+    if (data.link) {
+      // Development deployments with no mail provider hand the link back
+      // so there is something to click.
+      show(`No mail provider is configured, so here is your link: <a href="${data.link}">sign in</a>`, 'ok', true);
+    } else {
+      show(`Check ${data.email} for a sign-in link. It expires in ${data.expires_in_minutes} minutes.`, 'ok');
+    }
+    $('loginForm').reset();
+  } catch (err) {
+    show(err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Email me a sign-in link';
+  }
+});
+
+function show(message, kind, html) {
+  const el = $('authMsg');
+  el.className = 'auth-msg ' + kind;
+  if (html) el.innerHTML = message;
+  else el.textContent = message;
+  el.hidden = false;
+}
+</script>
+</body>
+</html>

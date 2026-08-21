@@ -12,6 +12,7 @@ its own configuration file, and can run side by side:
 | --- | --- | --- |
 | [`conf_translations/`](conf_translations/) | Conference-call translator: pick target languages, and a call-type selector (business, formal, friends, politics, book club, tech) tunes the register of every translation | `conf_translations/` |
 | [`medical_translations/`](medical_translations/) | Patient/clinician interpreter: two-party turns, per-specialty terminology rules, safety-first interpreting prompts | `medical_translations/` |
+| [`medical_saas/`](medical_saas/) | The same interpreter run as a service: accounts in embedded SQLite, magic-link sign-in, a rolling weekly word allowance, Stripe subscriptions | `medical_saas/` |
 
 ## The pipeline (what the library does)
 
@@ -33,8 +34,8 @@ the backend as 16 kHz WAV, which:
 3. Optionally reads any sentence aloud through an OpenAI-compatible TTS
    endpoint.
 
-Every message carries a timestamp, and transcripts can be exported (SRT in the
-conference app, a labeled transcript in the medical app).
+Every message carries a timestamp, the transcript survives page reloads, and
+it exports as an SRT file whose cues carry every language on its own row.
 
 ## Building and running the apps
 
@@ -45,15 +46,16 @@ shared `target/`:
 cargo build --release                          # all apps
 cargo build --release -p conf-translations     # just the conference app
 cargo build --release -p medical-translations  # just the medical one
+cargo build --release -p medical-saas          # just the hosted edition
 ```
 
-| | Conference translator | Medical interpreter |
-| --- | --- | --- |
-| Binary | `target/release/conf-translations` | `target/release/medical-translations` |
-| Source | `conf_translations/` | `medical_translations/` |
-| Example config | `conf_translations/config.example.toml` | `medical_translations/config.example.toml` |
-| Default port | 8080 | 8090 |
-| Config env var | `CONF_TRANSLATIONS_CONFIG` | `MEDICAL_TRANSLATIONS_CONFIG` |
+| | Conference translator | Medical interpreter | Medical, hosted |
+| --- | --- | --- | --- |
+| Binary | `target/release/conf-translations` | `target/release/medical-translations` | `target/release/medical-saas` |
+| Source | `conf_translations/` | `medical_translations/` | `medical_saas/` |
+| Example config | `conf_translations/config.example.toml` | `medical_translations/config.example.toml` | `medical_saas/config.example.toml` |
+| Default port | 8080 | 8090 | 8100 |
+| Config env var | `CONF_TRANSLATIONS_CONFIG` | `MEDICAL_TRANSLATIONS_CONFIG` | `MEDICAL_SAAS_CONFIG` |
 
 To run one from its folder:
 
@@ -82,8 +84,10 @@ All binaries take the same flags:
 
 ## Configuration
 
-Every app reads one `config.toml`: the library's sections plus the app's own
-section (`[conference]`, `[medical]`). The shared sections:
+Every app reads one `config.toml`: the library's sections below, plus the
+app's own — `[conference]`, `[medical]`, and for the hosted edition
+`[auth] [email] [quota] [stripe]` (see its
+[README](medical_saas/README.md#configuration)). The shared sections:
 
 | Section | Key | Meaning |
 | --- | --- | --- |
@@ -110,13 +114,15 @@ can live anywhere. Copy the apps to the same directory and give each its own
 config:
 
 ```sh
-scp target/release/{conf-translations,medical-translations} server:/opt/translate/
+scp target/release/{conf-translations,medical-translations,medical-saas} server:/opt/translate/
 scp conf_translations/config.toml server:/opt/translate/conference.toml
 scp medical_translations/config.toml server:/opt/translate/medical.toml
+scp medical_saas/config.toml server:/opt/translate/saas.toml
 
 # on the server, in /opt/translate:
 ./conf-translations    --config conference.toml  # :8080
 ./medical-translations --config medical.toml     # :8090
+./medical-saas         --config saas.toml        # :8100, plus its SQLite file
 ```
 
 Every app logs the **absolute path** of the configuration it loaded at
@@ -178,7 +184,8 @@ reach this crate's `vendor/` tree at runtime:
 voice-translations = { git = "https://github.com/second-state/voice_translations", features = ["embed-assets"] }
 ```
 
-The two apps in this workspace are worked examples: `conf_translations` adds a
-call-type layer to a broadcast translator, and `medical_translations` adds
-interpreting rules, per-specialty terminology, and a two-party UI — neither
-changes anything in the library's own behavior.
+The apps in this workspace are worked examples: `conf_translations` adds a
+call-type layer to a broadcast translator, `medical_translations` adds
+interpreting rules, per-specialty terminology, and a two-party UI, and
+`medical_saas` wraps that same interpreter in accounts, quotas, and billing —
+none of them changes anything in the library's own behavior.

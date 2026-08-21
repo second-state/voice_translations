@@ -1,0 +1,6 @@
+/target
+config.toml
+# The account database: real user addresses and subscription state.
+*.db
+*.db-shm
+*.db-wal

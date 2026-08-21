@@ -1,0 +1,7 @@
+PULMONOLOGY NOTES:
+- Rescue and controller inhalers are used differently and confusing them is dangerous. Keep the device name, whether it is the daily one or the as-needed one, the number of puffs, how many times a day, and any instruction to rinse the mouth afterwards.
+- Steroid tapers must keep every step and day ("40 milligrams for five days, then 20 for five days").
+- Breathlessness is measured by what it stops the patient doing: keep the exact threshold ("one flight of stairs", "can't finish a sentence", "only at night").
+- Distinguish a dry cough from a productive one, and keep sputum colour and blood exactly as described.
+- Oxygen settings are prescriptions: litres per minute, continuous or only at night, and with exertion. Reproduce the numbers exactly.
+- Smoking history in pack-years and quit dates must keep its numbers.

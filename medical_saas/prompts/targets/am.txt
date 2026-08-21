@@ -1,0 +1,7 @@
+TARGET LANGUAGE NOTES (Amharic):
+- Use natural spoken Amharic with the polite እርስዎ forms toward strangers and elders.
+- Keep foreign names and brands as spoken; write figures as digits.
+
+CLINICAL LANGUAGE NOTES (Amharic):
+- Use plain clinical Amharic: የደም ምርመራ, ራጅ, ተመላሽ ቀጠሮ, የመድኃኒት አለርጂ, የደም ግፊት; polite እርስዎ forms toward the patient.
+- Keep drug names exactly as spoken (labels are in English); test acronyms (ሲቲ, ኤምአርአይ or CT, MRI) as the speaker said them; doses stay as digits with their unit.

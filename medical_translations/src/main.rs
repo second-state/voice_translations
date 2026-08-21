@@ -8,12 +8,6 @@
 //! terminology rules, on top of a set of general medical-interpreting rules
 //! aimed at the ways clinical meaning gets lost in translation.
 
-mod api;
-mod config;
-mod lang;
-mod prompt;
-mod specialty;
-
 use std::sync::Arc;
 
 use axum::{
@@ -31,7 +25,11 @@ use voice_translations::{
     AppState,
 };
 
-use crate::{api::MedicalState, config::AppConfig};
+use medical_translations::{
+    api::{self, MedicalState},
+    config::AppConfig,
+    specialty,
+};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {

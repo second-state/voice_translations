@@ -1,7 +1,0 @@
-TARGET LANGUAGE NOTES (German):
-- Use natural spoken German; address strangers and elders with Sie.
-- Keep foreign names and brands as spoken; write figures as digits.
-
-CLINICAL LANGUAGE NOTES (German):
-- Use everyday clinical German: Blutabnahme, Röntgen, Kontrolltermin, Medikamentenallergie, Blutdruck; patients say Zuckerkrankheit or Zucker, clinicians say Diabetes - match the speaker.
-- Keep drug names as spoken and test acronyms (CT, MRT, EKG) in their usual German form; doses stay as digits with their unit (5 Milligramm, zweimal täglich).

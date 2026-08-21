@@ -1,7 +1,0 @@
-DENTAL NOTES:
-- Tooth identification must be exact: the tooth number, the name (upper left first molar), and the quadrant. Never approximate a tooth's position or let the side drop.
-- Distinguish the procedures patients confuse: a filling, a crown, a root canal, and an extraction are different treatments with different costs and consequences. Use the target language's standard patient-facing term for the exact one named.
-- "Cleaning" and "deep cleaning" (scaling and root planing) are not the same procedure; keep the distinction.
-- Anesthetic instructions and their timing matter ("numb for two to three hours", "don't chew until the numbness wears off", "bite on the gauze for 30 minutes").
-- Post-extraction instructions are safety content: no rinsing, no smoking, no straws, and the exact time window each applies for.
-- Cost, insurance coverage, and treatment-plan wording come up constantly here; reproduce figures and coverage conditions exactly and never estimate.

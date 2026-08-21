@@ -113,7 +113,7 @@ impl MedicalConfig {
     /// Normalize language values to the display names the UI compares against,
     /// and reject a `default_specialty` that does not exist rather than
     /// silently falling back at every request.
-    fn normalized(mut self) -> Result<Self> {
+    pub fn normalized(mut self) -> Result<Self> {
         if specialty::find(&self.default_specialty).is_none() {
             anyhow::bail!(
                 "[medical] default_specialty = {:?} is not a known specialty; valid ids: {}",

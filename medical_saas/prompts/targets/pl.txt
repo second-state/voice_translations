@@ -1,7 +1,0 @@
-TARGET LANGUAGE NOTES (Polish):
-- Use natural spoken Polish; address strangers and elders with Pan/Pani forms.
-- Keep foreign names and brands as spoken; write figures as digits.
-
-CLINICAL LANGUAGE NOTES (Polish):
-- Use everyday clinical Polish: badanie krwi, rentgen, wizyta kontrolna, uczulenie na lek, ciśnienie; match the speaker's register between lay and technical.
-- Keep drug names as spoken and test acronyms (tomografia/TK, rezonans/MRI, EKG) as the speaker used them; doses stay as digits with their unit (5 miligramów, dwa razy dziennie).

@@ -1,7 +1,0 @@
-TARGET LANGUAGE NOTES (Haitian Creole):
-- Use plain everyday Kreyòl with short, direct sentences, the way people actually speak.
-- Keep French or English terms that Haitian speakers normally use as-is; write figures as digits.
-
-CLINICAL LANGUAGE NOTES (Haitian Creole):
-- Use plain clinical Kreyòl: tès san, radyografi, randevou swivi, alèji ak medikaman, tansyon; short direct sentences a patient can act on.
-- Keep drug names exactly as spoken (they are written in French/English on the bottle); doses stay as digits with their unit (5 miligram, de fwa pa jou).

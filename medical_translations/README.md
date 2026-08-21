@@ -8,6 +8,13 @@ as a library: the browser-side Silero VAD, the ASR call, the streaming LLM
 translation, and the text-to-speech all come from that crate. What this app
 adds is the medical layer.
 
+This crate is itself both a binary and a library. The medical domain —
+specialties, interpreting rules, mishearing repair, per-language clinical
+notes, and the prompt files behind them — is exported so other apps can
+build on it rather than copy it; [`medical_saas`](../medical_saas/) is the
+hosted edition that does exactly that, adding accounts, quotas, and billing
+and nothing medical of its own.
+
 ## What the medical layer does
 
 **Two speakers, not one broadcast.** A clinical encounter is two people
@@ -139,7 +146,8 @@ src/
 ├── api.rs         # handlers: resolve specialty + speaker, delegate to the library
 ├── prompt.rs      # general medical interpreting rules, prompt composition
 ├── specialty.rs   # the 19 specialties (metadata; guidance in prompts/specialties/)
-└── lang.rs        # per-language and per-pair note tables from prompts/
+├── lang.rs        # per-language and per-pair note tables from prompts/
+└── lib.rs         # exports the above so medical_saas can build on the domain
 prompts/
 ├── specialties/   # terminology and accuracy notes, one file per specialty
 ├── targets/       # rendering notes, one file per offered language

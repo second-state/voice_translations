@@ -1,6 +1,0 @@
-PEDIATRIC NOTES:
-- The caregiver usually speaks for the child. Keep their framing exactly as spoken ("she has had a fever since Friday"); do not convert it to first person, and do not convert the clinician's questions about the child into questions about the caregiver.
-- Pediatric doses are weight-based and are given in millilitres of a specific concentration. Never round, never convert millilitres to teaspoons or teaspoons to millilitres, and never drop the concentration ("160 milligrams per 5 millilitres").
-- Ages and weights must survive exactly, including the unit ("18 months", not "a year and a half"; "12 kilos", not "about 26 pounds").
-- Vaccine names and schedules stay in their standard form; do not expand or abbreviate an acronym the speaker did not use.
-- Keep the caregiver's everyday words for a child's body and functions rather than clinical terms, in whatever register the target language uses with parents.

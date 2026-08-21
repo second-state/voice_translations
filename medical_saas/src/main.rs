@@ -1,13 +1,17 @@
 //! Medical Interpreter (hosted edition) — the two-way patient/clinician
 //! interpreter of `medical_translations`, run as a service.
 //!
-//! The speech pipeline (browser-side Silero VAD, ASR, streaming LLM
-//! translation, TTS) is the `voice_translations` library, and the medical
-//! domain layer — specialties, interpreting rules, per-language notes — is
-//! the standalone app's, unchanged. What this edition adds is everything
-//! around it: accounts in an embedded SQLite database, passwordless sign-in
-//! by emailed magic link, a rolling weekly word allowance on the free plan,
-//! and Stripe subscriptions for unlimited use.
+//! Two dependencies carry everything this app does not invent: the speech
+//! pipeline (browser-side Silero VAD, ASR, streaming LLM translation, TTS)
+//! is the `voice_translations` library, and the medical domain —
+//! specialties, interpreting rules, per-language clinical notes, and the
+//! prompt files behind them — is the `medical_translations` crate. Neither
+//! is copied here.
+//!
+//! What this edition adds is only the service around them: accounts in an
+//! embedded SQLite database, passwordless sign-in by emailed magic link, a
+//! rolling weekly word allowance on the free plan, Stripe subscriptions for
+//! unlimited use, and the UI for all of it.
 
 mod api;
 mod auth;
@@ -15,10 +19,7 @@ mod billing;
 mod config;
 mod db;
 mod error;
-mod lang;
-mod prompt;
 mod quota;
-mod specialty;
 
 use std::sync::Arc;
 
@@ -36,6 +37,8 @@ use voice_translations::{
     cli::{Cli, CliSpec},
     AppState,
 };
+
+use medical_translations::specialty;
 
 use crate::{api::SaasState, config::AppConfig, db::Db};
 
@@ -103,11 +106,14 @@ async fn main() -> anyhow::Result<()> {
         );
     }
 
+    let base = AppState::new(cfg.base);
     let state = SaasState {
-        base: AppState::new(cfg.base),
+        // Resend and Stripe reuse the pipeline's client and its connection
+        // pool rather than opening a second one.
+        http: base.http.clone(),
+        base,
         cfg: Arc::clone(&settings),
         db,
-        http: reqwest::Client::new(),
     };
 
     tracing::info!(

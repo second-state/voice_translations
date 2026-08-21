@@ -12,7 +12,7 @@ its own configuration file, and can run side by side:
 | --- | --- | --- |
 | [`conf_translations/`](conf_translations/) | Conference-call translator: pick target languages, and a call-type selector (business, formal, friends, politics, book club, tech) tunes the register of every translation | `conf_translations/` |
 | [`medical_translations/`](medical_translations/) | Patient/clinician interpreter: two-party turns, per-specialty terminology rules, safety-first interpreting prompts | `medical_translations/` |
-| [`medical_saas/`](medical_saas/) | The same interpreter run as a service: accounts in embedded SQLite, magic-link sign-in, a rolling weekly word allowance, Stripe subscriptions | `medical_saas/` |
+| [`medical_saas/`](medical_saas/) | The same interpreter run as a service: accounts in embedded SQLite, magic-link sign-in, a rolling weekly word allowance, Stripe subscriptions. Depends on `medical_translations` for the medical domain, so it carries only the service and its UI | `medical_saas/` |
 
 ## The pipeline (what the library does)
 

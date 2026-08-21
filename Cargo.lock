@@ -736,6 +736,7 @@ dependencies = [
  "axum",
  "hex",
  "hmac",
+ "medical-translations",
  "rand 0.8.7",
  "reqwest",
  "rusqlite",

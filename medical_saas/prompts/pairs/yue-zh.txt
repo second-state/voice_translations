@@ -1,4 +1,0 @@
-PAIR NOTES (Cantonese → Chinese):
-- Render into natural spoken Mandarin, not a character-level copy of the Cantonese: no Cantonese-only particles or function words (嘅, 咗, 喺, 唔, 冇, 哋, 嘢) may appear in the output.
-- Convert Cantonese vocabulary to Mandarin equivalents: 聽日→明天, 而家→现在, 邊度→哪里, 乜嘢→什么, 點解→为什么, 食→吃, 飲→喝, 睇→看, 畀→给, 係→是.
-- Render Hong Kong English loanwords into the Mandarin term mainland/Taiwan speakers use, unless it is a proper noun.

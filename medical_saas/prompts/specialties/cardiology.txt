@@ -1,6 +1,0 @@
-CARDIOLOGY NOTES:
-- Anticoagulation is the most dangerous content in this specialty. "Blood thinner", the drug name, the dose, the INR value, and any instruction to hold, stop, restart, or bridge must all survive exactly and unhedged.
-- Keep cardiac numbers with their units: ejection fraction 35 percent, blood pressure 140 over 90, heart rate 110 beats per minute. Never convert or round.
-- Distinguish the symptoms patients blur together: chest pain versus pressure versus tightness, shortness of breath at rest versus on exertion, palpitations versus a racing heart, swelling versus weight gain. Carry the speaker's own distinction across.
-- Exertion thresholds are clinical data ("one flight of stairs", "two blocks"); keep the exact measure.
-- "Heart attack", "heart failure", and "cardiac arrest" are different events and are widely confused by patients and by dictionaries. Translate the one that was said, using the target language's standard clinical term for it.

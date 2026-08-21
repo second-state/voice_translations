@@ -6,9 +6,18 @@ accounts in an embedded SQLite database, passwordless sign-in by emailed
 magic link, a rolling weekly word allowance on the free plan, and Stripe
 subscriptions for unlimited use.
 
-The interpreting itself is identical — same 19 specialties, same safety-first
-interpreting rules, same per-language notes, same two-party UI. Everything
-here is the layer around it.
+**This crate contains only the service and its UI.** Everything it
+interprets and every way it interprets comes from its two dependencies, not
+from copies:
+
+| Comes from | What |
+| --- | --- |
+| [`voice_translations`](../) | The whole speech pipeline: Silero VAD assets, the ASR call, streaming LLM translation, TTS, config loading, the CLI, and the HTTPS middleware |
+| [`medical_translations`](../medical_translations/) | The medical domain: the 19 specialties, the interpreting rules, mishearing repair, the per-language clinical notes, and the prompt files behind them |
+
+So a change to how medicine is interpreted lands in the standalone app and
+here at once, and neither this crate nor the standalone one implements any
+speech or model plumbing of its own.
 
 ## Accounts
 
@@ -161,19 +170,19 @@ edition adds:
 ```
 src/
 ├── main.rs        # router and startup
-├── config.rs      # [medical] [auth] [email] [quota] [stripe] on top of the library config
-├── api.rs         # handlers: resolve the account, enforce quota, delegate to the library
+├── config.rs      # [auth] [email] [quota] [stripe]; [medical] and the
+│                  #   library sections are parsed by the crates that own them
+├── api.rs         # handlers: resolve the account, enforce quota, delegate
 ├── auth.rs        # magic links, sessions, /api/me
 ├── billing.rs     # Stripe checkout, portal, and webhook
 ├── db.rs          # SQLite: accounts, tokens, subscription state, word ledger
 ├── quota.rs       # rolling-window allowance and word counting
-├── error.rs       # JSON errors with stable codes (401, 402, …)
-├── prompt.rs      # general medical interpreting rules, prompt composition
-├── specialty.rs   # the 19 specialties (metadata; guidance in prompts/specialties/)
-└── lang.rs        # per-language and per-pair note tables from prompts/
-prompts/           # specialties/, targets/, pairs/ — as in the standalone app
+└── error.rs       # JSON errors with stable codes (401, 402, …)
 static/            # the two-party encounter UI, plus the sign-in page
 ```
+
+There is no `prompts/` directory and no `specialty.rs` here: that material
+lives in `medical_translations` and is used from there.
 
 ## Caveats
 

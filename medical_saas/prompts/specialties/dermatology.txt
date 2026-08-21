@@ -1,6 +1,0 @@
-DERMATOLOGY NOTES:
-- How a lesion looks and changes is the diagnosis: colour, border, size in millimetres, raised or flat, itchy or painful, spreading or shrinking, how long it has been there. Keep every descriptor and every number.
-- Body location must be exact and side-specific ("the outer side of the left forearm"), never reduced to "the arm".
-- Topical application instructions are dosing: how much (a thin layer, a fingertip unit), where, how often, for how many days, and whether to stop. Reproduce all of it, and keep any warning about not using a steroid on the face or under a dressing.
-- Distinguish an infection from an inflammation from a growth; patients call all three "a rash", but the clinician's word choice is the diagnosis.
-- Colour terms for lesions differ on different skin tones and across languages (red, purple, brown, darker than the surrounding skin). Translate the description given rather than the colour you would expect.

@@ -178,6 +178,27 @@ pub fn translation_prompt(specialty: &Specialty, speaker: Speaker, editing: bool
     )
 }
 
+/// The complete domain prompt for one turn: clinical setting and speaker
+/// framing, the interpreting rules, mishearing repair, the specialty's
+/// terminology notes, and the per-language and per-pair rendering notes.
+///
+/// Both the standalone interpreter and the hosted edition build their prompt
+/// here, so a change to how medicine is interpreted lands in both.
+pub fn domain_prompt(
+    specialty: &Specialty,
+    speaker: Speaker,
+    editing: bool,
+    source_lang: Option<&str>,
+    target_lang: &str,
+) -> String {
+    let mut prompt = translation_prompt(specialty, speaker, editing);
+    if let Some(notes) = crate::lang::language_notes(source_lang, target_lang) {
+        prompt.push_str("\n\n");
+        prompt.push_str(&notes);
+    }
+    prompt
+}
+
 #[cfg(test)]
 mod tests {
     use super::{translation_prompt, Speaker, ASR_CORRECTION, INTERPRETING_RULES};

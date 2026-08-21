@@ -1,5 +1,0 @@
-PRIMARY CARE NOTES:
-- Screening and follow-up intervals are instructions, not small talk: "come back in three months", "repeat the labs in two weeks", "you are due for a colonoscopy" must keep their exact interval and test name.
-- Keep lab names and their values together and unconverted (A1c 7.2, LDL 130, blood pressure 130 over 80). Do not restate a value in a different unit or scale.
-- Medication changes are the highest-risk content in these visits: preserve start, stop, hold, increase, decrease, and the dose that goes with each.
-- Patients often describe chronic conditions with the name of the pill rather than the diagnosis ("my blood pressure medicine"). Translate what they said; do not substitute the drug name they did not use.

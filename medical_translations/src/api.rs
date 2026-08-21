@@ -23,7 +23,6 @@ use voice_translations::{
 
 use crate::{
     config::MedicalConfig,
-    lang,
     prompt::{self, Speaker},
     specialty::{self, SPECIALTIES},
 };
@@ -106,15 +105,13 @@ pub async fn api_translate(
     // Same source and target language means the transcript-polishing pass, not
     // an interpretation; the domain prompt is framed differently for it.
     let editing = translate::is_editing(&upstream);
-    let mut domain = prompt::translation_prompt(spec, speaker, editing);
-    // This app's per-language and per-pair rendering notes.
-    if let Some(notes) =
-        lang::language_notes(upstream.source_lang.as_deref(), &upstream.target_lang)
-    {
-        domain.push_str("\n\n");
-        domain.push_str(&notes);
-    }
-    upstream.domain_prompt = Some(domain);
+    upstream.domain_prompt = Some(prompt::domain_prompt(
+        spec,
+        speaker,
+        editing,
+        upstream.source_lang.as_deref(),
+        &upstream.target_lang,
+    ));
 
     tracing::info!(
         specialty = spec.id,

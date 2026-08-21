@@ -14,26 +14,22 @@ use axum::{
     response::{IntoResponse, Response},
     Json,
 };
-use serde::Deserialize;
 use serde_json::{json, Value};
 
 use voice_translations::{
     asr,
-    translate::{self, ContextPair, TranslateRequest},
+    translate::{self, TranslateRequest},
     tts::{self, SpeechOptions},
     AppState,
 };
 
-use crate::{
-    auth,
-    config::Settings,
-    db::Db,
-    error::AppError,
-    lang,
+use medical_translations::{
+    api::{MedicalTranslateRequest, MedicalTtsRequest},
     prompt::{self, Speaker},
-    quota,
     specialty::{self, SPECIALTIES},
 };
+
+use crate::{auth, config::Settings, db::Db, error::AppError, quota};
 
 /// The pipeline state, this app's settings, the account database, and the
 /// HTTP client the email and Stripe calls share.
@@ -121,7 +117,10 @@ pub async fn api_transcribe(
     let heard = asr::transcribe(&state.base, &form.audio, &form.options).await?;
 
     let words = quota::count_words(&heard.text);
-    let role = speaker_for(&state, heard.language.as_deref());
+    let role = speaker_for_language(
+        heard.language.as_deref(),
+        &state.cfg.medical.clinician_language,
+    );
     state.db.record_words(&user.id, words, role)?;
     let quota = state.quota_for(&user)?;
 
@@ -146,31 +145,12 @@ pub async fn api_transcribe(
 /// Which side of the encounter spoke, inferred the same way the UI infers
 /// it: anything that is not the clinician's language is the patient. Used
 /// only to label the usage ledger — both sides draw on the same allowance.
-fn speaker_for(state: &SaasState, detected: Option<&str>) -> &'static str {
+fn speaker_for_language(detected: Option<&str>, clinician_language: &str) -> &'static str {
     match detected {
-        Some(lang) if lang.eq_ignore_ascii_case(&state.cfg.medical.clinician_language) => {
-            "clinician"
-        }
+        Some(lang) if lang.eq_ignore_ascii_case(clinician_language) => "clinician",
         Some(_) => "patient",
         None => "unknown",
     }
-}
-
-/// One turn to translate, with the medical context the prompt needs.
-#[derive(Debug, Deserialize)]
-pub struct MedicalTranslateRequest {
-    pub text: String,
-    pub target_lang: String,
-    #[serde(default)]
-    pub source_lang: Option<String>,
-    /// Recent turns of this encounter, oldest first.
-    #[serde(default)]
-    pub context: Vec<ContextPair>,
-    #[serde(default)]
-    pub specialty: Option<String>,
-    /// Who spoke this turn; `unknown` when the UI is auto-detecting.
-    #[serde(default)]
-    pub speaker: Speaker,
 }
 
 /// POST /api/translate — streams the interpreted turn back as SSE.
@@ -200,15 +180,16 @@ pub async fn api_translate(
     // Same source and target language means the transcript-polishing pass,
     // not an interpretation; the domain prompt is framed differently for it.
     let editing = translate::is_editing(&upstream);
-    let mut domain = prompt::translation_prompt(spec, speaker, editing);
-    // This app's per-language and per-pair rendering notes.
-    if let Some(notes) =
-        lang::language_notes(upstream.source_lang.as_deref(), &upstream.target_lang)
-    {
-        domain.push_str("\n\n");
-        domain.push_str(&notes);
-    }
-    upstream.domain_prompt = Some(domain);
+    // The interpreting rules, the specialty's terminology, and the
+    // per-language notes all come from the interpreter crate: this edition
+    // does not have opinions of its own about medicine.
+    upstream.domain_prompt = Some(prompt::domain_prompt(
+        spec,
+        speaker,
+        editing,
+        upstream.source_lang.as_deref(),
+        &upstream.target_lang,
+    ));
 
     tracing::info!(
         user = %user.email,
@@ -219,14 +200,6 @@ pub async fn api_translate(
         "interpreting turn"
     );
     Ok(translate::translate_sse(state.base, upstream).into_response())
-}
-
-#[derive(Debug, Deserialize)]
-pub struct MedicalTtsRequest {
-    pub text: String,
-    /// Read clinician and patient turns in different voices when configured.
-    #[serde(default)]
-    pub speaker: Speaker,
 }
 
 /// POST /api/tts — reads one turn aloud. Reading back text the account has
@@ -253,34 +226,21 @@ pub async fn api_tts(
 
 #[cfg(test)]
 mod tests {
-    use super::{MedicalTranslateRequest, MedicalTtsRequest};
-    use crate::prompt::Speaker;
+    use super::speaker_for_language;
 
     #[test]
-    fn translate_request_defaults_the_optional_fields() {
-        let req: MedicalTranslateRequest =
-            serde_json::from_str(r#"{"text":"hola","target_lang":"English"}"#).unwrap();
-        assert_eq!(req.speaker, Speaker::Unknown);
-        assert!(req.specialty.is_none());
-        assert!(req.context.is_empty());
-    }
-
-    #[test]
-    fn translate_request_reads_speaker_and_specialty() {
-        let req: MedicalTranslateRequest = serde_json::from_str(
-            r#"{"text":"take two tablets","target_lang":"Spanish","source_lang":"English",
-                "specialty":"pharmacy","speaker":"clinician",
-                "context":[{"source":"hello","translation":"hola"}]}"#,
-        )
-        .unwrap();
-        assert_eq!(req.speaker, Speaker::Clinician);
-        assert_eq!(req.specialty.as_deref(), Some("pharmacy"));
-        assert_eq!(req.context.len(), 1);
-    }
-
-    #[test]
-    fn tts_request_accepts_a_bare_text_body() {
-        let req: MedicalTtsRequest = serde_json::from_str(r#"{"text":"hello"}"#).unwrap();
-        assert_eq!(req.speaker, Speaker::Unknown);
+    fn the_ledger_labels_each_turn_by_side() {
+        // The same rule the UI applies: anything that is not the clinician's
+        // language is the patient. Both draw on one allowance regardless.
+        assert_eq!(
+            speaker_for_language(Some("English"), "English"),
+            "clinician"
+        );
+        assert_eq!(
+            speaker_for_language(Some("english"), "English"),
+            "clinician"
+        );
+        assert_eq!(speaker_for_language(Some("Spanish"), "English"), "patient");
+        assert_eq!(speaker_for_language(None, "English"), "unknown");
     }
 }

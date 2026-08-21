@@ -1,7 +1,0 @@
-TARGET LANGUAGE NOTES (French):
-- Use natural spoken French; address strangers and elders with vous.
-- Keep names and brands as spoken; write figures as digits.
-
-CLINICAL LANGUAGE NOTES (French):
-- Use everyday clinical French: prise de sang, radio, rendez-vous de suivi, allergie à un médicament, tension; match the speaker's register between lay and technical.
-- Keep drug names as spoken and test acronyms (scanner, IRM, ECG) in their usual French form; doses stay as digits with their unit (5 milligrammes, deux fois par jour).

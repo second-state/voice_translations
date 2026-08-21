@@ -1,7 +1,0 @@
-TARGET LANGUAGE NOTES (English):
-- Use natural everyday spoken English, matching the speaker's register: casual stays casual, formal stays formal.
-- Keep names, brands, and acronyms exactly as spoken; write figures as digits.
-
-CLINICAL LANGUAGE NOTES (English):
-- Patients describe symptoms in lay words (tummy ache, out of breath, water pill); keep that register rather than promoting it to jargon.
-- Keep drug names, test acronyms (CT, MRI, ECG), and units exactly as spoken; doses stay as digits with their unit.

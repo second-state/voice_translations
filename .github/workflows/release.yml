@@ -1,0 +1,189 @@
+# Build every app and publish them as a GitHub Release.
+#
+# Push a version tag to cut a release:
+#
+#     git tag v0.1.0 && git push origin v0.1.0
+#
+# Each app ships as its own archive per platform — one binary, its example
+# config, and its README — because that is exactly what a deployment needs:
+# the Silero VAD and onnxruntime assets are compiled into the executable, so
+# there is nothing else to copy.
+#
+# Only first-party actions are used here (checkout, cache, artifacts) plus
+# the `gh` CLI that is preinstalled on the runners: this workflow has access
+# to the release token, so its dependency surface is kept as small as
+# possible.
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+  # Manual runs build and upload the archives as workflow artifacts without
+  # publishing anything, which is how to test a change to this file.
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # A tagged build that fails its own tests is not a release candidate.
+  check:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: check-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+      - run: rustup update stable && rustup default stable && rustup component add rustfmt clippy
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      - run: cargo test --workspace --locked
+
+  build:
+    needs: check
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Dynamically linked against glibc 2.35, which covers Ubuntu 22.04
+          # and Debian 12 and newer.
+          - target: x86_64-unknown-linux-gnu
+            runner: ubuntu-22.04
+          # Fully static: one file that runs on any Linux, including Alpine
+          # and distroless containers. Prefer this one when unsure.
+          - target: x86_64-unknown-linux-musl
+            runner: ubuntu-22.04
+          - target: aarch64-apple-darwin
+            runner: macos-14
+          - target: x86_64-apple-darwin
+            runner: macos-13
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: build-${{ matrix.target }}-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install the Rust toolchain
+        run: |
+          rustup update stable
+          rustup default stable
+          rustup target add ${{ matrix.target }}
+
+      # rusqlite builds SQLite from C source, so a musl build needs a musl C
+      # compiler as well as the Rust target.
+      - name: Install the musl toolchain
+        if: endsWith(matrix.target, '-musl')
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+
+      - name: Build
+        run: cargo build --release --locked --target ${{ matrix.target }}
+
+      - name: Package each app
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          [ "$GITHUB_REF_TYPE" = tag ] || version="$(git rev-parse --short HEAD)"
+          target="${{ matrix.target }}"
+          mkdir -p dist
+
+          # binary:source directory. The binary carries its assets and prompts
+          # inside it; the config example and README are what a person needs
+          # beside it.
+          for pair in \
+            "conf-translations:conf_translations" \
+            "medical-translations:medical_translations" \
+            "medical-saas:medical_saas"; do
+            app="${pair%%:*}"
+            dir="${pair##*:}"
+            name="$app-$version-$target"
+            stage="dist/$name"
+            mkdir -p "$stage"
+            cp "target/$target/release/$app" "$stage/"
+            cp "$dir/config.example.toml" "$stage/"
+            cp "$dir/README.md" "$stage/"
+            tar -czf "dist/$name.tar.gz" -C dist "$name"
+            rm -rf "$stage"
+            echo "packaged dist/$name.tar.gz"
+          done
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.target }}
+          path: dist/*.tar.gz
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    # Manual runs stop after the build: the archives are on the workflow run
+    # to download, but nothing is published.
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Checksum every archive
+        working-directory: dist
+        run: sha256sum *.tar.gz | tee SHA256SUMS
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          cat > notes.md <<EOF
+          Three self-contained apps, built from this tag. Each archive holds
+          one binary, its \`config.example.toml\`, and its README — the Silero
+          VAD and onnxruntime assets are compiled into the binary, so there is
+          nothing else to install.
+
+          | App | What it is | Default port |
+          | --- | --- | --- |
+          | \`conf-translations\` | Conference-call translator, tuned per call type | 8080 |
+          | \`medical-translations\` | Patient/clinician interpreter, tuned per specialty | 8090 |
+          | \`medical-saas\` | The interpreter as a service: accounts, weekly quota, Stripe plans | 8100 |
+
+          Pick \`x86_64-unknown-linux-musl\` unless you have a reason not to:
+          it is statically linked and runs on any Linux. The \`-gnu\` build
+          needs glibc 2.35 or newer.
+
+          \`\`\`sh
+          tar xzf medical-saas-$version-x86_64-unknown-linux-musl.tar.gz
+          cd medical-saas-$version-x86_64-unknown-linux-musl
+          cp config.example.toml config.toml   # add your endpoints and keys
+          ./medical-saas
+          \`\`\`
+
+          Verify a download against \`SHA256SUMS\`:
+
+          \`\`\`sh
+          sha256sum -c SHA256SUMS --ignore-missing
+          \`\`\`
+          EOF
+
+          gh release create "$GITHUB_REF_NAME" \
+            --title "$GITHUB_REF_NAME" \
+            --notes-file notes.md \
+            --generate-notes \
+            dist/*.tar.gz dist/SHA256SUMS

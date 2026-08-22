@@ -1,0 +1,52 @@
+# Formatting, lints, and tests on every push and pull request, so a release
+# tag is never the first time the workspace is checked.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ci-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ci-${{ runner.os }}-
+
+      - name: Install the Rust toolchain
+        run: |
+          rustup update stable
+          rustup default stable
+          rustup component add rustfmt clippy
+
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      - run: cargo test --workspace --locked
+
+      # The apps are only useful if they start, and a config typo or a
+      # missing asset would not show up in a unit test.
+      - name: Smoke-test every binary
+        run: |
+          set -euo pipefail
+          cargo build --workspace --locked
+          for app in conf-translations medical-translations medical-saas; do
+            ./target/debug/$app --version
+            ./target/debug/$app --help > /dev/null
+          done

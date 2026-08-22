@@ -134,6 +134,47 @@ Put the apps behind a TLS-terminating proxy: browsers only grant microphone
 access on HTTPS or `localhost`, and every app redirects plain-HTTP visitors to
 HTTPS when it sees an `X-Forwarded-Proto` header.
 
+## Releases
+
+Tagged builds are produced by GitHub Actions
+([`.github/workflows/release.yml`](.github/workflows/release.yml)). Cutting a
+release is a tag:
+
+```sh
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+The workflow runs `cargo fmt`, clippy, and the test suite first — a tag that
+fails its own tests never becomes a release — then builds every app for four
+targets and publishes one archive per app per target, plus `SHA256SUMS`:
+
+| Target | Notes |
+| --- | --- |
+| `x86_64-unknown-linux-musl` | Statically linked; runs on any Linux, including Alpine and distroless. Prefer this one. |
+| `x86_64-unknown-linux-gnu` | Needs glibc 2.35 or newer (Ubuntu 22.04, Debian 12). |
+| `aarch64-apple-darwin` | Apple Silicon. |
+| `x86_64-apple-darwin` | Intel Mac. |
+
+Each archive holds one binary, its `config.example.toml`, and its README —
+the Silero VAD and onnxruntime assets are compiled in, so there is nothing
+else to install:
+
+```sh
+tar xzf medical-saas-0.1.0-x86_64-unknown-linux-musl.tar.gz
+cd medical-saas-0.1.0-x86_64-unknown-linux-musl
+cp config.example.toml config.toml   # add your endpoints and keys
+./medical-saas
+```
+
+Running the workflow manually (*Actions → release → Run workflow*) builds and
+uploads the same archives as workflow artifacts without publishing anything,
+which is how to test a change to the pipeline.
+
+Every push and pull request also runs formatting, lints, tests, and a
+start-up smoke test of each binary
+([`.github/workflows/ci.yml`](.github/workflows/ci.yml)).
+
 ## Using the library
 
 Every stage of the pipeline is a plain function taking an `AppState`:

@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Medical Interpreter — real-time interpreting for patient visits</title>
+<meta name="description" content="Live two-way medical interpreting in the browser: 25 languages, 19 specialties, and interpreting rules built around what actually gets lost in clinical translation. Free to start.">
+<link rel="stylesheet" href="/home.css">
+</head>
+<body>
+
+<nav class="nav">
+  <div class="wrap nav-inner">
+    <a class="nav-brand" href="/"><span>🩺</span> Medical Interpreter</a>
+    <div class="nav-links">
+      <a href="#how">How it works</a>
+      <a href="#features">Features</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#faq">FAQ</a>
+    </div>
+    <div class="nav-cta">
+      <!-- Swapped for "Open the interpreter" once a session is found. -->
+      <a class="btn ghost" id="navSignIn" href="/login">Sign in</a>
+      <a class="btn primary" id="navStart" href="/login">Start free</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <span class="eyebrow">🎙️ Speak normally — it interprets both ways</span>
+      <h1>Every word your patient says, in a language <span class="hl">you both understand</span>.</h1>
+      <p class="lede">
+        Live interpreting for a bilingual visit. Each turn is transcribed as it
+        is spoken, cleaned of the stumbles nobody means to say, and rendered
+        into the other person's language — with the numbers, negations, and
+        sides of the body that clinical meaning depends on kept intact.
+      </p>
+      <div class="hero-actions">
+        <a class="btn primary lg" id="heroStart" href="/login">Start free</a>
+        <a class="btn lg" href="#how">See how it works</a>
+      </div>
+      <p class="hero-note">
+        New accounts start on the free plan — <strong id="freeWords">1,000</strong>
+        interpreted words a week, no card required.
+      </p>
+    </div>
+
+    <div class="shot" aria-hidden="true">
+      <div class="shot-bar"><span class="dot live"></span> Listening · Cardiology · English ↔ Spanish</div>
+
+      <div class="turn">
+        <div class="turn-head"><span class="role">Clinician</span> <span>English → Spanish</span></div>
+        <p class="said">Start Lasix, 40 milligrams every morning, and stop the fluid pills you were taking.</p>
+        <p class="rendered">Empiece a tomar Lasix, 40 miligramos todas las mañanas, y deje las pastillas para el líquido que estaba tomando.</p>
+      </div>
+
+      <div class="turn patient">
+        <div class="turn-head"><span class="role">Patient</span> <span>Spanish → English</span></div>
+        <p class="said">No he tomado nada desde el jueves porque me daba mareos.</p>
+        <p class="rendered">I haven't taken anything since Thursday because it was making me dizzy.</p>
+      </div>
+
+      <div class="shot-flag"><span>⚠</span><span>Every figure spoken is checked against the interpretation.</span></div>
+    </div>
+  </div>
+</header>
+
+<section id="how">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2>Three steps, then it stays out of the way</h2>
+      <p>No handset to pass around, no third party to dial, no app to install on the patient's phone.</p>
+    </div>
+    <div class="grid three steps">
+      <div class="step">
+        <h3>Pick the languages</h3>
+        <p>Choose what the care team speaks and what the patient speaks, plus the specialty for the visit. Both sides sit in front of one screen.</p>
+      </div>
+      <div class="step">
+        <h3>Talk normally</h3>
+        <p>A speech detector running in your browser notices when someone starts and stops speaking, so nothing is sent while the room is quiet and nobody holds a button.</p>
+      </div>
+      <div class="step">
+        <h3>Read or hear it back</h3>
+        <p>Each turn appears in both languages within a second or two, and can be read aloud in a different voice per side. The transcript exports as a timestamped file.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="features">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2>Built for the ways clinical meaning goes missing</h2>
+      <p>A general translator optimizes for a smooth sentence. An interpreter has to optimize for nothing being added, dropped, or softened — which is a different target, and occasionally a less elegant one.</p>
+    </div>
+    <div class="grid three">
+      <div class="card">
+        <span class="icon">🔢</span>
+        <h3>Doses survive intact</h3>
+        <p>Numbers, units, routes, frequencies, and durations are reproduced exactly — never converted between unit systems, never rounded, never turned into "a few". Any figure that goes missing from an interpretation is flagged for a second look.</p>
+      </div>
+      <div class="card">
+        <span class="icon">🚫</span>
+        <h3>Negation stays negative</h3>
+        <p>"No fever", "not allergic", "never smoked", "don't take it with food" cannot come out the other side as the opposite, and a positive statement cannot acquire a "not".</p>
+      </div>
+      <div class="card">
+        <span class="icon">↔️</span>
+        <h3>Left stays left</h3>
+        <p>Laterality and anatomical site are reproduced exactly, and never dropped to make a sentence read more naturally.</p>
+      </div>
+      <div class="card">
+        <span class="icon">🩻</span>
+        <h3>19 specialties</h3>
+        <p>Cardiology, oncology, OB/GYN, psychiatry, pharmacy, anesthesia and more, each with the terminology and the confusions specific to it — units versus millilitres for insulin, which eye the drops go in, curative versus palliative intent.</p>
+      </div>
+      <div class="card">
+        <span class="icon">👂</span>
+        <h3>Mishearings repaired</h3>
+        <p>Speech recognition writes <code>lay six</code> where a clinician said Lasix. The interpreter knows the specialty's vocabulary and restores the intended term — while never "correcting" a number, which has no context to recover it from.</p>
+      </div>
+      <div class="card">
+        <span class="icon">🤔</span>
+        <h3>Uncertainty is preserved</h3>
+        <p>"Might be", "we think", "we need to rule out" stay tentative, and definite statements stay definite. That distinction is what a patient's consent rests on.</p>
+      </div>
+      <div class="card">
+        <span class="icon">🗣️</span>
+        <h3>25 languages</h3>
+        <p>Including Spanish, Mandarin, Hong Kong Cantonese, Vietnamese, Tagalog, Korean, Arabic, Haitian Creole, Somali and more — each rendered the way that language's own healthcare settings actually speak.</p>
+      </div>
+      <div class="card">
+        <span class="icon">✂️</span>
+        <h3>Disfluency removed, meaning kept</h3>
+        <p>Fillers, stutters and false starts come out; self-corrections resolve to what the speaker settled on. No number, drug name, negation or body part is touched while tidying.</p>
+      </div>
+      <div class="card">
+        <span class="icon">🔒</span>
+        <h3>Nothing is kept here</h3>
+        <p>The server stores no recordings and no transcripts. The conversation lives in your browser tab until you clear or export it. What we do store is your email address and whether you are subscribed.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="pricing">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2>Start free. Subscribe when you outgrow it.</h2>
+      <p>Both plans are the same interpreter — every specialty, every language, every safety rule. The only difference is how much you can say.</p>
+    </div>
+
+    <div class="plans">
+      <div class="plan">
+        <span class="plan-tag">You start here</span>
+        <h3>Free</h3>
+        <p class="price">$0<small> / forever</small></p>
+        <p class="price-sub">No card, no trial clock. Signing up puts you on this plan.</p>
+        <ul>
+          <li><strong id="freeWordsPlan">1,000</strong> interpreted words a week</li>
+          <li>A <strong>rolling</strong> seven-day window — words free up as they age out, with no reset day to wait for</li>
+          <li>All 19 specialties and all 25 languages</li>
+          <li>Every safety rule, the number check, and mishearing repair</li>
+          <li>Read-aloud and transcript export</li>
+        </ul>
+        <a class="btn lg" id="freeCta" href="/login">Create a free account</a>
+        <p class="plan-foot">Both sides of the conversation count toward the weekly words.</p>
+      </div>
+
+      <div class="plan featured">
+        <span class="plan-tag">For regular use</span>
+        <h3>Unlimited</h3>
+        <p class="price" id="proPrice">Monthly</p>
+        <p class="price-sub" id="proPriceSub">Billed monthly through Stripe. Cancel any time.</p>
+        <ul>
+          <li><strong>Unlimited</strong> interpreted words — no weekly ceiling</li>
+          <li>Everything in Free, unchanged</li>
+          <li>Full clinic days without watching a counter</li>
+          <li>Manage the card or cancel yourself, from inside the app</li>
+          <li>Access continues while a card is being retried</li>
+        </ul>
+        <a class="btn primary lg" id="proCta" href="/login">Start free, upgrade later</a>
+        <p class="plan-foot" id="proFoot">Upgrade from inside the app once you have an account.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2>Questions worth asking first</h2>
+    </div>
+
+    <details>
+      <summary>What counts as a word?</summary>
+      <p>
+        The words people actually speak, counted once per turn as they are
+        transcribed — whichever side spoke them. Interpretations are free: one
+        sentence costs the same whether the other language needs three words
+        for it or thirty, and reading a turn aloud costs nothing. Languages
+        that do not put spaces between words, like Chinese and Japanese, are
+        counted character by character.
+      </p>
+    </details>
+
+    <details>
+      <summary>What does "rolling" mean for the weekly limit?</summary>
+      <p>
+        Usage is counted from right now backwards over seven days, rather than
+        being reset on a fixed day. A long visit on Monday stops counting the
+        following Monday, and your allowance returns gradually rather than all
+        at once. There is no reset hour to wait up for and nothing to plan
+        around.
+      </p>
+    </details>
+
+    <details>
+      <summary>Is this a replacement for a qualified medical interpreter?</summary>
+      <p>
+        No, and it should not be treated as one. It is a machine interpreter:
+        fast, available at any hour, and unreviewed by anyone before you read
+        it. For consent discussions, breaking bad news, and anything else where
+        a mistranslation would change what a person agrees to, use a qualified
+        human interpreter. Verify anything clinical against the source before
+        acting on it or filing it.
+      </p>
+    </details>
+
+    <details>
+      <summary>What happens to the audio and the transcript?</summary>
+      <p>
+        Speech is sent to the speech-recognition and language services this
+        deployment is configured to use, and interpreted text comes back. This
+        server keeps neither the audio nor the transcript — the conversation
+        lives in your browser tab until you clear it or export it. Your account
+        record is your email address, your subscription state, and how many
+        words each turn spent.
+      </p>
+    </details>
+
+    <details>
+      <summary>How do I sign in?</summary>
+      <p>
+        With your email address. We send a link, you click it, and you are in —
+        there is no password to choose, forget, or have stolen. The same link
+        creates your account the first time you use it, and each link works
+        once.
+      </p>
+    </details>
+
+    <details>
+      <summary>Can I cancel whenever I want?</summary>
+      <p>
+        Yes. Subscriptions are managed in Stripe's billing portal, reachable
+        from the account bar inside the app, and cancelling takes effect
+        without contacting anyone. Your account then returns to the free plan
+        rather than disappearing.
+      </p>
+    </details>
+
+    <details>
+      <summary>Does it work on a phone or tablet at the bedside?</summary>
+      <p>
+        Yes — it runs in the browser with nothing to install, and the screen is
+        kept awake while a session is open. A browser will only grant
+        microphone access over HTTPS, so use the secure address of your
+        deployment.
+      </p>
+    </details>
+  </div>
+</section>
+
+<section class="cta-band">
+  <div class="wrap">
+    <h2>Try it on your next bilingual visit</h2>
+    <p>An email address is all it takes. You will be on the free plan in under a minute.</p>
+    <a class="btn primary lg" id="footCta" href="/login">Start free</a>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-top">
+      <span class="nav-brand">🩺 Medical Interpreter</span>
+      <span class="foot-links">
+        <a href="#how">How it works</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#faq">FAQ</a>
+        <a href="/login">Sign in</a>
+      </span>
+    </div>
+    <p class="disclaimer">
+      Machine interpreting is an aid for a bilingual encounter, not a certified
+      medical interpretation, and its output is not reviewed by a person before
+      you see it. Verify anything clinical against the source before acting on
+      it or filing it.
+    </p>
+  </div>
+</footer>
+
+<script>
+'use strict';
+
+const $ = (id) => document.getElementById(id);
+
+// The allowance and whether subscriptions are sold are server settings, so
+// read them rather than hard-coding numbers that could drift.
+fetch('/api/config')
+  .then((r) => (r.ok ? r.json() : null))
+  .then((cfg) => {
+    if (!cfg) return;
+    if (typeof cfg.free_words_per_week === 'number') {
+      const words = cfg.free_words_per_week.toLocaleString();
+      $('freeWords').textContent = words;
+      $('freeWordsPlan').textContent = words;
+    }
+    if (cfg.price_display) {
+      $('proPrice').innerHTML = cfg.price_display;
+    }
+    if (cfg.billing_enabled === false) {
+      // Nothing is being sold on this deployment; say so rather than
+      // sending people toward a checkout that cannot open.
+      $('proPrice').textContent = 'Not yet available';
+      $('proPriceSub').textContent = 'Subscriptions are not enabled on this deployment.';
+      $('proFoot').textContent = 'Every account currently stays on the free plan.';
+    }
+  })
+  .catch(() => {});
+
+// A signed-in visitor should not be asked to sign in again.
+fetch('/api/me')
+  .then((r) => (r.ok ? r.json() : null))
+  .then((me) => {
+    if (!me || !me.authenticated) return;
+    $('navSignIn').textContent = me.user.email;
+    $('navSignIn').href = '/app';
+    for (const [id, label] of [
+      ['navStart', 'Open the interpreter'],
+      ['heroStart', 'Open the interpreter'],
+      ['freeCta', 'Open the interpreter'],
+      ['proCta', me.user.plan === 'pro' ? 'Open the interpreter' : 'Upgrade in the app'],
+      ['footCta', 'Open the interpreter'],
+    ]) {
+      const el = $(id);
+      if (el) { el.textContent = label; el.href = '/app'; }
+    }
+  })
+  .catch(() => {});
+</script>
+</body>
+</html>

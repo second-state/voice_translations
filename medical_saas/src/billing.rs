@@ -49,8 +49,8 @@ pub async fn checkout(
         ("mode".into(), "subscription".into()),
         ("line_items[0][price]".into(), stripe.price_id.clone()),
         ("line_items[0][quantity]".into(), "1".into()),
-        ("success_url".into(), format!("{base}/?upgraded=1")),
-        ("cancel_url".into(), format!("{base}/")),
+        ("success_url".into(), format!("{base}/app?upgraded=1")),
+        ("cancel_url".into(), format!("{base}/app")),
         // Three independent ways back to this account: Stripe echoes
         // client_reference_id on the session, and the metadata rides along
         // to the subscription so renewal and cancellation events carry it
@@ -98,7 +98,7 @@ pub async fn portal(
         ("customer".to_string(), customer),
         (
             "return_url".to_string(),
-            state.cfg.email.base_url.to_string(),
+            format!("{}/app", state.cfg.email.base_url),
         ),
     ];
     let session = stripe_post(&state, "billing_portal/sessions", &form).await?;

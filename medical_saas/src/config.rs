@@ -209,6 +209,11 @@ pub struct StripeConfig {
     /// Signing secret (`whsec_...`) of the webhook endpoint. Without it,
     /// webhook deliveries are refused rather than trusted.
     pub webhook_secret: String,
+    /// What the landing page shows as the plan's price, e.g. `"$20 / month"`.
+    /// Cosmetic only: Stripe charges what the price object says, and shows
+    /// that amount at checkout. Left empty, the page says "Monthly" without
+    /// naming a figure rather than risking a stale one.
+    pub price_display: String,
 }
 
 impl StripeConfig {

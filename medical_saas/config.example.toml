@@ -152,3 +152,8 @@ price_id = ""
 # Billing -> Customer portal), or /api/billing/portal cannot open and
 # subscribers have no in-app way to cancel.
 webhook_secret = ""
+# What the landing page prints as the plan's price. Cosmetic only: Stripe
+# charges whatever the price object above says and shows that amount at
+# checkout, so keep this in step with it by hand. Left empty, the page says
+# "Monthly" without naming a figure rather than risking a stale one.
+#price_display = "$20 / month"

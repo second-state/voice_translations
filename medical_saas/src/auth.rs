@@ -190,7 +190,10 @@ pub async fn verify(
     let cookie = session_cookie_header(&token, max_age, cookies_secure(&state, &headers));
     Ok((
         StatusCode::SEE_OTHER,
-        [(header::SET_COOKIE, cookie), (header::LOCATION, "/".into())],
+        [
+            (header::SET_COOKIE, cookie),
+            (header::LOCATION, "/app".into()),
+        ],
     )
         .into_response())
 }

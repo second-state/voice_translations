@@ -95,6 +95,7 @@ pub async fn api_config(State(state): State<SaasState>) -> Json<Value> {
             "free_words_per_week".into(),
             json!(cfg.quota.free_words_per_week),
         );
+        obj.insert("price_display".into(), json!(cfg.stripe.price_display));
     }
     Json(view)
 }

@@ -127,11 +127,14 @@ async fn main() -> anyhow::Result<()> {
     );
 
     let app = Router::new()
-        // Pages
-        .route("/", get(index))
+        // Pages: a public landing page at the root, the interpreter itself
+        // behind /app, and the sign-in page between them.
+        .route("/", get(home_page))
+        .route("/app", get(app_page))
         .route("/login", get(login_page))
         .route("/app.js", get(app_js))
         .route("/style.css", get(style_css))
+        .route("/home.css", get(home_css))
         // Accounts
         .route("/auth/request", post(auth::request_link))
         .route("/verify", get(auth::verify))
@@ -162,7 +165,17 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn index() -> Html<&'static str> {
+/// The public landing page: what the service does and what the two plans
+/// cost. Reachable signed out, and links straight into the app when a
+/// session is found.
+async fn home_page() -> Html<&'static str> {
+    Html(include_str!("../static/home.html"))
+}
+
+/// The interpreter console. The page itself is public; its scripts send an
+/// unauthenticated visitor to the sign-in page, and every API it calls
+/// requires a session regardless.
+async fn app_page() -> Html<&'static str> {
     Html(include_str!("../static/index.html"))
 }
 
@@ -184,5 +197,12 @@ async fn style_css() -> impl IntoResponse {
     (
         [(header::CONTENT_TYPE, "text/css; charset=utf-8")],
         include_str!("../static/style.css"),
+    )
+}
+
+async fn home_css() -> impl IntoResponse {
+    (
+        [(header::CONTENT_TYPE, "text/css; charset=utf-8")],
+        include_str!("../static/home.css"),
     )
 }

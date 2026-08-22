@@ -233,7 +233,9 @@ async function logout() {
   try {
     await fetch('/auth/logout', { method: 'POST' });
   } finally {
-    location.replace('/login');
+    // Back to the landing page, which explains the plans and offers a way
+    // back in, rather than straight to an empty sign-in form.
+    location.replace('/');
   }
 }
 

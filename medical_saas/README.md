@@ -19,6 +19,14 @@ So a change to how medicine is interpreted lands in the standalone app and
 here at once, and neither this crate nor the standalone one implements any
 speech or model plumbing of its own.
 
+## Pages
+
+| Path | What it is |
+| --- | --- |
+| `/` | Public landing page: what the service does, and the free vs. subscription plans. Links straight into the app when a session is found. |
+| `/login` | Sign-in page: enter an email, receive a link. |
+| `/app` | The interpreter console. Anonymous visitors are sent to `/login`, and every API it calls requires a session regardless. |
+
 ## Accounts
 
 **Signing up and logging in are the same act.** A visitor types an email
@@ -145,10 +153,15 @@ Until this is saved once per mode, `POST /api/billing/portal` fails with
 Stripe's "No configuration provided" error and subscribers have no way to
 cancel from inside the app.
 
-**5. Check `base_url`.** Checkout returns the user to `{base_url}/?upgraded=1`
-on success and `{base_url}/` on cancel, and the portal returns to
-`{base_url}`. If `[email] base_url` is wrong, payment still works but the
-user lands somewhere useless.
+**5. Check `base_url`.** Checkout returns the user to
+`{base_url}/app?upgraded=1` on success and `{base_url}/app` on cancel, and
+the portal returns to `{base_url}/app`. If `[email] base_url` is wrong,
+payment still works but the user lands somewhere useless.
+
+**6. Optionally set `price_display`.** The landing page prints it as the
+plan's price (`"$20 / month"`). It is cosmetic — Stripe charges whatever the
+price object says and shows that amount at checkout — so keep it in step by
+hand, or leave it empty and the page says "Monthly" without naming a figure.
 
 ### Trying it locally
 
@@ -233,7 +246,8 @@ cp config.example.toml config.toml   # then fill in endpoints, keys, and base_ur
 cargo run --release
 ```
 
-Open http://127.0.0.1:8100. With no `resend_api_key` set, the sign-in link
+Open http://127.0.0.1:8100 for the landing page, or go straight to
+http://127.0.0.1:8100/app. With no `resend_api_key` set, the sign-in link
 appears in the server log (and in the response, with `dev_echo_link = true`).
 
 From the workspace root, pass the config path explicitly:
@@ -293,6 +307,7 @@ edition adds:
 | `[quota]` | `free_words_per_week` | Free allowance per rolling seven days (default 1000) |
 | `[stripe]` | `secret_key`, `price_id` | Checkout for the monthly plan; empty disables billing |
 | `[stripe]` | `webhook_secret` | Endpoint signing secret; without it deliveries are refused |
+| `[stripe]` | `price_display` | Optional, cosmetic: the price shown on the landing page |
 
 ## Layout
 
@@ -307,7 +322,8 @@ src/
 ├── db.rs          # SQLite: accounts, tokens, subscription state, word ledger
 ├── quota.rs       # rolling-window allowance and word counting
 └── error.rs       # JSON errors with stable codes (401, 402, …)
-static/            # the two-party encounter UI, plus the sign-in page
+static/            # home.html + home.css (landing page), login.html
+                   #   (sign-in), and index.html/app.js/style.css (the console)
 ```
 
 There is no `prompts/` directory and no `specialty.rs` here: that material

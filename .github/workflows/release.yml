@@ -83,13 +83,22 @@ jobs:
           - target: x86_64-unknown-linux-gnu
             runner: ubuntu-22.04
           # Fully static: one file that runs on any Linux, including Alpine
-          # and distroless containers. Prefer this one when unsure.
+          # and distroless containers. Prefer these when unsure.
           - target: x86_64-unknown-linux-musl
             runner: ubuntu-22.04
+          # arm64 servers — Graviton, Ampere, an ARM VPS, a Raspberry Pi.
+          # Built on native arm64 runners rather than cross-compiled, so the
+          # SQLite that rusqlite builds from C source is a first-class build
+          # like any other.
+          - target: aarch64-unknown-linux-gnu
+            runner: ubuntu-22.04-arm
+          - target: aarch64-unknown-linux-musl
+            runner: ubuntu-22.04-arm
+          # Apple Silicon, for running the apps on a development machine.
+          # Intel Macs are not built: the remaining Intel runners queue for
+          # a long time, and every current Mac is arm64.
           - target: aarch64-apple-darwin
             runner: macos-14
-          - target: x86_64-apple-darwin
-            runner: macos-13
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4

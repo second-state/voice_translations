@@ -146,15 +146,20 @@ tested.
 
 It first rejects a malformed version or one that already exists, then runs
 `cargo fmt`, clippy, and the test suite — a build that fails its own tests
-never becomes a release — and finally builds every app for four targets,
+never becomes a release — and finally builds every app for five targets,
 publishing one archive per app per target plus `SHA256SUMS`:
 
 | Target | Notes |
 | --- | --- |
 | `x86_64-unknown-linux-musl` | Statically linked; runs on any Linux, including Alpine and distroless. Prefer this one. |
+| `aarch64-unknown-linux-musl` | The same, for arm64 servers — Graviton, Ampere, an ARM VPS. |
 | `x86_64-unknown-linux-gnu` | Needs glibc 2.35 or newer (Ubuntu 22.04, Debian 12). |
-| `aarch64-apple-darwin` | Apple Silicon. |
-| `x86_64-apple-darwin` | Intel Mac. |
+| `aarch64-unknown-linux-gnu` | The same, on arm64. |
+| `aarch64-apple-darwin` | Apple Silicon, for running an app on a development machine. |
+
+Both Linux architectures are built on native runners, so the SQLite that
+`rusqlite` compiles from C source is a first-class build rather than a
+cross-compilation. Intel Macs are not built: every current Mac is arm64.
 
 Each archive holds one binary, its `config.example.toml`, and its README —
 the Silero VAD and onnxruntime assets are compiled in, so there is nothing

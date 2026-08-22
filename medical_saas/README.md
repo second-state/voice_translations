@@ -71,13 +71,121 @@ ignores the first cannot simply call the second.
 
 ## Subscriptions
 
-`POST /api/billing/checkout` opens a Stripe Checkout session for the signed-in
-account and returns the hosted URL; `POST /api/billing/portal` sends an
-existing subscriber to Stripe's billing portal to change a card or cancel.
+`POST /api/billing/checkout` opens a Stripe Checkout session for the
+signed-in account and returns the hosted URL; `POST /api/billing/portal`
+sends an existing subscriber to Stripe's billing portal to change a card or
+cancel.
 
-**Only Stripe changes a plan.** The browser can start a checkout, but the
-account moves between free and paid solely through
-`POST /stripe/webhook`, which requires a valid `Stripe-Signature`:
+**Only Stripe changes a plan.** The browser can start a checkout, but an
+account moves between free and paid solely through `POST /stripe/webhook`,
+and only for a delivery carrying a valid `Stripe-Signature`.
+
+Leaving `[stripe]` empty runs the service without paid plans: every account
+stays free and the upgrade button disappears.
+
+### Setting up Stripe
+
+Do all of this in **Test mode** first (the toggle in the Stripe dashboard).
+Test and live mode have separate keys, separate products, and separate
+webhook endpoints — mixing them is the most common reason a subscription
+never activates.
+
+**1. Create the product and its monthly price.**
+Dashboard → *Product catalogue* → *Add product*. Give it a name, then add a
+**recurring** price — say USD 20.00, billing period *Monthly*. Save, open the
+price, and copy its id (`price_…`). A one-off price will not work: the app
+opens Checkout in `mode=subscription`, which requires a recurring price.
+
+```toml
+[stripe]
+price_id = "price_1AbCdEf…"
+```
+
+**2. Copy the secret API key.**
+Dashboard → *Developers* → *API keys* → *Secret key* (`sk_test_…` in test
+mode, `sk_live_…` in live mode). This is a server-side secret: it belongs in
+`config.toml`, never in the browser.
+
+```toml
+secret_key = "sk_test_…"
+```
+
+**3. Create the webhook endpoint.**
+Dashboard → *Developers* → *Webhooks* → *Add endpoint*.
+
+- **Endpoint URL:** `https://<your-host>/stripe/webhook` — the same host as
+  `[email] base_url`, reachable from the public internet over HTTPS.
+- **Events to send:** exactly these four. Nothing else is read, and each one
+  is load-bearing:
+
+  | Event | Why it is needed |
+  | --- | --- |
+  | `checkout.session.completed` | The first payment succeeded. Marks the account paid and stores its Stripe customer and subscription ids. Without this, a user pays and stays on the free plan. |
+  | `customer.subscription.created` | Confirms the subscription exists, and covers flows where a subscription is created outside Checkout. |
+  | `customer.subscription.updated` | Renewals, plan changes, payment trouble, and scheduled cancellations. This is what moves an account between paid and free as the status changes. |
+  | `customer.subscription.deleted` | The subscription actually ended. Returns the account to the free plan. |
+
+- Save, then **copy the signing secret** (`whsec_…`) shown on the endpoint's
+  page — it is specific to *this* endpoint, and a different one is issued for
+  the live-mode endpoint you create later.
+
+```toml
+webhook_secret = "whsec_…"
+```
+
+The webhook is deliberately unauthenticated — Stripe has no session cookie —
+so the signature *is* the authentication. With `webhook_secret` empty, every
+delivery is refused and no account can ever become paid; the server logs a
+warning at startup saying so.
+
+**4. Turn on the customer portal.**
+Dashboard → *Settings* → *Billing* → *Customer portal* → save a
+configuration (allow customers to cancel, and to update payment methods).
+Until this is saved once per mode, `POST /api/billing/portal` fails with
+Stripe's "No configuration provided" error and subscribers have no way to
+cancel from inside the app.
+
+**5. Check `base_url`.** Checkout returns the user to `{base_url}/?upgraded=1`
+on success and `{base_url}/` on cancel, and the portal returns to
+`{base_url}`. If `[email] base_url` is wrong, payment still works but the
+user lands somewhere useless.
+
+### Trying it locally
+
+A local server has no public URL, so use the
+[Stripe CLI](https://stripe.com/docs/stripe-cli) to forward events:
+
+```sh
+stripe login
+stripe listen --forward-to localhost:8100/stripe/webhook
+```
+
+`stripe listen` prints its **own** signing secret (`whsec_…`), different from
+the dashboard endpoint's. Put *that* one in `config.toml` while you are
+forwarding, and remember to swap it back for deployment.
+
+Then subscribe with the test card `4242 4242 4242 4242`, any future expiry,
+any CVC. Or fire events directly:
+
+```sh
+stripe trigger checkout.session.completed
+stripe trigger customer.subscription.deleted
+```
+
+Triggered events carry Stripe's own fixtures rather than your account's
+metadata, so the server will log that no account matches and ignore them —
+that is the identifier fallback working, not a failure. To exercise the real
+path, click through Checkout as a signed-in user.
+
+### Going live
+
+Switch the dashboard to live mode and repeat steps 1–4 there: a live product
+and price, the live secret key, a **new** webhook endpoint on your production
+host with the same four events, and a saved live portal configuration. Then
+put the live `sk_live_…`, `price_…`, and `whsec_…` into the deployment's
+`config.toml`. Nothing carries over from test mode.
+
+### How a plan actually changes
 
 | Event | Effect |
 | --- | --- |
@@ -85,17 +193,38 @@ account moves between free and paid solely through
 | `customer.subscription.created` / `.updated` | `active`/`trialing`/`past_due` keep access; anything else returns the account to free |
 | `customer.subscription.deleted` | Plan → free |
 
-`past_due` deliberately keeps access while Stripe retries the card. A
+`past_due` deliberately keeps access while Stripe retries the card, so a
+temporary card failure does not cut off an encounter in progress. A
 cancellation naming a subscription the account has already replaced is
-ignored, so an out-of-order delivery cannot downgrade a resubscribed user.
-Signatures are verified with HMAC-SHA256 over the raw body, compared in
-constant time, and rejected outside a five-minute window so a captured
-delivery cannot be replayed.
+ignored, because deliveries are not ordered and a late `deleted` for an old
+subscription must not downgrade a user who has resubscribed.
 
-Point the Stripe endpoint at `https://<your-host>/stripe/webhook` and
-subscribe it to those four events. Leaving `[stripe]` empty runs the service
-without paid plans: every account stays free and the upgrade button
-disappears.
+The account behind an event is resolved in this order: the `user_id` this app
+put in the session metadata, then `client_reference_id`, then the stored
+subscription id, then the stored customer id, then the billing email. Any one
+of them is enough, which is why a renewal a year later still finds the right
+user.
+
+Signatures are verified with HMAC-SHA256 over the **raw** request body,
+compared in constant time, and rejected outside a five-minute window so a
+captured delivery cannot be replayed.
+
+### When it does not work
+
+| Symptom | Usual cause |
+| --- | --- |
+| Startup warns that `[stripe]` is not configured | `secret_key` or `price_id` is empty; billing stays off by design |
+| Startup warns that `webhook_secret` is empty | Deliveries will be refused — paste the endpoint's signing secret |
+| Webhook 400, log says *signature mismatch* | The secret belongs to a different endpoint, or test/live mode is crossed. The log prints both signature prefixes: unrelated values mean the wrong secret, matching-but-failing means something rewrote the body in transit |
+| Webhook 400, log says *timestamp is Ns away* | The server clock has drifted more than five minutes, or the delivery is a replay |
+| Webhook 200 but the plan never changes, log says *no account matches* | The event carries no metadata linking it to a user — typical of `stripe trigger` fixtures, or a subscription created by hand in the dashboard |
+| Checkout returns 401 | The browser had no session; sign in first |
+| Checkout returns *already has an active subscription* | The account is already paid — send them to the portal instead |
+| Portal returns Stripe's *No configuration provided* | Step 4 was skipped in this mode |
+
+Put the webhook path in front of any proxy that might buffer or rewrite
+bodies: the signature covers the exact bytes Stripe sent, so a proxy that
+re-encodes JSON will invalidate every delivery.
 
 ## Setup
 

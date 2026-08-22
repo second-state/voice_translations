@@ -125,17 +125,30 @@ dev_echo_link = false
 free_words_per_week = 1000
 
 [stripe]
-# Leave these empty to run without paid plans: every account stays free and
-# the upgrade button disappears.
-# Secret API key, used to open Checkout and billing-portal sessions.
+# Step-by-step setup, local testing with the Stripe CLI, and a
+# troubleshooting table are in README.md ("Setting up Stripe").
+#
+# Leave all three empty to run without paid plans: every account stays free
+# and the upgrade button disappears. Test-mode and live-mode values are
+# separate; mixing them is the usual reason a subscription never activates.
+#
+# Dashboard -> Developers -> API keys -> Secret key (sk_test_… / sk_live_…).
 secret_key = ""
-# The recurring price the monthly plan subscribes to.
+# Dashboard -> Product catalogue -> your product -> a RECURRING price
+# (price_…). A one-off price cannot be subscribed to.
 price_id = ""
-# Signing secret of the webhook endpoint (Dashboard -> Developers ->
-# Webhooks -> your endpoint -> Signing secret). Without it, deliveries are
-# refused rather than trusted, so no account would ever become paid.
+# Dashboard -> Developers -> Webhooks -> your endpoint -> Signing secret
+# (whsec_…). Specific to that one endpoint. Without it every delivery is
+# refused, so no account could ever become paid.
 #
 # Point the endpoint at https://<your-host>/stripe/webhook and subscribe it
-# to: checkout.session.completed, customer.subscription.created,
-# customer.subscription.updated, customer.subscription.deleted.
+# to exactly these four events:
+#   checkout.session.completed      first payment succeeded -> plan becomes paid
+#   customer.subscription.created   subscription exists
+#   customer.subscription.updated   renewals, plan and status changes
+#   customer.subscription.deleted   subscription ended -> back to free
+#
+# Also save a Customer portal configuration once per mode (Settings ->
+# Billing -> Customer portal), or /api/billing/portal cannot open and
+# subscribers have no in-app way to cancel.
 webhook_secret = ""

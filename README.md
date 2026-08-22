@@ -136,18 +136,18 @@ HTTPS when it sees an `X-Forwarded-Proto` header.
 
 ## Releases
 
-Tagged builds are produced by GitHub Actions
-([`.github/workflows/release.yml`](.github/workflows/release.yml)). Cutting a
-release is a tag:
+Releases are built by GitHub Actions
+([`.github/workflows/release.yml`](.github/workflows/release.yml)) and are
+**always triggered by hand** — pushing code or a tag never publishes
+anything. Go to *Actions → release → Run workflow*, pick the branch to build
+from, and give it the version (`v0.1.0`). The workflow tags the commit it
+ran against, so the release always matches the code that was built and
+tested.
 
-```sh
-git tag v0.1.0
-git push origin v0.1.0
-```
-
-The workflow runs `cargo fmt`, clippy, and the test suite first — a tag that
-fails its own tests never becomes a release — then builds every app for four
-targets and publishes one archive per app per target, plus `SHA256SUMS`:
+It first rejects a malformed version or one that already exists, then runs
+`cargo fmt`, clippy, and the test suite — a build that fails its own tests
+never becomes a release — and finally builds every app for four targets,
+publishing one archive per app per target plus `SHA256SUMS`:
 
 | Target | Notes |
 | --- | --- |
@@ -167,9 +167,9 @@ cp config.example.toml config.toml   # add your endpoints and keys
 ./medical-saas
 ```
 
-Running the workflow manually (*Actions → release → Run workflow*) builds and
-uploads the same archives as workflow artifacts without publishing anything,
-which is how to test a change to the pipeline.
+Unchecking **publish** on that form builds and uploads the same archives as
+workflow artifacts without creating a tag or a release — the way to test a
+change to the pipeline, or to hand someone a build that is not public.
 
 Every push and pull request also runs formatting, lints, tests, and a
 start-up smoke test of each binary

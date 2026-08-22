@@ -1,8 +1,9 @@
 # Build every app and publish them as a GitHub Release.
 #
-# Push a version tag to cut a release:
-#
-#     git tag v0.1.0 && git push origin v0.1.0
+# Deliberately manual: releases are never cut by pushing code or a tag.
+# Run it from Actions -> release -> Run workflow, give it the version to
+# publish, and it tags the commit it ran against and publishes from there.
+# Leave "publish" unchecked to build the archives without releasing them.
 #
 # Each app ships as its own archive per platform — one binary, its example
 # config, and its README — because that is exactly what a deployment needs:
@@ -16,11 +17,16 @@
 name: release
 
 on:
-  push:
-    tags: ["v*"]
-  # Manual runs build and upload the archives as workflow artifacts without
-  # publishing anything, which is how to test a change to this file.
   workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release, e.g. v0.1.0 (tags the commit this runs against)"
+        required: true
+        type: string
+      publish:
+        description: "Publish a GitHub Release. Unchecked, it only builds the archives."
+        type: boolean
+        default: true
 
 permissions:
   contents: write
@@ -29,11 +35,30 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  # A tagged build that fails its own tests is not a release candidate.
+  # A build that fails its own tests is not a release candidate. This job
+  # also rejects a bad or already-used version before anyone waits through
+  # four platform builds.
   check:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
+
+      - name: Check the version
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::'$VERSION' is not a version like v0.1.0" && exit 1
+          fi
+          if git ls-remote --exit-code --tags origin "refs/tags/$VERSION" >/dev/null 2>&1; then
+            echo "::error::tag $VERSION already exists; pick the next version" && exit 1
+          fi
+          if gh release view "$VERSION" >/dev/null 2>&1; then
+            echo "::error::release $VERSION already exists" && exit 1
+          fi
+          echo "releasing $VERSION from ${GITHUB_SHA:0:8}"
       - name: Cache cargo
         uses: actions/cache@v4
         with:
@@ -97,8 +122,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          version="${GITHUB_REF_NAME#v}"
-          [ "$GITHUB_REF_TYPE" = tag ] || version="$(git rev-parse --short HEAD)"
+          version="${{ inputs.version }}"
+          version="${version#v}"
           target="${{ matrix.target }}"
           mkdir -p dist
 
@@ -130,9 +155,9 @@ jobs:
 
   publish:
     needs: build
-    # Manual runs stop after the build: the archives are on the workflow run
-    # to download, but nothing is published.
-    if: github.ref_type == 'tag'
+    # Unchecked "publish" stops after the build: the archives are attached to
+    # the workflow run to download, but no tag and no release are created.
+    if: inputs.publish
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
@@ -151,7 +176,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          version="${GITHUB_REF_NAME#v}"
+          tag="${{ inputs.version }}"
+          version="${tag#v}"
           cat > notes.md <<EOF
           Three self-contained apps, built from this tag. Each archive holds
           one binary, its \`config.example.toml\`, and its README — the Silero
@@ -182,8 +208,11 @@ jobs:
           \`\`\`
           EOF
 
-          gh release create "$GITHUB_REF_NAME" \
-            --title "$GITHUB_REF_NAME" \
+          # Creates the tag on the commit this run checked out, so the
+          # release always matches the code that was built and tested.
+          gh release create "$tag" \
+            --target "$GITHUB_SHA" \
+            --title "$tag" \
             --notes-file notes.md \
             --generate-notes \
             dist/*.tar.gz dist/SHA256SUMS

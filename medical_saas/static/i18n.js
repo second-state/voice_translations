@@ -86,6 +86,11 @@ function locale() {
   return currentLocale;
 }
 
+/** The chosen language as a tag `Intl` understands, for dates and numbers. */
+function localeTag() {
+  return currentLocale === 'yue' ? 'zh-Hant' : currentLocale;
+}
+
 /** The app language a locale implies for the patient side. */
 function patientLanguageFor(code) {
   return (LOCALES.find((l) => l.code === code) || LOCALES[0]).patient;
@@ -135,7 +140,7 @@ function applyTranslations(root = document) {
       if (attr && key) el.setAttribute(attr, t(key));
     }
   }
-  document.documentElement.lang = currentLocale === 'yue' ? 'zh-Hant' : currentLocale;
+  document.documentElement.lang = localeTag();
   const title = document.querySelector('title[data-i18n]');
   if (title) document.title = t(title.dataset.i18n);
 }
@@ -317,9 +322,9 @@ STRINGS.en = {
   'record.2.p': 'The transcript survives a reload and stays until it is cleared, and exports as a timestamped file to print, email, or paste into the chart. It is your copy, held in your browser — this server keeps nothing.',
   'record.3.h': 'For the family who was not in the room',
   'record.3.p': 'The daughter who manages the medicines, the son who drives to the follow-up: they can read exactly what the clinician said, in the patient’s own language, instead of relying on what was recalled at the door.',
-  'record.sheet': 'encounter.srt',
+  'record.sheet': 'visit-2026-08-23.txt',
   'faq.q8': 'Can the patient take the transcript home?',
-  'faq.a8': 'Yes. Export writes every turn — the spoken words and their interpretation — into a timestamped subtitle file (.srt) that opens in any text editor and can be printed, emailed, or filed. The transcript also survives reloads in the browser tab until it is cleared, so a visit can be re-read before anyone leaves. Nothing is uploaded to this server for that to work.',
+  'faq.a8': 'Yes. Export writes every turn — the spoken words and their interpretation — into a plain text file with the time of each entry, laid out to be read and printed: who spoke, what they said, and how it was interpreted. The transcript also survives reloads in the browser tab until it is cleared, so a visit can be re-read before anyone leaves. Nothing is uploaded to this server for that to work.',
 
   // ── Sign-in page ────────────────────────────────────────────────────
   'login.title': 'Sign in · Medical Interpreter',
@@ -376,6 +381,16 @@ STRINGS.en = {
   'app.export.empty': 'Nothing to export yet',
 
   // ── Console: account bar ────────────────────────────────────────────
+  // ── The exported record ─────────────────────────────────────────────
+  'export.title': 'RECORD OF YOUR VISIT',
+  'export.date': 'Date:',
+  'export.specialty': 'Department:',
+  'export.languages': 'Languages:',
+  'export.turns': 'Entries:',
+  'export.disclaimer': 'This is a machine interpretation of what was said during the visit. It was not reviewed by a person, and it does not replace a qualified medical interpreter. If anything here is unclear, or does not match what you remember, ask the clinic before acting on it.',
+  'export.into': 'Interpreted into {lang}:',
+  'export.sameLang': '(both sides were speaking this language — nothing was interpreted)',
+
   'app.plan.free': 'Free plan',
   'app.plan.pro': 'Unlimited',
   'app.quota.left': '{remaining} of {limit} words left this week',
@@ -509,9 +524,9 @@ STRINGS.zh = {
   'record.2.p': '记录在刷新页面后依然保留，直到你主动清除，并可导出为带时间戳的文件，便于打印、发送邮件或存入病历。这份副本属于你，保存在你的浏览器中 — 本服务器不留存任何内容。',
   'record.3.h': '给不在场的家属',
   'record.3.p': '负责管理药物的女儿、开车带来复诊的儿子：他们可以用患者自己的语言，读到医生原原本本说了什么，而不必依赖出门时的转述。',
-  'record.sheet': 'encounter.srt',
+  'record.sheet': 'visit-2026-08-23.txt',
   'faq.q8': '患者可以把记录带回家吗？',
-  'faq.a8': '可以。导出会把每一句 — 原话及其口译 — 写入带时间戳的字幕文件（.srt），任何文本编辑器都能打开，可以打印、发邮件或归档。记录在浏览器标签页中也会在刷新后保留，直到清除为止，因此离开诊室前还可以再看一遍。整个过程无需向本服务器上传任何内容。',
+  'faq.a8': '可以。导出会把每一句 — 原话及其口译 — 写入一份带时间的纯文本文件，排版便于阅读和打印：谁说的、说了什么、口译成了什么。记录在浏览器标签页中也会在刷新后保留，直到清除为止，因此离开诊室前还可以再看一遍。整个过程无需向本服务器上传任何内容。',
 
   'login.title': '登录 · 医疗口译',
   'login.lede': '为患者与医护团队提供实时口译。输入邮箱，我们会发送登录链接 — 无需设置或记住密码。',
@@ -562,6 +577,15 @@ STRINGS.zh = {
   'app.turn.readAloud': '朗读',
   'app.numbers': '请核对数字：<b>{missing}</b> 出现在原话中，但未出现在口译结果里。部分语言会用文字书写数字，执行前请先确认。',
   'app.export.empty': '暂无可导出的内容',
+
+  'export.title': '就诊记录',
+  'export.date': '日期：',
+  'export.specialty': '科室：',
+  'export.languages': '语言：',
+  'export.turns': '条目：',
+  'export.disclaimer': '这是就诊过程中所说内容的机器口译记录。它未经任何人复核，也不能取代有资质的医疗口译员。如果其中有不清楚的地方，或与你记得的内容不符，请在照做之前先向诊所确认。',
+  'export.into': '口译成{lang}：',
+  'export.sameLang': '（双方使用的是同一种语言 — 未进行口译）',
 
   'app.plan.free': '免费方案',
   'app.plan.pro': '不限量',
@@ -698,9 +722,9 @@ STRINGS.yue = {
   'record.2.p': '紀錄重新載入之後都仲喺度，直到你自己清除，仲可以匯出成帶時間嘅檔案，方便打印、電郵或者放入病歷。呢份副本係你嘅，存喺你部瀏覽器 — 本伺服器唔會留低任何嘢。',
   'record.3.h': '俾唔喺場嘅家人',
   'record.3.p': '負責執藥嘅女、揸車帶去覆診嘅仔：佢哋可以用病人自己嘅語言，睇返醫生究竟講咗啲乜，唔使靠出門口嗰陣轉述。',
-  'record.sheet': 'encounter.srt',
+  'record.sheet': 'visit-2026-08-23.txt',
   'faq.q8': '病人可唔可以將紀錄帶返屋企？',
-  'faq.a8': '可以。匯出會將每一句 — 原話同傳譯 — 寫入帶時間嘅字幕檔（.srt），任何文字編輯器都開到，可以打印、電郵或者存檔。紀錄喺瀏覽器分頁入面重新載入之後亦都仲喺度，直到清除為止，所以走之前仲可以再睇一次。呢個過程唔使向本伺服器上載任何嘢。',
+  'faq.a8': '可以。匯出會將每一句 — 原話同傳譯 — 寫入一份帶時間嘅純文字檔，排版方便閱讀同打印：邊個講、講咗乜、傳譯成點。紀錄喺瀏覽器分頁入面重新載入之後亦都仲喺度，直到清除為止，所以走之前仲可以再睇一次。呢個過程唔使向本伺服器上載任何嘢。',
 
   'login.title': '登入 · 醫療傳譯',
   'login.lede': '為病人同醫護團隊提供即時傳譯。輸入電郵，我哋會寄登入連結俾你 — 唔使諗密碼，亦唔會記唔起。',
@@ -751,6 +775,15 @@ STRINGS.yue = {
   'app.turn.readAloud': '朗讀',
   'app.numbers': '請核對數字：<b>{missing}</b> 喺原話出現過，但傳譯入面冇。有啲語言會用文字寫數字，執行之前請先確認。',
   'app.export.empty': '暫時冇嘢可以匯出',
+
+  'export.title': '應診紀錄',
+  'export.date': '日期：',
+  'export.specialty': '專科：',
+  'export.languages': '語言：',
+  'export.turns': '條目：',
+  'export.disclaimer': '呢份係應診期間所講內容嘅機器傳譯紀錄。佢未經任何人覆核，亦唔可以取代有資格嘅醫療傳譯員。如果有邊度睇唔明，或者同你記得嘅唔一樣，照做之前請先問返診所。',
+  'export.into': '傳譯成{lang}：',
+  'export.sameLang': '（雙方講緊同一種語言 — 冇做傳譯）',
 
   'app.plan.free': '免費方案',
   'app.plan.pro': '無限字數',
@@ -885,9 +918,9 @@ STRINGS.es = {
   'record.2.p': 'La transcripción resiste una recarga y permanece hasta que se borra, y se exporta como archivo con marcas de tiempo para imprimir, enviar por correo o pegar en la historia clínica. Es su copia, guardada en su navegador: este servidor no conserva nada.',
   'record.3.h': 'Para la familia que no estaba en la sala',
   'record.3.p': 'La hija que administra los medicamentos, el hijo que lleva a la revisión: pueden leer exactamente lo que dijo el personal clínico, en el idioma del paciente, en vez de fiarse de lo que se recordó en la puerta.',
-  'record.sheet': 'encounter.srt',
+  'record.sheet': 'visit-2026-08-23.txt',
   'faq.q8': '¿Puede el paciente llevarse la transcripción a casa?',
-  'faq.a8': 'Sí. Exportar escribe cada intervención —lo dicho y su interpretación— en un archivo de subtítulos con marcas de tiempo (.srt) que se abre en cualquier editor de texto y puede imprimirse, enviarse o archivarse. La transcripción también sobrevive a las recargas en la pestaña del navegador hasta que se borra, así que la consulta puede releerse antes de que nadie se vaya. Para todo esto no se sube nada a este servidor.',
+  'faq.a8': 'Sí. Exportar escribe cada intervención —lo dicho y su interpretación— en un archivo de texto con la hora de cada entrada, dispuesto para leerse e imprimirse: quién habló, qué dijo y cómo se interpretó. La transcripción también sobrevive a las recargas en la pestaña del navegador hasta que se borra, así que la consulta puede releerse antes de que nadie se vaya. Para todo esto no se sube nada a este servidor.',
 
   'login.title': 'Iniciar sesión · Intérprete Médico',
   'login.lede': 'Interpretación en tiempo real entre un paciente y su equipo clínico. Escriba su correo y le enviaremos un enlace de acceso: no hay contraseña que elegir ni que olvidar.',
@@ -938,6 +971,15 @@ STRINGS.es = {
   'app.turn.readAloud': 'Leer en voz alta',
   'app.numbers': 'Compruebe las cifras: <b>{missing}</b> aparecía en lo dicho pero no en la interpretación. Algunos idiomas escriben las cifras con letras; confírmelo antes de actuar.',
   'app.export.empty': 'Todavía no hay nada que exportar',
+
+  'export.title': 'REGISTRO DE SU CONSULTA',
+  'export.date': 'Fecha:',
+  'export.specialty': 'Servicio:',
+  'export.languages': 'Idiomas:',
+  'export.turns': 'Entradas:',
+  'export.disclaimer': 'Esta es una interpretación automática de lo que se dijo durante la consulta. Nadie la ha revisado y no sustituye a un intérprete médico cualificado. Si algo no queda claro, o no coincide con lo que usted recuerda, pregunte en la clínica antes de actuar.',
+  'export.into': 'Interpretado al {lang}:',
+  'export.sameLang': '(ambas partes hablaban este idioma: no se interpretó nada)',
 
   'app.plan.free': 'Plan gratuito',
   'app.plan.pro': 'Ilimitado',
@@ -1072,9 +1114,9 @@ STRINGS.ko = {
   'record.2.p': '기록은 새로고침에도 남고 지우기 전까지 유지되며, 시간이 표시된 파일로 내보내 인쇄하거나 메일로 보내거나 차트에 붙여 넣을 수 있습니다. 이 사본은 여러분의 것이며 브라우저에 있습니다 — 이 서버는 아무것도 보관하지 않습니다.',
   'record.3.h': '진료실에 없던 가족을 위해',
   'record.3.p': '약을 챙기는 딸, 재진에 모시고 오는 아들 — 문 앞에서 전해 들은 기억에 기대는 대신, 의료진이 실제로 한 말을 환자의 언어 그대로 읽을 수 있습니다.',
-  'record.sheet': 'encounter.srt',
+  'record.sheet': 'visit-2026-08-23.txt',
   'faq.q8': '환자가 기록을 집에 가져갈 수 있나요?',
-  'faq.a8': '네. 내보내기는 모든 발화 — 말한 내용과 그 통역 — 를 시간이 표시된 자막 파일(.srt)로 저장합니다. 어떤 텍스트 편집기로도 열 수 있고 인쇄·전송·보관이 가능합니다. 기록은 브라우저 탭에서도 새로고침 후 지우기 전까지 남아 있어, 자리를 뜨기 전에 다시 읽어 볼 수 있습니다. 이를 위해 이 서버로 업로드되는 것은 없습니다.',
+  'faq.a8': '네. 내보내기는 모든 발화 — 말한 내용과 그 통역 — 를 시각과 함께 일반 텍스트 파일로 저장합니다. 누가 무엇을 말했고 어떻게 통역되었는지가 읽기 좋게, 인쇄하기 좋게 정리됩니다. 기록은 브라우저 탭에서도 새로고침 후 지우기 전까지 남아 있어, 자리를 뜨기 전에 다시 읽어 볼 수 있습니다. 이를 위해 이 서버로 업로드되는 것은 없습니다.',
 
   'login.title': '로그인 · 의료 통역',
   'login.lede': '환자와 의료진 사이의 실시간 통역입니다. 이메일을 입력하시면 로그인 링크를 보내드립니다. 정하거나 잊을 비밀번호가 없습니다.',
@@ -1125,6 +1167,15 @@ STRINGS.ko = {
   'app.turn.readAloud': '소리 내어 읽기',
   'app.numbers': '숫자를 확인하세요: <b>{missing}</b>이(가) 말한 내용에는 있었지만 통역에는 없습니다. 숫자를 글자로 쓰는 언어도 있으니 실행 전에 확인하세요.',
   'app.export.empty': '아직 내보낼 내용이 없습니다',
+
+  'export.title': '진료 기록',
+  'export.date': '날짜:',
+  'export.specialty': '진료과:',
+  'export.languages': '언어:',
+  'export.turns': '항목 수:',
+  'export.disclaimer': '이 문서는 진료 중에 오간 말을 기계가 통역한 기록입니다. 사람이 검토하지 않았으며, 자격을 갖춘 의료 통역사를 대신하지 않습니다. 이해되지 않는 부분이 있거나 기억과 다르다면, 그대로 따르기 전에 진료소에 문의하십시오.',
+  'export.into': '{lang}(으)로 통역:',
+  'export.sameLang': '(양쪽 모두 이 언어로 말했습니다 — 통역하지 않았습니다)',
 
   'app.plan.free': '무료 요금제',
   'app.plan.pro': '무제한',
@@ -1259,9 +1310,9 @@ STRINGS.ja = {
   'record.2.p': '記録は再読み込みしても残り、消すまで保たれます。タイムスタンプ付きのファイルとして書き出せるので、印刷、メール送信、カルテへの貼り付けができます。この控えはあなたのもので、ブラウザの中にあります — このサーバーは何も保持しません。',
   'record.3.h': '診察室にいなかった家族へ',
   'record.3.p': '薬を管理する娘さん、再診に車で連れて来る息子さん。玄関先で聞いた記憶に頼るのではなく、医療者が実際に話した内容を患者さんの言語のまま読むことができます。',
-  'record.sheet': 'encounter.srt',
+  'record.sheet': 'visit-2026-08-23.txt',
   'faq.q8': '患者が記録を持ち帰ることはできますか？',
-  'faq.a8': 'はい。書き出しは、すべての発話 — 話された言葉とその通訳 — をタイムスタンプ付きの字幕ファイル（.srt）に保存します。どのテキストエディタでも開け、印刷・送信・保管ができます。記録はブラウザのタブでも再読み込み後まで残り、消すまで保たれるので、席を立つ前に読み返せます。そのためにこのサーバーへ何かがアップロードされることはありません。',
+  'faq.a8': 'はい。書き出しは、すべての発話 — 話された言葉とその通訳 — を時刻付きのプレーンテキストに保存します。誰が何を話し、どう通訳されたかが、読みやすく印刷しやすい形に整えられます。記録はブラウザのタブでも再読み込み後まで残り、消すまで保たれるので、席を立つ前に読み返せます。そのためにこのサーバーへ何かがアップロードされることはありません。',
 
   'login.title': 'ログイン · 医療通訳',
   'login.lede': '患者さんと医療チームのあいだのリアルタイム通訳です。メールアドレスを入力いただくと、ログイン用のリンクをお送りします。決めるパスワードも、忘れるパスワードもありません。',
@@ -1312,6 +1363,15 @@ STRINGS.ja = {
   'app.turn.readAloud': '読み上げる',
   'app.numbers': '数値をご確認ください：<b>{missing}</b> は発話にありましたが通訳にはありません。数値を文字で書く言語もあるため、実行前にご確認ください。',
   'app.export.empty': 'まだ書き出せる内容がありません',
+
+  'export.title': '診察の記録',
+  'export.date': '日付：',
+  'export.specialty': '診療科：',
+  'export.languages': '言語：',
+  'export.turns': '項目数：',
+  'export.disclaimer': 'これは診察中に話された内容を機械が通訳した記録です。人による確認は行われておらず、有資格の医療通訳者に代わるものではありません。分かりにくい点や記憶と異なる点があれば、そのとおりにする前に医療機関にご確認ください。',
+  'export.into': '{lang}への通訳：',
+  'export.sameLang': '（双方がこの言語で話していたため、通訳はしていません）',
 
   'app.plan.free': '無料プラン',
   'app.plan.pro': '無制限',

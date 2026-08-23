@@ -136,7 +136,7 @@ async function init() {
   $('logoutBtn').addEventListener('click', logout);
   $('upgradeBtn').addEventListener('click', () => startBilling('/api/billing/checkout'));
   $('manageBtn').addEventListener('click', () => startBilling('/api/billing/portal'));
-  $('exportBtn').addEventListener('click', exportSrt);
+  $('exportBtn').addEventListener('click', exportTranscript);
   $('clearBtn').addEventListener('click', clearAll);
   $('swapBtn').addEventListener('click', swapLanguages);
   $('settingsToggle').addEventListener('click', () => {
@@ -190,11 +190,11 @@ function renderAccount(quota) {
     fill.classList.toggle('low', pct >= 80);
     fill.classList.toggle('spent', q.remaining <= 0);
     $('quotaText').textContent = t('app.quota.left', {
-      remaining: q.remaining.toLocaleString(),
-      limit: q.limit.toLocaleString(),
+      remaining: q.remaining.toLocaleString(localeTag()),
+      limit: q.limit.toLocaleString(localeTag()),
     });
     $('quotaText').title = t('app.quota.hint')
-      + (q.resets_at ? t('app.quota.resets', { when: new Date(q.resets_at * 1000).toLocaleString() }) : '');
+      + (q.resets_at ? t('app.quota.resets', { when: new Date(q.resets_at * 1000).toLocaleString(localeTag()) }) : '');
   }
 
   $('upgradeBtn').hidden = pro || !state.billingEnabled;
@@ -206,7 +206,7 @@ function renderAccount(quota) {
 function showQuotaNotice(quota) {
   const el = $('quotaNotice');
   const when = quota?.resets_at
-    ? t('app.quota.resets', { when: new Date(quota.resets_at * 1000).toLocaleString() }).trim()
+    ? t('app.quota.resets', { when: new Date(quota.resets_at * 1000).toLocaleString(localeTag()) }).trim()
     : '';
   el.innerHTML = t('app.quota.spent', { when });
   if (state.billingEnabled) {
@@ -1068,51 +1068,115 @@ async function speakText(text, speaker, btn) {
 // One SRT file: each cue spans the turn's time, with the polished spoken
 // text and its interpretation each on its own row. Raw ASR text is never
 // exported, and a same-language turn contributes a single row.
-function exportSrt() {
+/* The record of the visit, written for the person who has to read it later:
+   the patient at their kitchen table, or the relative who was not in the
+   room. Plain text, wrapped to a readable width, with the clock time of each
+   turn, who spoke, and both languages. Opens in anything, prints from
+   anything, and needs no software to have been installed first. */
+function exportTranscript() {
   const msgs = state.messages.filter((m) => m.sourceText);
   if (!msgs.length) {
     setStatus('error', t('app.export.empty'));
     return;
   }
-  const base = state.sessionStart ?? msgs[0].start;
-  let n = 0;
-  let out = '';
+
+  const started = new Date(state.sessionStart ?? msgs[0].start);
+  const specialties = [...new Set(msgs.map((m) => m.specialtyLabel))].join(', ');
+  const rule = '='.repeat(66);
+  const lines = [
+    t('export.title'),
+    rule,
+    `${t('export.date')} ${started.toLocaleString(localeTag())}`,
+    `${t('export.specialty')} ${specialties}`,
+    `${t('export.languages')} ${state.clinicianLang} (${t('common.clinician')}) / `
+      + `${state.patientLang} (${t('common.patient')})`,
+    `${t('export.turns')} ${msgs.length}`,
+    '',
+    ...wrapText(t('export.disclaimer')),
+    rule,
+    '',
+  ];
+
   for (const m of msgs) {
-    const rows = [];
-    const push = (text) => {
-      const t = (text || '').trim();
-      if (t && !rows.includes(t)) rows.push(t);
-    };
-    push(m.clean?.text);
-    push(m.translation?.text);
-    if (!rows.length) continue;
-    n++;
-    out += `${n}\n${fmtSrt(m.start - base)} --> ${fmtSrt(m.end - base)}\n${rows.join('\n')}\n\n`;
+    const who = m.role === 'clinician' ? t('common.clinician') : t('common.patient');
+    lines.push(`[${fmtClock(m.start)}]  ${who.toUpperCase()} \u2014 ${m.sourceLang}`);
+    lines.push(...wrapText(m.clean?.text || m.sourceText, '    '));
+    if (m.translation?.text) {
+      lines.push('');
+      lines.push(`    ${t('export.into', { lang: m.targetLang })}`);
+      lines.push(...wrapText(m.translation.text, '    '));
+    } else if (sameLang(m.sourceLang, m.targetLang)) {
+      lines.push(`    ${t('export.sameLang')}`);
+    }
+    lines.push('');
   }
-  if (!n) {
-    setStatus('error', t('app.export.empty'));
-    return;
-  }
-  downloadFile('encounter.srt', out);
+
+  const pad = (n) => String(n).padStart(2, '0');
+  const stamp = `${started.getFullYear()}-${pad(started.getMonth() + 1)}-${pad(started.getDate())}`;
+  // CRLF and a byte-order mark so the file opens correctly in Notepad on a
+  // hospital workstation, which is where a printed handout usually comes from.
+  downloadFile(`visit-${stamp}.txt`, '\ufeff' + lines.join('\r\n') + '\r\n');
 }
 
-function fmtSrt(ms) {
-  ms = Math.max(0, Math.round(ms));
-  const h = Math.floor(ms / 3600000);
-  const m = Math.floor(ms / 60000) % 60;
-  const s = Math.floor(ms / 1000) % 60;
-  const frac = ms % 1000;
-  const p = (v, l = 2) => String(v).padStart(l, '0');
-  return `${p(h)}:${p(m)}:${p(s)},${p(frac, 3)}`;
+/* Wrap for reading on paper or in a plain-text window.
+   Width is measured in columns, not characters: Chinese, Japanese and Korean
+   glyphs occupy two. Text with spaces wraps on them; text without any (a
+   Chinese or Japanese sentence) wraps wherever the column runs out, which is
+   how those languages break lines anyway. */
+const WRAP_COLUMNS = 76;
+
+function displayWidth(text) {
+  let width = 0;
+  for (const ch of text) width += isWide(ch) ? 2 : 1;
+  return width;
 }
 
-function downloadFile(filename, content) {
-  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(a.href);
+function isWide(ch) {
+  const c = ch.codePointAt(0);
+  return (
+    (c >= 0x1100 && c <= 0x115f) ||   // Hangul Jamo
+    (c >= 0x2e80 && c <= 0xa4cf) ||   // CJK radicals, kana, ideographs
+    (c >= 0xac00 && c <= 0xd7a3) ||   // Hangul syllables
+    (c >= 0xf900 && c <= 0xfaff) ||   // Compatibility ideographs
+    (c >= 0xfe30 && c <= 0xfe4f) ||   // CJK compatibility forms
+    (c >= 0xff00 && c <= 0xff60) ||   // Fullwidth forms
+    (c >= 0xffe0 && c <= 0xffe6) ||
+    (c >= 0x20000 && c <= 0x3fffd)    // Extensions B and beyond
+  );
+}
+
+function wrapText(text, indent = '') {
+  const clean = (text || '').trim();
+  if (!clean) return [];
+  const width = WRAP_COLUMNS - indent.length;
+  const out = [];
+
+  if (!clean.includes(' ')) {
+    let line = '';
+    for (const ch of clean) {
+      if (displayWidth(line + ch) > width) {
+        out.push(indent + line);
+        line = ch;
+      } else {
+        line += ch;
+      }
+    }
+    if (line) out.push(indent + line);
+    return out;
+  }
+
+  let line = '';
+  for (const word of clean.split(/\s+/)) {
+    const candidate = line ? line + ' ' + word : word;
+    if (line && displayWidth(candidate) > width) {
+      out.push(indent + line);
+      line = word;
+    } else {
+      line = candidate;
+    }
+  }
+  if (line) out.push(indent + line);
+  return out;
 }
 
 function fmtClock(ts) {

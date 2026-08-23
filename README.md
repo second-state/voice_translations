@@ -34,8 +34,11 @@ the backend as 16 kHz WAV, which:
 3. Optionally reads any sentence aloud through an OpenAI-compatible TTS
    endpoint.
 
-Every message carries a timestamp, the transcript survives page reloads, and
-it exports as an SRT file whose cues carry every language on its own row.
+Every message carries a timestamp and the transcript survives page reloads.
+The conference and standalone medical apps export it as an SRT file whose
+cues carry every language on its own row; the hosted medical edition exports
+a plain-text record of the visit instead, laid out to be read and printed by
+the patient and their family.
 
 ## Building and running the apps
 

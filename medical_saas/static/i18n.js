@@ -211,7 +211,7 @@ STRINGS.en = {
   // ── Landing page ────────────────────────────────────────────────────
   'home.title': 'Medical Translator — understand your doctor, keep what was said',
   'nav.how': 'How it works',
-  'nav.features': 'What it gets right',
+  'nav.features': 'Accuracy',
   'nav.pricing': 'Pricing',
   'nav.faq': 'Questions',
   'nav.signin': 'Sign in',
@@ -318,7 +318,7 @@ STRINGS.en = {
   'foot.disclaimer': 'This is a machine translation to help you follow a medical visit. It is not a certified medical interpretation, and nobody reviews it before you see it. If a clinic or hospital offers you a professional interpreter, take it, and ask again about anything here that does not match what you understood.',
 
   // ── The record a visit leaves behind ────────────────────────────────
-  'nav.record': 'What you keep',
+  'nav.record': 'The record',
   'record.h2': 'Everything that was said, still there when you get home',
   'record.lede': 'The dose, the date to come back, the thing to call about: most of it is said in the last five minutes, when you are already reaching for your coat. Every sentence from both sides is written down as it is spoken, in both languages, with the time beside it. Read it again at the pharmacy, at home, as many times as you need.',
   'record.1.h': 'Both languages, side by side',

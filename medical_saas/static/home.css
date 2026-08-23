@@ -39,7 +39,7 @@ a { color: inherit; }
 .nav-inner {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 16px;
   height: 62px;
 }
 .nav-brand {
@@ -48,12 +48,68 @@ a { color: inherit; }
   gap: 9px;
   font-weight: 650;
   font-size: 16px;
-  text-decoration: none;  white-space: nowrap;
+  text-decoration: none;
+  white-space: nowrap;
 }
-.nav-links { display: flex; gap: 22px; margin-left: 18px; }
-.nav-links a { color: var(--muted); text-decoration: none; font-size: 14px; }
+.nav-links { display: flex; gap: 16px; margin-left: 10px; }
+/* A section link is a phrase, not a paragraph: it may be dropped from the bar
+   but never broken across lines. Without this, a signed-in visitor's address
+   squeezes the row until "How it works" stacks into three lines. */
+.nav-links a { color: var(--muted); text-decoration: none; font-size: 14px; white-space: nowrap; }
 .nav-links a:hover { color: var(--text); }
 .nav-cta { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+
+/* Signed in, this link is the visitor's email address, which can be any
+   length. Cap it, and drop it before the section links go: the button beside
+   it already says they are signed in. Signed out it reads "Sign in" and has
+   no such class, so it is always there. */
+/* Signed in, this stops being a button and becomes a label saying which
+   account you are in: no border or padding to pay for, and it is the one
+   thing in the bar allowed to give up width. */
+#navSignIn.is-account {
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Shrink order in the bar. The links and the buttons hold their size; the
+   address is the one thing allowed to give up width, so it shows in full when
+   there is room and ellipses when there is not. The cluster may only shrink
+   when it holds that address — otherwise it would shrink with nothing inside
+   it able to, and the button would spill off the edge of a phone. */
+.nav-links { flex-shrink: 0; }
+.nav-cta { flex-shrink: 0; }
+.nav-cta.has-account { flex-shrink: 1; min-width: 0; }
+.nav-cta > *:not(#navSignIn) { flex-shrink: 0; }
+@media (max-width: 1150px) {
+  /* The address goes, and with it the only thing in the cluster that could
+     give up width — so the cluster stops shrinking too, or the button would
+     be pushed off the edge with nothing yielding to it. */
+  #navSignIn.is-account { display: none; }
+  .nav-cta.has-account { flex-shrink: 0; min-width: auto; }
+}
+/* Below this the five links cannot fit beside the brand and the button. The
+   page still scrolls to every section they point at. */
+@media (max-width: 1024px) {
+  .nav-links { display: none; }
+}
+
+/* On a phone the bar is the brand, the language, and the one button. Signed
+   out, "Sign in" and "Start free" both open /login, so the link goes and the
+   button stays; signed in, the address left at 1150px. The brand is what
+   gives up the last of the width, rather than the bar running off-screen. */
+@media (max-width: 560px) {
+  #navSignIn { display: none; }
+  .nav .wrap { padding: 0 14px; }
+  .nav-inner { gap: 10px; }
+  .nav-cta { gap: 8px; }
+  .nav-brand { min-width: 0; }
+  .nav-brand .brand-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+}
 
 .btn {
   display: inline-block;

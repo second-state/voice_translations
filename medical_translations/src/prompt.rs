@@ -4,7 +4,7 @@
 //! [`voice_translations::translate::build_system_prompt`].
 //!
 //! The rules below are the app's whole reason to exist. A general-purpose
-//! translator optimizes for fluency; a medical interpreter optimizes for
+//! translator optimizes for fluency; a medical one optimizes for
 //! nothing being added, dropped, or shaded — which is a different and
 //! occasionally less natural-sounding target.
 
@@ -39,7 +39,8 @@ impl Speaker {
     }
 }
 
-/// The rules that make this a medical interpreter rather than a translator.
+/// The rules that hold this to interpreting discipline rather than free
+/// translation: what a courtroom or a hospital means by rendering faithfully.
 ///
 /// Every line here exists because getting it wrong has hurt someone: dropped
 /// negations, converted units, guessed laterality, softened prognoses, and

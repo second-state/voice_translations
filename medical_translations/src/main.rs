@@ -43,7 +43,7 @@ async fn main() -> anyhow::Result<()> {
     let Some(cli) = Cli::parse(&CliSpec {
         app: "medical-translations",
         version: env!("CARGO_PKG_VERSION"),
-        about: "Real-time interpreting for patient/clinician conversations.",
+        about: "Real-time translation for patient/clinician conversations.",
         env_var: "MEDICAL_TRANSLATIONS_CONFIG",
         default_config: "config.toml",
     })?
@@ -72,7 +72,7 @@ async fn main() -> anyhow::Result<()> {
         default = %state.cfg.default_specialty,
         clinician = %state.cfg.clinician_language,
         patient = %state.cfg.patient_language,
-        "medical interpreter ready"
+        "medical translator ready"
     );
 
     let app = Router::new()

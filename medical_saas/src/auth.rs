@@ -43,7 +43,7 @@ pub fn current_user(state: &SaasState, headers: &HeaderMap) -> Option<User> {
 /// The account behind this request, or a 401 telling the browser to log in.
 pub fn require_user(state: &SaasState, headers: &HeaderMap) -> Result<User, AppError> {
     current_user(state, headers)
-        .ok_or_else(|| AppError::Unauthorized("Log in to use the interpreter.".to_string()))
+        .ok_or_else(|| AppError::Unauthorized("Log in to use the translator.".to_string()))
 }
 
 fn session_cookie(headers: &HeaderMap) -> Option<String> {
@@ -129,14 +129,23 @@ pub async fn request_link(
     Ok(Json(body).into_response())
 }
 
+/// Subject and body of the sign-in email, so the wording can be tested
+/// without a mail provider.
+fn magic_link_email(link: &str, minutes: i64) -> (String, String) {
+    let brand = crate::BRAND;
+    (
+        format!("Your {brand} sign-in link"),
+        format!(
+            "Click the link below to sign in to the {brand}:\n\n{link}\n\n\
+             The link works once and expires in {minutes} minutes.\n\n\
+             If you did not ask to sign in, you can ignore this email."
+        ),
+    )
+}
+
 async fn send_magic_email(state: &SaasState, email: &str, link: &str) -> Result<(), AppError> {
     let cfg = &state.cfg.email;
-    let minutes = state.cfg.auth.magic_link_minutes;
-    let text = format!(
-        "Click the link below to sign in to the Medical Interpreter:\n\n{link}\n\n\
-         The link works once and expires in {minutes} minutes.\n\n\
-         If you did not ask to sign in, you can ignore this email."
-    );
+    let (subject, text) = magic_link_email(link, state.cfg.auth.magic_link_minutes);
 
     let resp = state
         .http
@@ -145,7 +154,7 @@ async fn send_magic_email(state: &SaasState, email: &str, link: &str) -> Result<
         .json(&json!({
             "from": format!("{} <{}>", cfg.from_name, cfg.from_address),
             "to": [email],
-            "subject": "Your Medical Interpreter sign-in link",
+            "subject": subject,
             "text": text,
         }))
         .send()
@@ -266,5 +275,18 @@ mod tests {
         assert!(!plain.contains("Secure"));
 
         assert!(cleared_cookie_header(true).contains("Max-Age=0"));
+    }
+
+    #[test]
+    fn the_sign_in_email_calls_the_product_by_its_name() {
+        let (subject, body) = magic_link_email("https://example.test/auth/abc", 60);
+        assert_eq!(subject, format!("Your {} sign-in link", crate::BRAND));
+        assert!(body.contains(crate::BRAND), "{body}");
+        assert!(body.contains("https://example.test/auth/abc"));
+        assert!(body.contains("expires in 60 minutes"));
+        // The email is the one place a rename is easy to miss, because no
+        // page shows it: it only appears in someone's inbox.
+        assert!(!subject.contains("Interpreter"));
+        assert!(!body.contains("Interpreter"));
     }
 }

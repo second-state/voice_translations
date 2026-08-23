@@ -69,7 +69,7 @@ api_key = "your-llm-api-key"
 model = "gpt-4o-mini"
 # How many past turns of this encounter to include as context.
 context_messages = 5
-# Sampling temperature. Interpreting wants the literal reading, not a creative
+# Sampling temperature. Translation wants the literal reading, not a creative
 # one; if your model honors it, keep this low.
 temperature = 0.2
 
@@ -85,7 +85,7 @@ model = "gpt-4o-mini-tts"
 voice = "alloy"
 
 # ── Hosted service ───────────────────────────────────────────────────────
-# Everything below turns the interpreter into a service with accounts. The
+# Everything below turns the translator into a service with accounts. The
 # standalone medical_translations app has none of it.
 
 [auth]
@@ -105,8 +105,8 @@ session_days = 30
 [email]
 # The public origin of this deployment. Sign-in links are built from it, so
 # it must be the address users actually reach — not the bind address.
-base_url = "https://interpreter.example.com"
-from_name = "Medical Interpreter"
+base_url = "https://translator.example.com"
+from_name = "Medical Translator"
 from_address = "login@example.com"
 # Resend API key (https://resend.com). Leave empty and sign-in links are
 # written to the server log instead of delivered — fine for local work,
@@ -118,7 +118,7 @@ resend_api_key = ""
 dev_echo_link = false
 
 [quota]
-# Spoken words a free account may interpret in any rolling seven-day
+# Spoken words a free account may translate in any rolling seven-day
 # window. Both sides of the conversation draw on the same allowance, and
 # the window is counted from each moment backwards — there is no reset
 # hour. Paid accounts are unlimited.

@@ -1,6 +1,6 @@
-# Medical Interpreter
+# Medical Translator
 
-Real-time, two-way interpreting for conversations between a patient and their
+Real-time, two-way translation for conversations between a patient and their
 care team, tuned to a medical specialty.
 
 Built on [`voice_translations`](https://github.com/second-state/voice_translations)
@@ -9,7 +9,7 @@ translation, and the text-to-speech all come from that crate. What this app
 adds is the medical layer.
 
 This crate is itself both a binary and a library. The medical domain —
-specialties, interpreting rules, mishearing repair, per-language clinical
+specialties, translation rules, mishearing repair, per-language clinical
 notes, and the prompt files behind them — is exported so other apps can
 build on it rather than copy it; [`medical_saas`](../medical_saas/) is the
 hosted edition that does exactly that, adding accounts, quotas, and billing
@@ -21,9 +21,9 @@ and nothing medical of its own.
 alternating between exactly two languages. Each utterance's speaker is
 inferred from its detected language — anything that is not the clinician's
 language is treated as the patient, so an unexpected language still flows
-toward the care team — and interpreted into the other side's language. Every
+toward the care team — and translated into the other side's language. Every
 turn carries a **Clinician/Patient toggle** to reassign it (which re-runs the
-interpretation in the right direction), and a turn whose detected language
+translation in the right direction), and a turn whose detected language
 contradicts its speaker's preset gets a warning chip.
 
 **A turn is always in one of the encounter's two languages** — the two
@@ -33,7 +33,7 @@ as inside the encounter, and the browser sends the current pair with every
 utterance. Recognizers confuse
 languages that share a script — Chinese reported as Japanese is the common
 one — and taking that label at face value does real damage: the turn is
-interpreted toward a language nobody in the room speaks, and the
+translated toward a language nobody in the room speaks, and the
 same-language cleanup pass, told the transcript is Japanese, quietly
 *translates* the Chinese it was given. So a label outside the encounter's
 pair is treated as the patient speaking their own language, and the turn is
@@ -54,11 +54,11 @@ versus strain versus fracture, curative versus palliative intent — and gives
 the translator the vocabulary to **repair recognizer mishearings** ("lay six"
 is Lasix, "hypo natremia" is hyponatremia) without ever touching a figure.
 
-**General interpreting rules on every turn**, on top of the specialty's. These
+**General translation rules on every turn**, on top of the specialty's. These
 are the ones whose failure modes are documented harms: numbers and units must
 survive unconverted, negation must stay negative, laterality must never be
 dropped, certainty must be neither hardened nor softened, questions get
-interpreted rather than answered, and the patient's own everyday wording must
+translated rather than answered, and the patient's own everyday wording must
 not be promoted into jargon. Speech is rendered in the first person, the way a
 human interpreter does.
 
@@ -70,8 +70,8 @@ Mandarin→Cantonese, where character conversion masquerades as translation.
 
 **A number check on the result.** Doses, times, and vitals are the content
 whose loss does the most damage, and a dropped figure is one of the few
-interpreting errors detectable without a second model. Every figure spoken is
-matched against the interpretation (across Arabic, Devanagari, Bengali, Thai
+translation errors detectable without a second model. Every figure spoken is
+matched against the translation (across Arabic, Devanagari, Bengali, Thai
 and fullwidth digits); anything missing raises an advisory flag. A language
 that spells figures out in words will trip it, so it prompts a look rather
 than declaring an error.
@@ -161,7 +161,7 @@ src/
 ├── main.rs        # router and startup
 ├── config.rs      # [medical] settings on top of the library config
 ├── api.rs         # handlers: resolve specialty + speaker, delegate to the library
-├── prompt.rs      # general medical interpreting rules, prompt composition
+├── prompt.rs      # general medical translation rules, prompt composition
 ├── specialty.rs   # the 19 specialties (metadata; guidance in prompts/specialties/)
 ├── lang.rs        # per-language and per-pair note tables from prompts/
 └── lib.rs         # exports the above so medical_saas can build on the domain
@@ -174,7 +174,7 @@ static/            # the two-party encounter UI
 
 ## Caveats
 
-This is a machine interpreter. It is an aid for a bilingual encounter, not a
+This is a machine translator. It is an aid for a bilingual encounter, not a
 substitute for a qualified medical interpreter, and its output is not reviewed
 by anyone before you see it. Verify anything clinical against the source
 before acting on it or filing it.

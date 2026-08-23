@@ -2,7 +2,7 @@
 name = "medical-saas"
 version = "0.1.6"
 edition = "2021"
-description = "The medical interpreter as a hosted service: accounts, magic-link login, a rolling weekly word quota, and Stripe subscriptions"
+description = "The medical translator as a hosted service: accounts, magic-link login, a rolling weekly word quota, and Stripe subscriptions"
 license = "Apache-2.0"
 
 [dependencies]
@@ -12,9 +12,9 @@ license = "Apache-2.0"
 # tree is not reachable at runtime from a dependency.
 voice-translations = { path = "..", features = ["embed-assets"] }
 
-# The medical domain — specialties, interpreting rules, per-language clinical
+# The medical domain — specialties, translation rules, per-language clinical
 # notes, and the prompt files behind them — comes from the standalone
-# interpreter, so this crate carries none of it. What it adds is the account
+# translator, so this crate carries none of it. What it adds is the account
 # layer and the UI around it.
 medical-translations = { path = "../medical_translations" }
 

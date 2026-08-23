@@ -11,8 +11,8 @@ its own configuration file, and can run side by side:
 | App | What it is | Source |
 | --- | --- | --- |
 | [`conf_translations/`](conf_translations/) | Conference-call translator: pick target languages, and a call-type selector (business, formal, friends, politics, book club, tech) tunes the register of every translation | `conf_translations/` |
-| [`medical_translations/`](medical_translations/) | Patient/clinician interpreter: two-party turns, per-specialty terminology rules, safety-first interpreting prompts | `medical_translations/` |
-| [`medical_saas/`](medical_saas/) | The same interpreter run as a service: accounts in embedded SQLite, magic-link sign-in, a rolling weekly word allowance, Stripe subscriptions. Depends on `medical_translations` for the medical domain, so it carries only the service and its UI | `medical_saas/` |
+| [`medical_translations/`](medical_translations/) | Patient/clinician translator: two-party turns, per-specialty terminology rules, safety-first translation prompts | `medical_translations/` |
+| [`medical_saas/`](medical_saas/) | The same translator run as a service: accounts in embedded SQLite, magic-link sign-in, a rolling weekly word allowance, Stripe subscriptions. Depends on `medical_translations` for the medical domain, so it carries only the service and its UI | `medical_saas/` |
 
 ## The pipeline (what the library does)
 
@@ -52,7 +52,7 @@ cargo build --release -p medical-translations  # just the medical one
 cargo build --release -p medical-saas          # just the hosted edition
 ```
 
-| | Conference translator | Medical interpreter | Medical, hosted |
+| | Conference translator | Medical translator | Medical, hosted |
 | --- | --- | --- | --- |
 | Binary | `target/release/conf-translations` | `target/release/medical-translations` | `target/release/medical-saas` |
 | Source | `conf_translations/` | `medical_translations/` | `medical_saas/` |
@@ -235,6 +235,6 @@ voice-translations = { git = "https://github.com/second-state/voice_translations
 
 The apps in this workspace are worked examples: `conf_translations` adds a
 call-type layer to a broadcast translator, `medical_translations` adds
-interpreting rules, per-specialty terminology, and a two-party UI, and
-`medical_saas` wraps that same interpreter in accounts, quotas, and billing —
+translation rules, per-specialty terminology, and a two-party UI, and
+`medical_saas` wraps that same translator in accounts, quotas, and billing —
 none of them changes anything in the library's own behavior.

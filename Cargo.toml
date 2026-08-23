@@ -3,8 +3,8 @@
 # The apps live in subfolders, each a standalone binary with its own
 # configuration file:
 #   conf-translations     — the conference-call translator
-#   medical-translations  — the patient/clinician interpreter
-#   medical-saas          — the interpreter as a hosted service: accounts,
+#   medical-translations  — the patient/clinician translator
+#   medical-saas          — the translator as a hosted service: accounts,
 #                           magic-link login, weekly word quota, Stripe plans
 # `cargo build --release` builds both into target/release/.
 [workspace]

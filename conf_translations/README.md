@@ -74,7 +74,7 @@ directory:
 CONF_TRANSLATIONS_CONFIG=/etc/conference.toml ./conf-translations
 ```
 
-It defaults to port 8080; the medical interpreter defaults to 8090 so the two
+It defaults to port 8080; the medical translator defaults to 8090 so the two
 can run side by side. See the [workspace README](../README.md#deploying) for
 deploying both together.
 

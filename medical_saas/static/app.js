@@ -29,12 +29,12 @@ document.addEventListener('visibilitychange', () => {
 document.addEventListener('click', () => { if (!wakeLock) keepScreenAwake(); }, { capture: true });
 keepScreenAwake();
 
-/* Medical Interpreter — browser side.
+/* Medical Translator — browser side.
    The speech capture and VAD handling here is the upstream voice translator's,
    unchanged in substance; what differs is the pipeline downstream of a
    detected utterance. Instead of fanning one utterance out to a set of target
    languages, every turn belongs to one of two speakers — the clinician or the
-   patient — and is interpreted into the other one's language. */
+   patient — and is translated into the other one's language. */
 
 // Display name -> ISO 639-1 code, used to pin the recognizer's language when
 // the user names who is speaking. Mirrors normalize_language() on the server.
@@ -859,7 +859,7 @@ function addTranslationBlob(msg) {
   label.className = 'blob-lang';
   const name = document.createElement('span');
   name.className = 'blob-label';
-  name.textContent = t('app.turn.interpreted', { lang: msg.targetLang });
+  name.textContent = t('app.turn.translated', { lang: msg.targetLang });
   label.appendChild(name);
   if (state.cfg.tts_enabled) {
     label.appendChild(makeSpeakBtn(() => msg.translation?.text || '', () => msg.role));
@@ -985,7 +985,7 @@ function redrawTranslatedText() {
     msg.el.querySelector('.source .blob-label').textContent =
       t('app.turn.asSpoken', { lang: msg.sourceLang });
     const interpreted = msg.el.querySelector('.translation .blob-label');
-    if (interpreted) interpreted.textContent = t('app.turn.interpreted', { lang: msg.targetLang });
+    if (interpreted) interpreted.textContent = t('app.turn.translated', { lang: msg.targetLang });
     const note = msg.el.querySelector('.same-lang-note');
     if (note) note.textContent = t('app.turn.sameLang', { lang: msg.sourceLang });
     for (const btn of msg.el.querySelectorAll('.speak-btn')) btn.title = t('app.turn.readAloud');

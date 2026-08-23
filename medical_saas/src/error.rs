@@ -35,7 +35,7 @@ impl IntoResponse for AppError {
                 StatusCode::PAYMENT_REQUIRED,
                 "quota_exceeded",
                 "This week's free word allowance is used up. Subscribe for unlimited \
-                 interpreting, or wait for the rolling window to free up."
+                 translation, or wait for the rolling window to free up."
                     .to_string(),
                 Some(json!(quota)),
             ),

@@ -1,21 +1,21 @@
-# Medical Interpreter — hosted edition
+# Medical Translator — hosted edition
 
-The two-way patient/clinician interpreter of
+The two-way patient/clinician translator of
 [`medical_translations`](../medical_translations/), run as a service: user
 accounts in an embedded SQLite database, passwordless sign-in by emailed
 magic link, a rolling weekly word allowance on the free plan, and Stripe
 subscriptions for unlimited use.
 
 **This crate contains only the service and its UI.** Everything it
-interprets and every way it interprets comes from its two dependencies, not
+translates and every way it translates comes from its two dependencies, not
 from copies:
 
 | Comes from | What |
 | --- | --- |
 | [`voice_translations`](../) | The whole speech pipeline: Silero VAD assets, the ASR call, streaming LLM translation, TTS, config loading, the CLI, and the HTTPS middleware |
-| [`medical_translations`](../medical_translations/) | The medical domain: the 19 specialties, the interpreting rules, mishearing repair, the per-language clinical notes, and the prompt files behind them |
+| [`medical_translations`](../medical_translations/) | The medical domain: the 19 specialties, the translation rules, mishearing repair, the per-language clinical notes, and the prompt files behind them |
 
-So a change to how medicine is interpreted lands in the standalone app and
+So a change to how medicine is translated lands in the standalone app and
 here at once, and neither this crate nor the standalone one implements any
 speech or model plumbing of its own.
 
@@ -36,7 +36,7 @@ the console in Spanish is, by default, sitting with a Spanish-speaking
 patient; switching the interface to Korean moves the patient side with it.
 The exception is when that would make both sides of the encounter the same
 language, in which case the configured `patient_language` is kept, since two
-identical sides have nothing to interpret. Once either language is chosen by
+identical sides have nothing to translate. Once either language is chosen by
 hand — in the pickers or with the swap button — that pair is remembered and
 stops following the interface until it is changed again.
 
@@ -55,7 +55,7 @@ English rather than showing a bare key.
 | --- | --- |
 | `/` | Public landing page: what the service does, and the free vs. subscription plans. Links straight into the app when a session is found. |
 | `/login` | Sign-in page: enter an email, receive a link. |
-| `/app` | The interpreter console. Anonymous visitors are sent to `/login`, and every API it calls requires a session regardless. |
+| `/app` | The translator console. Anonymous visitors are sent to `/login`, and every API it calls requires a session regardless. |
 
 ## Accounts
 
@@ -84,14 +84,14 @@ cannot be left on in production by accident.
 
 ## The free allowance
 
-A free account may interpret **1,000 spoken words per rolling seven-day
+A free account may translate **1,000 spoken words per rolling seven-day
 window** (`[quota] free_words_per_week`). Paid accounts are unlimited.
 
 - **Both sides count.** The clinician's turns and the patient's draw on the
   same allowance. The ledger labels each turn by role, inferred from the
   detected language, but the label is bookkeeping only.
 - **Spoken words, counted once.** The allowance is spent when a turn is
-  transcribed. Interpretations are free: one utterance costs the same
+  transcribed. Translations are free: one utterance costs the same
   whatever the target language needs, and reading a turn aloud costs nothing.
 - **Rolling, literally.** Usage is summed from this instant back over seven
   days, so there is no reset hour, no calendar week to game, and no cliff:
@@ -306,7 +306,7 @@ MEDICAL_SAAS_CONFIG=/etc/medical-saas.toml ./medical-saas
 ```
 
 It defaults to port 8100, so it can run beside the conference translator
-(8080) and the standalone interpreter (8090).
+(8080) and the standalone translator (8090).
 
 **Back up the database.** `[auth] database` is the only record of who has an
 account and who has paid; the Stripe ids that reconnect a subscription to a
@@ -321,7 +321,7 @@ user live there too.
 ## Configuration
 
 One `config.toml`. The `[server] [audio] [asr] [llm] [tts]` sections are the
-library's and `[medical]` is the interpreter's — see the
+library's and `[medical]` is the translator's — see the
 [workspace README](../README.md#configuration) and the
 [standalone app](../medical_translations/README.md#configuration). This
 edition adds:
@@ -363,7 +363,7 @@ lives in `medical_translations` and is used from there.
 
 ## Caveats
 
-This is a machine interpreter — an aid for a bilingual encounter, not a
+This is a machine translator — an aid for a bilingual encounter, not a
 substitute for a qualified medical interpreter, and its output is not
 reviewed by anyone before you see it. Verify anything clinical against the
 source before acting on it or filing it.

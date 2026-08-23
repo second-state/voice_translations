@@ -379,7 +379,7 @@ STRINGS.en = {
   'app.turn.transcribing': 'Transcribing…',
   'app.turn.spoken': 'Spoken',
   'app.turn.asSpoken': '{lang} · as spoken',
-  'app.turn.interpreted': '{lang} · translated',
+  'app.turn.translated': '{lang} · translated',
   'app.turn.failed': 'Transcription failed: {message}',
   'app.turn.whoSpoke': 'Who spoke this turn',
   'app.turn.isSpeaker': 'Speaker of this turn',
@@ -588,7 +588,7 @@ STRINGS.zh = {
   'app.turn.transcribing': '转写中…',
   'app.turn.spoken': '原话',
   'app.turn.asSpoken': '{lang} · 原话',
-  'app.turn.interpreted': '{lang} · 翻译',
+  'app.turn.translated': '{lang} · 翻译',
   'app.turn.failed': '转写失败：{message}',
   'app.turn.whoSpoke': '这句话由谁说出',
   'app.turn.isSpeaker': '本句的说话方',
@@ -625,7 +625,7 @@ STRINGS.zh = {
 };
 
 /* Traditional Chinese, written with Hong Kong medical vocabulary — the same
- * register the app's Cantonese interpreting uses (覆診, 食藥, 照X光). */
+ * register the app's Cantonese rendering uses (覆診, 食藥, 照X光). */
 STRINGS.yue = {
   'brand': '醫療翻譯',
   'lang.label': '介面語言',
@@ -797,7 +797,7 @@ STRINGS.yue = {
   'app.turn.transcribing': '轉寫緊…',
   'app.turn.spoken': '原話',
   'app.turn.asSpoken': '{lang} · 原話',
-  'app.turn.interpreted': '{lang} · 翻譯',
+  'app.turn.translated': '{lang} · 翻譯',
   'app.turn.failed': '轉寫失敗：{message}',
   'app.turn.whoSpoke': '呢句話邊個講',
   'app.turn.isSpeaker': '本句嘅講者',
@@ -1004,7 +1004,7 @@ STRINGS.es = {
   'app.turn.transcribing': 'Transcribiendo…',
   'app.turn.spoken': 'Dicho',
   'app.turn.asSpoken': '{lang} · tal como se dijo',
-  'app.turn.interpreted': '{lang} · traducido',
+  'app.turn.translated': '{lang} · traducido',
   'app.turn.failed': 'Fallo al transcribir: {message}',
   'app.turn.whoSpoke': 'Quién habló en esta intervención',
   'app.turn.isSpeaker': 'Quien habla en esta intervención',
@@ -1211,7 +1211,7 @@ STRINGS.ko = {
   'app.turn.transcribing': '받아쓰는 중…',
   'app.turn.spoken': '말한 내용',
   'app.turn.asSpoken': '{lang} · 말한 그대로',
-  'app.turn.interpreted': '{lang} · 번역',
+  'app.turn.translated': '{lang} · 번역',
   'app.turn.failed': '받아쓰기 실패: {message}',
   'app.turn.whoSpoke': '이 발화를 말한 사람',
   'app.turn.isSpeaker': '이 발화의 화자',
@@ -1418,7 +1418,7 @@ STRINGS.ja = {
   'app.turn.transcribing': '書き起こし中…',
   'app.turn.spoken': '発話',
   'app.turn.asSpoken': '{lang} · 話したまま',
-  'app.turn.interpreted': '{lang} · 翻訳',
+  'app.turn.translated': '{lang} · 翻訳',
   'app.turn.failed': '書き起こしに失敗しました：{message}',
   'app.turn.whoSpoke': 'この発話を話した人',
   'app.turn.isSpeaker': 'この発話の話し手',

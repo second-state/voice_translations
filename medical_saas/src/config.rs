@@ -137,7 +137,7 @@ impl Default for EmailConfig {
     fn default() -> Self {
         Self {
             base_url: "http://127.0.0.1:8100".into(),
-            from_name: "Medical Interpreter".into(),
+            from_name: crate::BRAND.into(),
             from_address: "login@example.com".into(),
             resend_api_key: String::new(),
             dev_echo_link: false,

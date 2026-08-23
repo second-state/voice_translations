@@ -1,5 +1,5 @@
-//! Medical Interpreter (hosted edition) — the two-way patient/clinician
-//! interpreter of `medical_translations`, run as a service.
+//! Medical Translator (hosted edition) — the two-way patient/clinician
+//! translator of `medical_translations`, run as a service.
 //!
 //! Two dependencies carry everything this app does not invent: the speech
 //! pipeline (browser-side Silero VAD, ASR, streaming LLM translation, TTS)
@@ -12,6 +12,14 @@
 //! embedded SQLite database, passwordless sign-in by emailed magic link, a
 //! rolling weekly word allowance on the free plan, Stripe subscriptions for
 //! unlimited use, and the UI for all of it.
+
+/// The product name, as a person reading an email from us sees it.
+///
+/// The browser gets its own name from the interface catalogue, translated per
+/// language; this is the English one the server sends out. Keeping it in a
+/// single place is what stops a rename from reaching the pages and leaving
+/// the sign-in email still using the old name.
+pub const BRAND: &str = "Medical Translator";
 
 mod api;
 mod auth;
@@ -54,7 +62,7 @@ async fn main() -> anyhow::Result<()> {
     let Some(cli) = Cli::parse(&CliSpec {
         app: "medical-saas",
         version: env!("CARGO_PKG_VERSION"),
-        about: "Hosted medical interpreting with accounts, quotas, and subscriptions.",
+        about: "Hosted medical translation with accounts, quotas, and subscriptions.",
         env_var: "MEDICAL_SAAS_CONFIG",
         default_config: "config.toml",
     })?
@@ -123,7 +131,7 @@ async fn main() -> anyhow::Result<()> {
         patient = %settings.medical.patient_language,
         free_words_per_week = settings.quota.free_words_per_week,
         billing = settings.stripe.enabled(),
-        "hosted medical interpreter ready"
+        "hosted medical translator ready"
     );
 
     let app = Router::new()

@@ -332,3 +332,59 @@ footer {
 }
 .lang-select:hover { color: var(--text); border-color: var(--accent); }
 @media (max-width: 900px) { .lang-select { max-width: 7.5em; } }
+
+/* ---------- The record a visit leaves behind ----------
+   Three points beside a sample of an exported transcript, so the claim is
+   visible rather than only described. */
+.record-grid {
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  gap: 28px;
+  align-items: start;
+}
+.record-grid .grid.three { grid-template-columns: 1fr; }
+
+.record-sheet {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  font-size: 13.5px;
+  position: sticky;
+  top: 86px;
+}
+.sheet-head {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel-2);
+  color: var(--muted);
+  font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.sheet-row {
+  display: flex;
+  gap: 14px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.sheet-row:last-child { border-bottom: none; }
+.sheet-time {
+  color: var(--muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  padding-top: 2px;
+  white-space: nowrap;
+}
+.sheet-said { margin: 0 0 5px; line-height: 1.5; }
+.sheet-rendered {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+  padding-left: 10px;
+  border-left: 2px solid var(--border);
+}
+
+@media (max-width: 900px) {
+  .record-grid { grid-template-columns: 1fr; gap: 22px; }
+  .record-sheet { position: static; }
+}

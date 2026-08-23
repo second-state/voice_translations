@@ -15,6 +15,7 @@
     <a class="nav-brand" href="/"><span>🩺</span> <span data-i18n="brand">Medical Interpreter</span></a>
     <div class="nav-links">
       <a href="#how" data-i18n="nav.how">How it works</a>
+      <a href="#record" data-i18n="nav.record">The record</a>
       <a href="#features" data-i18n="nav.features">Features</a>
       <a href="#pricing" data-i18n="nav.pricing">Pricing</a>
       <a href="#faq" data-i18n="nav.faq">FAQ</a>
@@ -86,6 +87,62 @@
       <div class="step">
         <h3 data-i18n="how.3.h">Read or hear it back</h3>
         <p data-i18n="how.3.p">Each turn appears in both languages within a second or two, and can be read aloud in a different voice per side. The transcript exports as a timestamped file.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="record">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2 data-i18n="record.h2">Nobody has to remember it all</h2>
+      <p data-i18n="record.lede">Instructions given through an interpreter are the ones most easily lost on the way home. Every turn of the visit is written down as it happens — in both languages, with the time it was said — so the conversation can be read again when it matters.</p>
+    </div>
+
+    <div class="record-grid">
+      <div class="grid three">
+        <div class="card">
+          <span class="icon">🗂️</span>
+          <h3 data-i18n="record.1.h">Both languages, side by side</h3>
+          <p data-i18n="record.1.p">Each turn keeps what was said and how it was interpreted.</p>
+        </div>
+        <div class="card">
+          <span class="icon">📄</span>
+          <h3 data-i18n="record.2.h">It outlives the appointment</h3>
+          <p data-i18n="record.2.p">The transcript survives a reload and exports as a timestamped file.</p>
+        </div>
+        <div class="card">
+          <span class="icon">👨‍👩‍👧</span>
+          <h3 data-i18n="record.3.h">For the family who was not in the room</h3>
+          <p data-i18n="record.3.p">They can read exactly what the clinician said, in the patient's own language.</p>
+        </div>
+      </div>
+
+      <!-- What an exported visit looks like: every turn, both languages,
+           with the time it was said. -->
+      <div class="record-sheet" aria-hidden="true">
+        <div class="sheet-head"><span data-i18n="record.sheet">encounter.srt</span></div>
+        <div class="sheet-row">
+          <span class="sheet-time">00:04:12</span>
+          <div>
+            <p class="sheet-said">Take one tablet twice a day, and stop the other one.</p>
+            <p class="sheet-rendered">每天吃一片，一天两次，另外那种就停掉。</p>
+          </div>
+        </div>
+        <div class="sheet-row">
+          <span class="sheet-time">00:04:31</span>
+          <div>
+            <p class="sheet-said">吃了以后会不会头晕？</p>
+            <p class="sheet-rendered">Will it make me dizzy?</p>
+          </div>
+        </div>
+        <div class="sheet-row">
+          <span class="sheet-time">00:04:38</span>
+          <div>
+            <p class="sheet-said">It can at first. Come back in two weeks.</p>
+            <p class="sheet-rendered">刚开始可能会。两个星期后回来复诊。</p>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -261,6 +318,11 @@
         without contacting anyone. Your account then returns to the free plan
         rather than disappearing.
       </p>
+    </details>
+
+    <details>
+      <summary data-i18n="faq.q8">Can the patient take the transcript home?</summary>
+      <p data-i18n="faq.a8">Yes. Export writes every turn into a timestamped file.</p>
     </details>
 
     <details>

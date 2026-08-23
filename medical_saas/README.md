@@ -19,6 +19,36 @@ So a change to how medicine is interpreted lands in the standalone app and
 here at once, and neither this crate nor the standalone one implements any
 speech or model plumbing of its own.
 
+## Interface language
+
+The landing page, the sign-in page, and the console are all translated into
+**English, 简体中文, 繁體中文, Español, 한국어, and 日本語**.
+
+The language follows the browser on a first visit — `zh-TW`, `zh-HK` and
+anything tagged `Hant` get traditional characters, everything else Chinese
+gets simplified — and a picker on every page overrides it. A hand-picked
+language persists across sessions. `?lang=ja` on any URL selects one for that
+visit and remembers it, which is useful for sending someone a link in the
+language they read.
+
+**The patient's language starts as the interface language.** Someone reading
+the console in Spanish is, by default, sitting with a Spanish-speaking
+patient; switching the interface to Korean moves the patient side with it.
+The exception is when that would make both sides of the encounter the same
+language, in which case the configured `patient_language` is kept, since two
+identical sides have nothing to interpret. Once either language is chosen by
+hand — in the pickers or with the swap button — that pair is remembered and
+stops following the interface until it is changed again.
+
+Interface language and the chosen pair live in the browser's local storage,
+alongside the transcript, so they are per browser rather than per account:
+signing in on a different workstation starts from the browser's own
+preference again.
+
+All six catalogues live in [`static/i18n.js`](static/i18n.js) and are
+key-for-key identical; a string missing from one language falls back to
+English rather than showing a bare key.
+
 ## Pages
 
 | Path | What it is |

@@ -457,3 +457,18 @@ body {
   .quota-meter { width: 84px; }
   .quota-notice { padding: 12px 14px; }
 }
+
+/* Interface-language picker: compact enough to sit in the account bar and
+   on the sign-in card without drawing attention to itself. */
+.lang-select {
+  padding: 5px 8px;
+  font-size: 12.5px;
+  max-width: 9.5em;
+}
+.auth-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.auth-top h1 { flex: 1; }

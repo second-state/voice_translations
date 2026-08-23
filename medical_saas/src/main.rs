@@ -133,6 +133,8 @@ async fn main() -> anyhow::Result<()> {
         .route("/app", get(app_page))
         .route("/login", get(login_page))
         .route("/app.js", get(app_js))
+        // Interface strings, shared by all three pages.
+        .route("/i18n.js", get(i18n_js))
         .route("/style.css", get(style_css))
         .route("/home.css", get(home_css))
         // Accounts
@@ -181,6 +183,16 @@ async fn app_page() -> Html<&'static str> {
 
 async fn login_page() -> Html<&'static str> {
     Html(include_str!("../static/login.html"))
+}
+
+async fn i18n_js() -> impl IntoResponse {
+    (
+        [(
+            header::CONTENT_TYPE,
+            "application/javascript; charset=utf-8",
+        )],
+        include_str!("../static/i18n.js"),
+    )
 }
 
 async fn app_js() -> impl IntoResponse {

@@ -3,8 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Medical Interpreter</title>
+<title data-i18n="app.title">Medical Interpreter</title>
 <link rel="stylesheet" href="/style.css">
+<script src="/i18n.js"></script>
 </head>
 <body>
 
@@ -12,14 +13,14 @@
   <div class="brand">
     <span class="logo">🩺</span>
     <div class="brand-text">
-      <h1>Medical Interpreter</h1>
+      <h1 data-i18n="app.title">Medical Interpreter</h1>
       <span id="specialtyTag" class="brand-sub">Primary care</span>
     </div>
   </div>
   <div class="mic-controls">
-    <div class="meter" title="Microphone level"><div id="meterFill" class="meter-fill"></div></div>
-    <span id="status" class="status idle">Idle</span>
-    <button id="micBtn" class="mic-btn">Start listening</button>
+    <div class="meter" data-i18n-attr="title:app.meter" title="Microphone level"><div id="meterFill" class="meter-fill"></div></div>
+    <span id="status" class="status idle" data-i18n="app.status.idle">Idle</span>
+    <button id="micBtn" class="mic-btn" data-i18n="app.mic.start">Start listening</button>
   </div>
 </header>
 
@@ -33,41 +34,42 @@
     <span class="quota-text" id="quotaText"></span>
   </span>
   <span class="spacer"></span>
-  <button id="upgradeBtn" class="btn accent" hidden>Subscribe for unlimited</button>
-  <button id="manageBtn" class="btn" hidden>Manage subscription</button>
-  <button id="logoutBtn" class="btn subtle">Log out</button>
+  <select id="localePicker" class="select lang-select" aria-label="Language" data-i18n-attr="aria-label:lang.label,title:lang.label"></select>
+  <button id="upgradeBtn" class="btn accent" hidden data-i18n="app.upgrade">Subscribe for unlimited</button>
+  <button id="manageBtn" class="btn" hidden data-i18n="app.manage">Manage subscription</button>
+  <button id="logoutBtn" class="btn subtle" data-i18n="app.logout">Log out</button>
 </section>
 
 <div id="quotaNotice" class="quota-notice" hidden></div>
 
-<button id="settingsToggle" class="settings-toggle" aria-expanded="true">Encounter setup ▾</button>
+<button id="settingsToggle" class="settings-toggle" aria-expanded="true"><span data-i18n="app.setup">Encounter setup</span> ▾</button>
 <section id="settings" class="settings">
 
   <div class="setting-row">
-    <label class="setting-label" for="specialty">Specialty</label>
-    <select id="specialty" class="select grow" title="Tunes both speech recognition and interpreting to this field"></select>
+    <label class="setting-label" for="specialty" data-i18n="app.specialty">Specialty</label>
+    <select id="specialty" class="select grow" data-i18n-attr="title:app.specialty.hint" title="Tunes both speech recognition and interpreting to this field"></select>
     <span id="specialtyBlurb" class="hint"></span>
   </div>
 
   <div class="setting-row">
-    <label class="setting-label" for="clinicianLang">Clinician speaks</label>
+    <label class="setting-label" for="clinicianLang" data-i18n="app.clinicianSpeaks">Clinician speaks</label>
     <select id="clinicianLang" class="select"></select>
-    <button id="swapBtn" class="btn icon" title="Swap the two languages">⇄</button>
-    <label class="setting-label" for="patientLang">Patient speaks</label>
+    <button id="swapBtn" class="btn icon" data-i18n-attr="title:app.swap" title="Swap the two languages">⇄</button>
+    <label class="setting-label" for="patientLang" data-i18n="app.patientSpeaks">Patient speaks</label>
     <select id="patientLang" class="select"></select>
   </div>
 
   <div class="setting-row">
-    <span class="hint">The speaker is detected from the language of each turn — use the Clinician/Patient buttons on a message to correct it.</span>
+    <span class="hint" data-i18n="app.roleHint">The speaker is detected from the language of each turn — use the Clinician/Patient buttons on a message to correct it.</span>
     <span class="spacer"></span>
-    <button id="exportBtn" class="btn">Export</button>
-    <button id="clearBtn" class="btn subtle">Clear</button>
+    <button id="exportBtn" class="btn" data-i18n="app.export">Export</button>
+    <button id="clearBtn" class="btn subtle" data-i18n="app.clear">Clear</button>
   </div>
 
 </section>
 
 <main id="messages" class="messages">
-  <div id="empty" class="empty">
+  <div id="empty" class="empty" data-i18n-html="app.empty">
     Pick the specialty and the two languages, then press <strong>Start listening</strong>.<br>
     Each utterance is transcribed, attributed to the clinician or the patient, and interpreted into the other language.
   </div>

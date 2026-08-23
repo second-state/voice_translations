@@ -85,7 +85,7 @@ let emptyStateHtml = '';
 
 const $ = (id) => document.getElementById(id);
 
-init().catch((err) => setStatus('error', 'Config load failed: ' + err.message));
+init().catch((err) => setStatus('error', t('app.err.config', { message: err.message })));
 
 async function init() {
   emptyStateHtml = $('messages').innerHTML;
@@ -100,10 +100,35 @@ async function init() {
   if (!resp.ok) throw new Error(await resp.text());
   state.cfg = await resp.json();
   state.clinicianLang = langName(state.cfg.clinician_language);
-  state.patientLang = langName(state.cfg.patient_language);
+  // The patient side starts in whatever language the interface is in: a
+  // clinician reading this in Spanish is, by default, sitting with a
+  // Spanish-speaking patient. Unless that would make both sides the same
+  // language, in which case the configured default is the useful one.
+  const fromLocale = patientLanguageFor(locale());
+  const configured = langName(state.cfg.patient_language);
+  state.patientLang = sameLang(fromLocale, state.clinicianLang) ? configured : fromLocale;
+  // A pair chosen by hand outranks both, and lasts until changed again.
+  const remembered = storedLanguages();
+  if (remembered) {
+    state.clinicianLang = remembered.clinician;
+    state.patientLang = remembered.patient;
+  }
 
   renderSpecialties();
   renderLanguageSelects();
+  renderLocalePicker($('localePicker'));
+  // Switching the interface language moves the patient side with it, unless
+  // the pair was chosen by hand.
+  onLocaleChange(() => {
+    if (!storedLanguages()) {
+      const suggested = patientLanguageFor(locale());
+      if (!sameLang(suggested, state.clinicianLang) && state.cfg.languages.includes(suggested)) {
+        state.patientLang = suggested;
+        $('patientLang').value = suggested;
+      }
+    }
+    redrawTranslatedText();
+  });
   restoreHistory();
   window.addEventListener('beforeunload', saveHistory);
 
@@ -152,7 +177,7 @@ function renderAccount(quota) {
 
   const pro = state.account.plan === 'pro';
   const badge = $('planBadge');
-  badge.textContent = pro ? 'Unlimited' : 'Free plan';
+  badge.textContent = t(pro ? 'app.plan.pro' : 'app.plan.free');
   badge.classList.toggle('pro', pro);
 
   // Only the free plan has anything to meter.
@@ -164,11 +189,12 @@ function renderAccount(quota) {
     fill.style.width = pct + '%';
     fill.classList.toggle('low', pct >= 80);
     fill.classList.toggle('spent', q.remaining <= 0);
-    $('quotaText').textContent =
-      `${q.remaining.toLocaleString()} of ${q.limit.toLocaleString()} words left this week`;
-    $('quotaText').title =
-      'A rolling seven-day window: words stop counting seven days after they are spoken.'
-      + (q.resets_at ? ` Some allowance returns ${new Date(q.resets_at * 1000).toLocaleString()}.` : '');
+    $('quotaText').textContent = t('app.quota.left', {
+      remaining: q.remaining.toLocaleString(),
+      limit: q.limit.toLocaleString(),
+    });
+    $('quotaText').title = t('app.quota.hint')
+      + (q.resets_at ? t('app.quota.resets', { when: new Date(q.resets_at * 1000).toLocaleString() }) : '');
   }
 
   $('upgradeBtn').hidden = pro || !state.billingEnabled;
@@ -180,14 +206,13 @@ function renderAccount(quota) {
 function showQuotaNotice(quota) {
   const el = $('quotaNotice');
   const when = quota?.resets_at
-    ? `Some allowance returns ${new Date(quota.resets_at * 1000).toLocaleString()}.`
+    ? t('app.quota.resets', { when: new Date(quota.resets_at * 1000).toLocaleString() }).trim()
     : '';
-  el.innerHTML = '<strong>This week\'s free allowance is used up.</strong> '
-    + `Interpreting is paused until the rolling window frees up. ${when}`;
+  el.innerHTML = t('app.quota.spent', { when });
   if (state.billingEnabled) {
     const btn = document.createElement('button');
     btn.className = 'btn accent';
-    btn.textContent = 'Subscribe for unlimited';
+    btn.textContent = t('app.upgrade');
     btn.addEventListener('click', () => startBilling('/api/billing/checkout'));
     el.appendChild(btn);
   }
@@ -211,7 +236,7 @@ async function handleApiFailure(resp) {
     if (data.quota) renderAccount(data.quota);
     else showQuotaNotice(state.quota);
     if (state.running) await stopMic();
-    setStatus('error', 'Weekly word allowance reached');
+    setStatus('error', t('app.quota.reached'));
     return true;
   }
   return false;
@@ -225,7 +250,7 @@ async function startBilling(endpoint) {
     if (!resp.ok) throw new Error(data.error || `HTTP ${resp.status}`);
     location.href = data.url;
   } catch (err) {
-    setStatus('error', 'Billing: ' + err.message);
+    setStatus('error', t('app.err.billing', { message: err.message }));
   }
 }
 
@@ -275,6 +300,7 @@ function renderLanguageSelects() {
     sel.addEventListener('change', () => {
       if (id === 'clinicianLang') state.clinicianLang = sel.value;
       else state.patientLang = sel.value;
+      rememberLanguages(state.clinicianLang, state.patientLang);
     });
   }
 }
@@ -283,6 +309,7 @@ function swapLanguages() {
   [state.clinicianLang, state.patientLang] = [state.patientLang, state.clinicianLang];
   $('clinicianLang').value = state.clinicianLang;
   $('patientLang').value = state.patientLang;
+  rememberLanguages(state.clinicianLang, state.patientLang);
 }
 
 function langFor(role) {
@@ -340,9 +367,9 @@ async function toggleMic() {
       await startMic();
     }
   } catch (err) {
-    setStatus('error', 'Mic error: ' + err.message);
+    setStatus('error', t('app.err.mic', { message: err.message }));
     if (!state.running) {
-      $('micBtn').textContent = 'Start listening';
+      $('micBtn').textContent = t('app.mic.start');
       $('micBtn').classList.remove('live');
     }
   } finally {
@@ -371,19 +398,12 @@ async function startMic() {
     console.warn('mediaDevices missing; secureContext=' + window.isSecureContext
       + ' ua=' + navigator.userAgent);
     if (!window.isSecureContext) {
-      throw new Error(
-        'microphone access needs HTTPS. Open this page via an https:// URL ' +
-        '(e.g. a Cloudflare tunnel) or on localhost.'
-      );
+      throw new Error(t('app.err.https'));
     }
-    throw new Error(
-      'this browser does not expose the microphone API. If you opened the ' +
-      'link inside another app (chat app, QR scanner) or a privacy browser, ' +
-      'open it in Chrome directly instead.'
-    );
+    throw new Error(t('app.err.nomic'));
   }
   if (!vadInstance) {
-    setStatus('listening', 'Loading VAD model…');
+    setStatus('listening', t('app.status.loading'));
     vadInstance = await vad.MicVAD.new({
       model: 'v5',
       baseAssetPath: '/vendor/',
@@ -433,7 +453,7 @@ async function startMic() {
   state.running = true;
   state.sessionStart ??= Date.now();
   // Only flip once fully started; the button stays grayed out until then.
-  $('micBtn').textContent = 'Stop listening';
+  $('micBtn').textContent = t('app.mic.stop');
   $('micBtn').classList.add('live');
   setStatus('listening');
 }
@@ -447,7 +467,7 @@ async function stopMic() {
     await inst.pause();   // submits any in-progress speech, releases the mic
     await inst.destroy();
   }
-  $('micBtn').textContent = 'Start listening';
+  $('micBtn').textContent = t('app.mic.start');
   $('micBtn').classList.remove('live');
   $('meterFill').style.width = '0%';
   setStatus('idle');
@@ -584,7 +604,7 @@ async function handleUtterance(blob, start, end) {
     msg.el.classList.add('error');
     const blobText = msg.el.querySelector('.source .blob-text');
     blobText.classList.remove('pending');
-    blobText.textContent = 'Transcription failed: ' + err.message;
+    blobText.textContent = t('app.turn.failed', { message: err.message });
   }
 }
 
@@ -721,10 +741,8 @@ function checkNumbers(msg) {
 
   const note = document.createElement('div');
   note.className = 'number-flag';
-  note.innerHTML = '<span>⚠</span><span>Check the numbers: <b></b> '
-    + 'appeared in the speech but not in the interpretation. '
-    + 'Some languages write figures as words — confirm before acting on it.</span>';
-  note.querySelector('b').textContent = missing.join(', ');
+  note.innerHTML = '<span>⚠</span><span>'
+    + t('app.numbers', { missing: missing.join(', ') }) + '</span>';
   msg.el.querySelector('.translation').appendChild(note);
   autoscroll();
 }
@@ -738,9 +756,9 @@ function renderMessage(msg) {
   if (msg.role) el.dataset.role = msg.role;
   el.innerHTML = `
     <div class="msg-head">
-      <span class="role-toggle" title="Who spoke this turn">
-        <button type="button" data-set-role="clinician">Clinician</button>
-        <button type="button" data-set-role="patient">Patient</button>
+      <span class="role-toggle" title="${t('app.turn.whoSpoke')}">
+        <button type="button" data-set-role="clinician">${t('common.clinician')}</button>
+        <button type="button" data-set-role="patient">${t('common.patient')}</button>
       </span>
       <span class="lang-warn" hidden></span>
       <time>${fmtClock(msg.start)}</time>
@@ -748,8 +766,8 @@ function renderMessage(msg) {
       <span class="lang-badge"></span>
     </div>
     <div class="blob source">
-      <div class="blob-lang"><span class="blob-label">Spoken</span></div>
-      <div class="blob-text pending">Transcribing…</div>
+      <div class="blob-lang"><span class="blob-label">${t('app.turn.spoken')}</span></div>
+      <div class="blob-text pending">${t('app.turn.transcribing')}</div>
     </div>`;
   for (const btn of el.querySelectorAll('[data-set-role]')) {
     btn.disabled = true;
@@ -772,9 +790,8 @@ function updateMessageHead(msg) {
   for (const btn of msg.el.querySelectorAll('[data-set-role]')) {
     btn.disabled = !msg.sourceText;
     btn.classList.toggle('on', btn.dataset.setRole === msg.role);
-    btn.title = btn.dataset.setRole === msg.role
-      ? 'Speaker of this turn'
-      : 'Reassign this turn and re-interpret';
+    btn.textContent = t('common.' + btn.dataset.setRole);
+    btn.title = t(btn.dataset.setRole === msg.role ? 'app.turn.isSpeaker' : 'app.turn.reassign');
   }
   msg.el.querySelector('.lang-badge').textContent = sameLang(msg.sourceLang, msg.targetLang)
     ? msg.sourceLang
@@ -790,10 +807,10 @@ function updateMessageHead(msg) {
     // toward a language nobody here speaks; say so, since the reassignment
     // buttons are the fix if the guess was wrong.
     warn.hidden = false;
-    warn.textContent = `⚠ recognizer said ${msg.heardLang}; treated as ${msg.sourceLang}`;
+    warn.textContent = t('app.turn.substituted', { detected: msg.heardLang, used: msg.sourceLang });
   } else if (msg.heardLang && !sameLang(msg.heardLang, expected)) {
     warn.hidden = false;
-    warn.textContent = `⚠ sounds like ${msg.heardLang}, expected ${expected}`;
+    warn.textContent = t('app.turn.deviation', { detected: msg.heardLang, expected });
   } else {
     warn.hidden = true;
   }
@@ -823,7 +840,8 @@ function reassignRole(msg, role) {
 }
 
 function updateSourceBlob(msg) {
-  msg.el.querySelector('.source .blob-label').textContent = `${msg.sourceLang} · as spoken`;
+  msg.el.querySelector('.source .blob-label').textContent =
+    t('app.turn.asSpoken', { lang: msg.sourceLang });
   const blobText = msg.el.querySelector('.source .blob-text');
   blobText.classList.remove('pending');
   blobText.textContent = msg.sourceText;
@@ -836,7 +854,7 @@ function addTranslationBlob(msg) {
   label.className = 'blob-lang';
   const name = document.createElement('span');
   name.className = 'blob-label';
-  name.textContent = `${msg.targetLang} · interpreted`;
+  name.textContent = t('app.turn.interpreted', { lang: msg.targetLang });
   label.appendChild(name);
   if (state.cfg.tts_enabled) {
     label.appendChild(makeSpeakBtn(() => msg.translation?.text || '', () => msg.role));
@@ -851,7 +869,7 @@ function addTranslationBlob(msg) {
 function addSameLangNote(msg) {
   const note = document.createElement('div');
   note.className = 'same-lang-note';
-  note.textContent = `Both parties are speaking ${msg.sourceLang} — nothing to interpret.`;
+  note.textContent = t('app.turn.sameLang', { lang: msg.sourceLang });
   msg.el.appendChild(note);
 }
 
@@ -869,6 +887,7 @@ function clearAll() {
   state.sessionStart = state.running ? Date.now() : null;
   try { localStorage.removeItem(STORAGE_KEY); } catch { /* private mode */ }
   $('messages').innerHTML = emptyStateHtml;
+  applyTranslations($('messages'));
 }
 
 /* ---------- History persistence ----------
@@ -949,6 +968,26 @@ function restoreHistory() {
   autoscroll(true);
 }
 
+/* Labels inside already-rendered turns — role buttons, blob captions, the
+   same-language note — are written by JavaScript, so a language change has
+   to redraw them. The interpreted text itself is left alone: it is the
+   patient's and the clinician's words, not interface copy. */
+function redrawTranslatedText() {
+  applyTranslations();
+  for (const msg of state.messages) {
+    if (!msg.el || !msg.sourceText) continue;
+    updateMessageHead(msg);
+    msg.el.querySelector('.source .blob-label').textContent =
+      t('app.turn.asSpoken', { lang: msg.sourceLang });
+    const interpreted = msg.el.querySelector('.translation .blob-label');
+    if (interpreted) interpreted.textContent = t('app.turn.interpreted', { lang: msg.targetLang });
+    const note = msg.el.querySelector('.same-lang-note');
+    if (note) note.textContent = t('app.turn.sameLang', { lang: msg.sourceLang });
+    for (const btn of msg.el.querySelectorAll('.speak-btn')) btn.title = t('app.turn.readAloud');
+  }
+  if (state.account) renderAccount();
+}
+
 function autoscroll(force) {
   const c = $('messages');
   const nearBottom = c.scrollHeight - c.scrollTop - c.clientHeight < 160;
@@ -958,8 +997,7 @@ function autoscroll(force) {
 function setStatus(kind, detail) {
   const el = $('status');
   el.className = 'status ' + kind;
-  el.textContent = detail ||
-    ({ idle: 'Idle', listening: 'Listening', speaking: 'Speaking…', error: 'Error' }[kind] || kind);
+  el.textContent = detail || t('app.status.' + kind, {}) || kind;
   if (detail) console.warn(detail);
 }
 
@@ -970,7 +1008,7 @@ let currentAudio = null;
 function makeSpeakBtn(getText, getSpeaker) {
   const btn = document.createElement('button');
   btn.className = 'speak-btn';
-  btn.title = 'Read aloud';
+  btn.title = t('app.turn.readAloud');
   btn.textContent = '🔊';
   btn.addEventListener('click', () => speakText(getText(), getSpeaker(), btn));
   return btn;
@@ -1009,7 +1047,7 @@ async function speakText(text, speaker, btn) {
     await audio.play();
     await finished;
   } catch (err) {
-    setStatus('error', 'TTS: ' + err.message);
+    setStatus('error', t('app.err.tts', { message: err.message }));
   } finally {
     if (btn) {
       btn.disabled = false;
@@ -1028,7 +1066,7 @@ async function speakText(text, speaker, btn) {
 function exportSrt() {
   const msgs = state.messages.filter((m) => m.sourceText);
   if (!msgs.length) {
-    setStatus('error', 'Nothing to export yet');
+    setStatus('error', t('app.export.empty'));
     return;
   }
   const base = state.sessionStart ?? msgs[0].start;
@@ -1047,7 +1085,7 @@ function exportSrt() {
     out += `${n}\n${fmtSrt(m.start - base)} --> ${fmtSrt(m.end - base)}\n${rows.join('\n')}\n\n`;
   }
   if (!n) {
-    setStatus('error', 'Nothing to export yet');
+    setStatus('error', t('app.export.empty'));
     return;
   }
   downloadFile('encounter.srt', out);

@@ -319,3 +319,16 @@ footer {
   .hero { padding: 52px 0 44px; }
   section { padding: 48px 0; }
 }
+
+/* Interface-language picker in the top bar. */
+.lang-select {
+  background: var(--panel-2);
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 8px 10px;
+  font-size: 13.5px;
+  cursor: pointer;
+}
+.lang-select:hover { color: var(--text); border-color: var(--accent); }
+@media (max-width: 900px) { .lang-select { max-width: 7.5em; } }

@@ -3,31 +3,33 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sign in · Medical Interpreter</title>
+<title data-i18n="login.title">Sign in · Medical Interpreter</title>
 <link rel="stylesheet" href="/style.css">
+<script src="/i18n.js"></script>
 </head>
 <body class="auth-body">
 
 <main class="auth-card">
-  <h1><span class="logo">🩺</span> Medical Interpreter</h1>
-  <p class="auth-lede">
+  <div class="auth-top"><h1><span class="logo">🩺</span> <span data-i18n="brand">Medical Interpreter</span></h1><select id="localePicker" class="select lang-select" aria-label="Language" data-i18n-attr="aria-label:lang.label,title:lang.label"></select></div>
+  <p class="auth-lede" data-i18n="login.lede">
     Real-time interpreting between a patient and their care team.
     Enter your email and we will send you a sign-in link — no password to
     choose or forget.
   </p>
 
   <form id="loginForm" class="auth-form" autocomplete="on">
-    <label class="auth-label" for="email">Email address</label>
+    <label class="auth-label" for="email" data-i18n="login.email">Email address</label>
     <input id="email" name="email" type="email" class="auth-input"
-           placeholder="you@clinic.org" required autocomplete="email" autofocus>
-    <button id="submitBtn" type="submit" class="mic-btn auth-submit">Email me a sign-in link</button>
+           placeholder="you@clinic.org" required autocomplete="email" autofocus
+           data-i18n-attr="placeholder:login.placeholder">
+    <button id="submitBtn" type="submit" class="mic-btn auth-submit" data-i18n="login.submit">Email me a sign-in link</button>
   </form>
 
   <p id="authMsg" class="auth-msg" hidden></p>
 
-  <p class="auth-foot">
+  <p class="auth-foot" id="authFoot" data-i18n-html="login.foot" data-i18n-params='{"words":"1,000"}'>
     New here? The same link signs you up. Free accounts include
-    <strong id="freeWords">1,000</strong> interpreted words a week; a monthly
+    <strong>1,000</strong> interpreted words a week; a monthly
     subscription removes the limit.
   </p>
 </main>
@@ -37,20 +39,25 @@
 
 const $ = (id) => document.getElementById(id);
 
+renderLocalePicker($('localePicker'));
+document.addEventListener('DOMContentLoaded', () => applyTranslations());
+
 // The free allowance is a server setting, so read it rather than hard-coding
 // a number that could drift out of date.
 fetch('/api/config')
   .then((r) => (r.ok ? r.json() : null))
   .then((cfg) => {
     if (cfg && typeof cfg.free_words_per_week === 'number') {
-      $('freeWords').textContent = cfg.free_words_per_week.toLocaleString();
+      $('authFoot').dataset.i18nParams =
+        JSON.stringify({ words: cfg.free_words_per_week.toLocaleString() });
+      applyTranslations();
     }
   })
   .catch(() => {});
 
 // An expired, reused, or unknown link lands back here with ?error=link.
 if (new URLSearchParams(location.search).get('error') === 'link') {
-  show('That sign-in link has expired or was already used. Request a new one.', 'error');
+  show(t('login.expired'), 'error');
 }
 
 $('loginForm').addEventListener('submit', async (ev) => {
@@ -59,7 +66,8 @@ $('loginForm').addEventListener('submit', async (ev) => {
   if (!email) return;
   const btn = $('submitBtn');
   btn.disabled = true;
-  btn.textContent = 'Sending…';
+  btn.removeAttribute('data-i18n');
+  btn.textContent = t('login.sending');
   try {
     const resp = await fetch('/auth/request', {
       method: 'POST',
@@ -72,16 +80,17 @@ $('loginForm').addEventListener('submit', async (ev) => {
     if (data.link) {
       // Development deployments with no mail provider hand the link back
       // so there is something to click.
-      show(`No mail provider is configured, so here is your link: <a href="${data.link}">sign in</a>`, 'ok', true);
+      show(t('login.devlink', { link: data.link }), 'ok', true);
     } else {
-      show(`Check ${data.email} for a sign-in link. It expires in ${data.expires_in_minutes} minutes.`, 'ok');
+      show(t('login.sent', { email: data.email, minutes: data.expires_in_minutes }), 'ok');
     }
     $('loginForm').reset();
   } catch (err) {
     show(err.message, 'error');
   } finally {
     btn.disabled = false;
-    btn.textContent = 'Email me a sign-in link';
+    btn.dataset.i18n = 'login.submit';
+    btn.textContent = t('login.submit');
   }
 });
 

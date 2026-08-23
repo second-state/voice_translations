@@ -3,19 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title data-i18n="login.title">Sign in · Medical Interpreter</title>
+<title data-i18n="login.title">Sign in · Medical Translator</title>
 <link rel="stylesheet" href="/style.css">
 <script src="/i18n.js"></script>
 </head>
 <body class="auth-body">
 
 <main class="auth-card">
-  <div class="auth-top"><h1><span class="logo">🩺</span> <span data-i18n="brand">Medical Interpreter</span></h1><select id="localePicker" class="select lang-select" aria-label="Language" data-i18n-attr="aria-label:lang.label,title:lang.label"></select></div>
-  <p class="auth-lede" data-i18n="login.lede">
-    Real-time interpreting between a patient and their care team.
-    Enter your email and we will send you a sign-in link — no password to
-    choose or forget.
-  </p>
+  <div class="auth-top"><h1><span class="logo">🩺</span> <span data-i18n="brand">Medical Translator</span></h1><select id="localePicker" class="select lang-select" aria-label="Language" data-i18n-attr="aria-label:lang.label,title:lang.label"></select></div>
+  <p class="auth-lede" data-i18n="login.lede">Follow what is said at a medical visit in your own language, and keep a copy of it afterwards. Enter your email and we will send you a sign-in link, with no password to choose or forget.</p>
 
   <form id="loginForm" class="auth-form" autocomplete="on">
     <label class="auth-label" for="email" data-i18n="login.email">Email address</label>
@@ -27,11 +23,7 @@
 
   <p id="authMsg" class="auth-msg" hidden></p>
 
-  <p class="auth-foot" id="authFoot" data-i18n-html="login.foot" data-i18n-params='{"words":"1,000"}'>
-    New here? The same link signs you up. Free accounts include
-    <strong>1,000</strong> interpreted words a week; a monthly
-    subscription removes the limit.
-  </p>
+  <p class="auth-foot" id="authFoot" data-i18n-html="login.foot" data-i18n-params='{"words":"1,000"}'>New here? The same link signs you up. Free accounts include <strong>{words}</strong> translated words a week, and a monthly subscription removes the limit.</p>
 </main>
 
 <script>

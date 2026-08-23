@@ -29,7 +29,7 @@ document.addEventListener('visibilitychange', () => {
 document.addEventListener('click', () => { if (!wakeLock) keepScreenAwake(); }, { capture: true });
 keepScreenAwake();
 
-/* Medical Interpreter — browser side.
+/* Medical Translator — browser side.
    The speech capture and VAD handling here is the upstream voice translator's,
    unchanged in substance; what differs is the pipeline downstream of a
    detected utterance. Instead of fanning one utterance out to a set of target
@@ -590,7 +590,7 @@ function checkNumbers(msg) {
   const note = document.createElement('div');
   note.className = 'number-flag';
   note.innerHTML = '<span>⚠</span><span>Check the numbers: <b></b> '
-    + 'appeared in the speech but not in the interpretation. '
+    + 'appeared in the speech but not in the translation. '
     + 'Some languages write figures as words — confirm before acting on it.</span>';
   note.querySelector('b').textContent = missing.join(', ');
   msg.el.querySelector('.translation').appendChild(note);
@@ -642,7 +642,7 @@ function updateMessageHead(msg) {
     btn.classList.toggle('on', btn.dataset.setRole === msg.role);
     btn.title = btn.dataset.setRole === msg.role
       ? 'Speaker of this turn'
-      : 'Reassign this turn and re-interpret';
+      : 'Reassign this turn and translate again';
   }
   msg.el.querySelector('.lang-badge').textContent = sameLang(msg.sourceLang, msg.targetLang)
     ? msg.sourceLang
@@ -704,7 +704,7 @@ function addTranslationBlob(msg) {
   label.className = 'blob-lang';
   const name = document.createElement('span');
   name.className = 'blob-label';
-  name.textContent = `${msg.targetLang} · interpreted`;
+  name.textContent = `${msg.targetLang} · translated`;
   label.appendChild(name);
   if (state.cfg.tts_enabled) {
     label.appendChild(makeSpeakBtn(() => msg.translation?.text || '', () => msg.role));
@@ -719,7 +719,7 @@ function addTranslationBlob(msg) {
 function addSameLangNote(msg) {
   const note = document.createElement('div');
   note.className = 'same-lang-note';
-  note.textContent = `Both parties are speaking ${msg.sourceLang} — nothing to interpret.`;
+  note.textContent = `Both parties are speaking ${msg.sourceLang} — nothing to translate.`;
   msg.el.appendChild(note);
 }
 

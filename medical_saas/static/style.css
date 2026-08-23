@@ -27,6 +27,16 @@ body {
   flex-direction: column;
 }
 
+/* The `hidden` attribute must win.
+   A class that sets `display` outranks the browser's own
+   `[hidden] { display: none }`, so an element written as hidden — the quota
+   notice, the account bar, the allowance meter — renders anyway, as an empty
+   band. Stating it here, with the weight to beat a class, keeps `hidden`
+   meaning hidden however an element is styled later. */
+[hidden] {
+  display: none !important;
+}
+
 /* ---------- Top bar ---------- */
 .topbar {
   display: flex;

@@ -109,7 +109,60 @@ pub const DEFAULT_LANGUAGES: &[&str] = &[
     "Italian",
 ];
 
+/// How one turn's language was resolved to one of the encounter's two.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TurnLanguage {
+    /// The language to treat the turn as being in. Always one of the two
+    /// configured languages.
+    pub language: String,
+    /// Whether this is the care team's side of the conversation.
+    pub clinician: bool,
+    /// True when the recognizer named a language outside the encounter and
+    /// the patient's language was substituted for it.
+    pub substituted: bool,
+}
+
 impl MedicalConfig {
+    /// Decide what language a turn is in, given what the recognizer thinks
+    /// it heard.
+    ///
+    /// An encounter has exactly two languages, so a label outside that pair
+    /// is noise rather than information. Recognizers confuse languages that
+    /// share a script — Chinese reported as Japanese is the common one, and
+    /// Han characters are why — and taking that label at face value does
+    /// real damage: the turn is interpreted toward the wrong side, and the
+    /// same-language cleanup pass, told the transcript is Japanese, quietly
+    /// *translates* the Chinese it was given.
+    ///
+    /// So an unrecognized label is treated as the patient speaking their own
+    /// language. Between the two possible readings that is the safe one: an
+    /// unexpected language in a clinical encounter is far more likely to be
+    /// the patient than the care team, and it keeps the turn flowing toward
+    /// the clinician, who can see it was substituted and correct the turn if
+    /// it was wrong.
+    ///
+    /// A recognizer that reports nothing at all is a different case — no
+    /// claim rather than a wrong one — and falls back to the clinician's
+    /// language, as this app has always done.
+    pub fn resolve_turn_language(&self, detected: Option<&str>) -> TurnLanguage {
+        let clinician = TurnLanguage {
+            language: self.clinician_language.clone(),
+            clinician: true,
+            substituted: false,
+        };
+        let Some(detected) = detected.map(str::trim).filter(|d| !d.is_empty()) else {
+            return clinician;
+        };
+        if detected.eq_ignore_ascii_case(&self.clinician_language) {
+            return clinician;
+        }
+        TurnLanguage {
+            language: self.patient_language.clone(),
+            clinician: false,
+            substituted: !detected.eq_ignore_ascii_case(&self.patient_language),
+        }
+    }
+
     /// Normalize language values to the display names the UI compares against,
     /// and reject a `default_specialty` that does not exist rather than
     /// silently falling back at every request.
@@ -187,6 +240,52 @@ mod tests {
         )
         .unwrap();
         assert_eq!(cfg.languages, ["English", "Somali"]);
+    }
+
+    #[test]
+    fn a_turn_in_either_configured_language_is_taken_at_face_value() {
+        let cfg =
+            config("[medical]\nclinician_language = \"en\"\npatient_language = \"zh\"\n").unwrap();
+
+        let heard = cfg.resolve_turn_language(Some("English"));
+        assert_eq!(heard.language, "English");
+        assert!(heard.clinician && !heard.substituted);
+
+        let heard = cfg.resolve_turn_language(Some("Chinese"));
+        assert_eq!(heard.language, "Chinese");
+        assert!(!heard.clinician && !heard.substituted);
+    }
+
+    #[test]
+    fn a_language_outside_the_encounter_becomes_the_patients() {
+        let cfg =
+            config("[medical]\nclinician_language = \"en\"\npatient_language = \"zh\"\n").unwrap();
+
+        // The motivating case: Chinese speech transcribed correctly but
+        // labelled Japanese. Taking the label would interpret the turn into
+        // Japanese; substituting keeps it Chinese and flags the swap.
+        let heard = cfg.resolve_turn_language(Some("Japanese"));
+        assert_eq!(heard.language, "Chinese");
+        assert!(!heard.clinician);
+        assert!(heard.substituted);
+
+        // Anything else unexpected lands the same way.
+        assert_eq!(
+            cfg.resolve_turn_language(Some("Korean")).language,
+            "Chinese"
+        );
+    }
+
+    #[test]
+    fn silence_from_the_recognizer_falls_back_to_the_care_team() {
+        let cfg =
+            config("[medical]\nclinician_language = \"en\"\npatient_language = \"zh\"\n").unwrap();
+        // No claim is not a wrong claim, so nothing is flagged.
+        for nothing in [None, Some(""), Some("   ")] {
+            let heard = cfg.resolve_turn_language(nothing);
+            assert_eq!(heard.language, "English");
+            assert!(heard.clinician && !heard.substituted);
+        }
     }
 
     #[test]

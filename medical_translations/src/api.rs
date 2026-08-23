@@ -15,7 +15,7 @@ use serde::Deserialize;
 use serde_json::{json, Value};
 
 use voice_translations::{
-    asr::{self, TranscribeResponse},
+    asr,
     translate::{self, ContextPair, TranslateRequest},
     tts::{self, SpeechOptions},
     AppError, AppState,
@@ -56,18 +56,33 @@ pub async fn api_config(State(state): State<MedicalState>) -> Json<Value> {
 
 /// POST /api/transcribe — multipart `audio`, plus an optional `language`
 /// field pinning the expected language.
+///
+/// The reply carries `language`, always one of the encounter's two, and
+/// `detected`, whatever the recognizer actually claimed. They differ when a
+/// recognizer names a language this encounter does not involve; see
+/// [`MedicalConfig::resolve_turn_language`].
 pub async fn api_transcribe(
     State(state): State<MedicalState>,
     mut multipart: Multipart,
-) -> Result<Json<TranscribeResponse>, AppError> {
+) -> Result<Json<Value>, AppError> {
     let form = asr::parse_audio_form(&mut multipart).await?;
-    tracing::info!(
-        language = form.options.language.as_deref().unwrap_or("auto"),
-        "transcribing utterance"
-    );
-    Ok(Json(
-        asr::transcribe(&state.base, &form.audio, &form.options).await?,
-    ))
+    let heard = asr::transcribe(&state.base, &form.audio, &form.options).await?;
+    let turn = state.cfg.resolve_turn_language(heard.language.as_deref());
+
+    if turn.substituted {
+        tracing::info!(
+            detected = heard.language.as_deref().unwrap_or("none"),
+            treated_as = %turn.language,
+            "recognizer named a language outside this encounter; treating the turn as the patient"
+        );
+    }
+    Ok(Json(json!({
+        "text": heard.text,
+        "language": turn.language,
+        "detected": heard.language,
+        "substituted": turn.substituted,
+        "clinician": turn.clinician,
+    })))
 }
 
 /// One turn to translate, with the medical context the prompt needs.

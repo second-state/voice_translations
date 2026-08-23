@@ -26,6 +26,18 @@ turn carries a **Clinician/Patient toggle** to reassign it (which re-runs the
 interpretation in the right direction), and a turn whose detected language
 contradicts its speaker's preset gets a warning chip.
 
+**A turn is always in one of the two languages.** Recognizers confuse
+languages that share a script — Chinese reported as Japanese is the common
+one — and taking that label at face value does real damage: the turn is
+interpreted toward a language nobody in the room speaks, and the
+same-language cleanup pass, told the transcript is Japanese, quietly
+*translates* the Chinese it was given. So a label outside the encounter's
+pair is treated as the patient speaking their own language, and the turn is
+flagged (*"recognizer said Japanese; treated as Chinese"*) so it can be
+reassigned if the guess was wrong. A recognizer that reports nothing at all
+is a different case — no claim rather than a wrong one — and falls back to
+the clinician's language.
+
 **A specialty tunes the translator.** Pick from 19 specialties — primary
 care, emergency, pediatrics, cardiology, oncology, orthopedics, dentistry,
 OB/GYN, psychiatry, dermatology, gastroenterology, neurology, endocrinology,

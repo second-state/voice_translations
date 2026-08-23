@@ -289,11 +289,11 @@ function langFor(role) {
   return role === 'clinician' ? state.clinicianLang : state.patientLang;
 }
 
-// Anything that is not the clinician's language is treated as the patient
-// speaking, so an unexpected language still gets interpreted toward the care
-// team rather than being dropped.
-function roleFor(detectedLang) {
-  return sameLang(detectedLang, state.clinicianLang) ? 'clinician' : 'patient';
+// The server has already constrained the turn to one of the encounter's two
+// languages, so this is a straight comparison: anything that is not the
+// clinician's language is the patient speaking.
+function roleFor(turnLang) {
+  return sameLang(turnLang, state.clinicianLang) ? 'clinician' : 'patient';
 }
 
 function otherRole(role) {
@@ -551,8 +551,13 @@ async function handleUtterance(blob, start, end) {
     // What the recognizer itself reported, kept for the deviation flag. When
     // the language was pinned, some services echo the pin; others report what
     // they actually heard, which is the interesting case.
-    msg.heardLang = langName(data.language) || null;
-    msg.sourceLang = msg.heardLang || state.clinicianLang;
+    // The server constrains the recognizer's answer to the encounter's two
+    // languages: `language` is what to treat the turn as, `detected` is what
+    // the recognizer actually claimed, and they differ when it named a
+    // language nobody here speaks.
+    msg.sourceLang = langName(data.language) || state.clinicianLang;
+    msg.heardLang = langName(data.detected) || null;
+    msg.substituted = !!data.substituted;
     msg.role ??= roleFor(msg.sourceLang);
     msg.targetLang = langFor(otherRole(msg.role));
     updateMessageHead(msg);
@@ -779,7 +784,14 @@ function updateMessageHead(msg) {
   // says it should be: either the wrong preset, or the wrong speaker.
   const warn = msg.el.querySelector('.lang-warn');
   const expected = langFor(msg.role);
-  if (msg.heardLang && !sameLang(msg.heardLang, expected)) {
+  if (msg.substituted && msg.heardLang) {
+    // The recognizer named a language this encounter does not involve.
+    // The turn was kept in the patient's language rather than interpreted
+    // toward a language nobody here speaks; say so, since the reassignment
+    // buttons are the fix if the guess was wrong.
+    warn.hidden = false;
+    warn.textContent = `⚠ recognizer said ${msg.heardLang}; treated as ${msg.sourceLang}`;
+  } else if (msg.heardLang && !sameLang(msg.heardLang, expected)) {
     warn.hidden = false;
     warn.textContent = `⚠ sounds like ${msg.heardLang}, expected ${expected}`;
   } else {
@@ -880,6 +892,7 @@ function saveHistory() {
         sourceLang: m.sourceLang,
         targetLang: m.targetLang,
         heardLang: m.heardLang || null,
+        substituted: !!m.substituted,
         sourceText: m.sourceText,
         cleanText: m.clean?.text || '',
         translationText: m.translation?.text || '',
@@ -909,6 +922,7 @@ function restoreHistory() {
       sourceLang: saved.sourceLang,
       targetLang: saved.targetLang,
       heardLang: saved.heardLang,
+      substituted: !!saved.substituted,
       sourceText: saved.sourceText,
       clean: { text: saved.cleanText || '', done: true },
       translation: null,

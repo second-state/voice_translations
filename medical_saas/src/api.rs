@@ -116,18 +116,28 @@ pub async fn api_transcribe(
 
     let form = asr::parse_audio_form(&mut multipart).await?;
     let heard = asr::transcribe(&state.base, &form.audio, &form.options).await?;
+    // Constrain the recognizer's answer to the two languages this encounter
+    // actually involves, so a mislabelled turn is not interpreted toward a
+    // language nobody in the room speaks.
+    let turn = state
+        .cfg
+        .medical
+        .resolve_turn_language(heard.language.as_deref());
 
     let words = quota::count_words(&heard.text);
-    let role = speaker_for_language(
-        heard.language.as_deref(),
-        &state.cfg.medical.clinician_language,
-    );
+    let role = if turn.clinician {
+        "clinician"
+    } else {
+        "patient"
+    };
     state.db.record_words(&user.id, words, role)?;
     let quota = state.quota_for(&user)?;
 
     tracing::info!(
         user = %user.email,
-        language = heard.language.as_deref().unwrap_or("auto"),
+        detected = heard.language.as_deref().unwrap_or("none"),
+        language = %turn.language,
+        substituted = turn.substituted,
         role,
         words,
         used = quota.used,
@@ -136,22 +146,14 @@ pub async fn api_transcribe(
 
     Ok(Json(json!({
         "text": heard.text,
-        "language": heard.language,
+        "language": turn.language,
+        "detected": heard.language,
+        "substituted": turn.substituted,
+        "clinician": turn.clinician,
         "words": words,
         "quota": quota,
     }))
     .into_response())
-}
-
-/// Which side of the encounter spoke, inferred the same way the UI infers
-/// it: anything that is not the clinician's language is the patient. Used
-/// only to label the usage ledger — both sides draw on the same allowance.
-fn speaker_for_language(detected: Option<&str>, clinician_language: &str) -> &'static str {
-    match detected {
-        Some(lang) if lang.eq_ignore_ascii_case(clinician_language) => "clinician",
-        Some(_) => "patient",
-        None => "unknown",
-    }
 }
 
 /// POST /api/translate — streams the interpreted turn back as SSE.
@@ -227,21 +229,18 @@ pub async fn api_tts(
 
 #[cfg(test)]
 mod tests {
-    use super::speaker_for_language;
+    use medical_translations::config::MedicalConfig;
 
+    /// The ledger's role follows the same resolution the UI shows, so what
+    /// is billed and what is displayed can never disagree.
     #[test]
-    fn the_ledger_labels_each_turn_by_side() {
-        // The same rule the UI applies: anything that is not the clinician's
-        // language is the patient. Both draw on one allowance regardless.
-        assert_eq!(
-            speaker_for_language(Some("English"), "English"),
-            "clinician"
-        );
-        assert_eq!(
-            speaker_for_language(Some("english"), "English"),
-            "clinician"
-        );
-        assert_eq!(speaker_for_language(Some("Spanish"), "English"), "patient");
-        assert_eq!(speaker_for_language(None, "English"), "unknown");
+    fn the_ledger_labels_each_turn_by_resolved_side() {
+        let cfg = MedicalConfig::default(); // English clinician, Spanish patient
+        assert!(cfg.resolve_turn_language(Some("English")).clinician);
+        assert!(!cfg.resolve_turn_language(Some("Spanish")).clinician);
+        // A language outside the encounter counts as the patient.
+        let odd = cfg.resolve_turn_language(Some("Japanese"));
+        assert!(!odd.clinician && odd.substituted);
+        assert_eq!(odd.language, "Spanish");
     }
 }

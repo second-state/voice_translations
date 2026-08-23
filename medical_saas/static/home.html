@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title data-i18n="home.title">Medical Interpreter — real-time interpreting for patient visits</title>
-<meta name="description" content="Live two-way medical interpreting in the browser: 25 languages, 19 specialties, and interpreting rules built around what actually gets lost in clinical translation. Free to start.">
+<title data-i18n="home.title">Medical Interpreter — understand your doctor, keep what was said</title>
+<meta name="description" content="Understand what the doctor said, in your own language, and walk out with the whole visit in writing. Runs in your phone’s browser, in 25 languages. Free to start.">
 <link rel="stylesheet" href="/home.css">
 <script src="/i18n.js"></script>
 </head>
@@ -15,10 +15,10 @@
     <a class="nav-brand" href="/"><span>🩺</span> <span data-i18n="brand">Medical Interpreter</span></a>
     <div class="nav-links">
       <a href="#how" data-i18n="nav.how">How it works</a>
-      <a href="#record" data-i18n="nav.record">The record</a>
-      <a href="#features" data-i18n="nav.features">Features</a>
+      <a href="#record" data-i18n="nav.record">What you keep</a>
+      <a href="#features" data-i18n="nav.features">What it gets right</a>
       <a href="#pricing" data-i18n="nav.pricing">Pricing</a>
-      <a href="#faq" data-i18n="nav.faq">FAQ</a>
+      <a href="#faq" data-i18n="nav.faq">Questions</a>
     </div>
     <div class="nav-cta">
       <!-- Swapped for "Open the interpreter" once a session is found. -->
@@ -32,39 +32,32 @@
 <header class="hero">
   <div class="wrap hero-grid">
     <div>
-      <span class="eyebrow" data-i18n="hero.eyebrow">🎙️ Speak normally — it interprets both ways</span>
-      <h1 data-i18n-html="hero.h1">Every word your patient says, in a language <span class="hl">you both understand</span>.</h1>
-      <p data-i18n="hero.lede" class="lede">
-        Live interpreting for a bilingual visit. Each turn is transcribed as it
-        is spoken, cleaned of the stumbles nobody means to say, and rendered
-        into the other person's language — with the numbers, negations, and
-        sides of the body that clinical meaning depends on kept intact.
-      </p>
+      <span class="eyebrow" data-i18n="hero.eyebrow">🎙️ Put your phone on the table and talk</span>
+      <h1 data-i18n-html="hero.h1">Understand what the doctor said. <span class="hl">Take it home in writing.</span></h1>
+      <p data-i18n="hero.lede" class="lede">The doctor speaks one language, you speak another, and the appointment goes by fast. Put your phone between you and every sentence appears in your language a second after it is spoken, with the doses, the dates and the warnings kept word for word. When you leave, the whole conversation leaves with you.</p>
       <div class="hero-actions">
         <a class="btn primary lg" id="heroStart" href="/login" data-i18n="nav.start">Start free</a>
         <a class="btn lg" href="#how" data-i18n="hero.seehow">See how it works</a>
       </div>
-      <p class="hero-note" id="heroNote" data-i18n-html="hero.note" data-i18n-params='{"words":"1,000"}'>
-        New accounts start on the free plan — <strong>1,000</strong> interpreted words a week, no card required.
-      </p>
+      <p class="hero-note" id="heroNote" data-i18n-html="hero.note" data-i18n-params='{"words":"1,000"}'>New accounts are free: <strong>{words}</strong> words a week, no card.</p>
     </div>
 
     <div class="shot" aria-hidden="true">
-      <div class="shot-bar"><span class="dot live"></span> <span data-i18n="shot.bar">Listening · Cardiology · English ↔ Spanish</span></div>
+      <div class="shot-bar"><span class="dot live"></span> <span data-i18n="shot.bar">Listening · Heart clinic · English ↔ Spanish</span></div>
 
       <div class="turn">
-        <div class="turn-head"><span class="role" data-i18n="common.clinician">Clinician</span> <span data-i18n="shot.dir.cp">English → Spanish</span></div>
+        <div class="turn-head"><span class="role" data-i18n="shot.who.doctor">Doctor</span> <span data-i18n="shot.dir.cp">English → Spanish</span></div>
         <p class="said" data-i18n="shot.said1">Start Lasix, 40 milligrams every morning, and stop the fluid pills you were taking.</p>
         <p class="rendered" data-i18n="shot.rendered1">Empiece a tomar Lasix, 40 miligramos todas las mañanas, y deje las pastillas para el líquido que estaba tomando.</p>
       </div>
 
       <div class="turn patient">
-        <div class="turn-head"><span class="role" data-i18n="common.patient">Patient</span> <span data-i18n="shot.dir.pc">Spanish → English</span></div>
+        <div class="turn-head"><span class="role" data-i18n="shot.who.you">You</span> <span data-i18n="shot.dir.pc">Spanish → English</span></div>
         <p class="said" data-i18n="shot.said2">No he tomado nada desde el jueves porque me daba mareos.</p>
-        <p class="rendered" data-i18n="shot.rendered2">I haven't taken anything since Thursday because it was making me dizzy.</p>
+        <p class="rendered" data-i18n="shot.rendered2">I haven’t taken anything since Thursday because it was making me dizzy.</p>
       </div>
 
-      <div class="shot-flag"><span>⚠</span><span data-i18n="shot.flag">Every figure spoken is checked against the interpretation.</span></div>
+      <div class="shot-flag"><span>⚠</span><span data-i18n="shot.flag">Every number the doctor says is checked against the translation.</span></div>
     </div>
   </div>
 </header>
@@ -72,21 +65,21 @@
 <section id="how">
   <div class="wrap">
     <div class="sec-head">
-      <h2 data-i18n="how.h2">Three steps, then it stays out of the way</h2>
-      <p data-i18n="how.lede">No handset to pass around, no third party to dial, no app to install on the patient's phone.</p>
+      <h2 data-i18n="how.h2">Three steps in the exam room</h2>
+      <p data-i18n="how.lede">Nothing to install and nobody to phone. It runs in the browser on the phone you already carry.</p>
     </div>
     <div class="grid three steps">
       <div class="step">
-        <h3 data-i18n="how.1.h">Pick the languages</h3>
-        <p data-i18n="how.1.p">Choose what the care team speaks and what the patient speaks, plus the specialty for the visit. Both sides sit in front of one screen.</p>
+        <h3 data-i18n="how.1.h">Set the two languages</h3>
+        <p data-i18n="how.1.p">Your language and the one the doctor speaks, then the kind of visit: heart, pregnancy, cancer, mental health. That is how the words that belong to this visit come out right.</p>
       </div>
       <div class="step">
-        <h3 data-i18n="how.2.h">Talk normally</h3>
-        <p data-i18n="how.2.p">A speech detector running in your browser notices when someone starts and stops speaking, so nothing is sent while the room is quiet and nobody holds a button.</p>
+        <h3 data-i18n="how.2.h">Talk the way you normally would</h3>
+        <p data-i18n="how.2.p">It hears when each person starts and stops speaking, so nobody holds a button and nothing is sent while the room is quiet. Tell the doctor you are using it, and put the phone where you can both be heard.</p>
       </div>
       <div class="step">
-        <h3 data-i18n="how.3.h">Read or hear it back</h3>
-        <p data-i18n="how.3.p">Each turn appears in both languages within a second or two, and can be read aloud in a different voice per side. The transcript exports as a timestamped file.</p>
+        <h3 data-i18n="how.3.h">Read it, hear it, keep it</h3>
+        <p data-i18n="how.3.p">Each sentence shows up in your language a second or two after it is said, and it can be read out loud. By the time you leave, the visit is written down and saved on your phone.</p>
       </div>
     </div>
   </div>
@@ -95,8 +88,8 @@
 <section id="record">
   <div class="wrap">
     <div class="sec-head">
-      <h2 data-i18n="record.h2">Nobody has to remember it all</h2>
-      <p data-i18n="record.lede">Instructions given through an interpreter are the ones most easily lost on the way home. Every turn of the visit is written down as it happens — in both languages, with the time it was said — so the conversation can be read again when it matters.</p>
+      <h2 data-i18n="record.h2">Everything that was said, still there when you get home</h2>
+      <p data-i18n="record.lede">The dose, the date to come back, the thing to call about: most of it is said in the last five minutes, when you are already reaching for your coat. Every sentence from both sides is written down as it is spoken, in both languages, with the time beside it. Read it again at the pharmacy, at home, as many times as you need.</p>
     </div>
 
     <div class="record-grid">
@@ -104,43 +97,43 @@
         <div class="card">
           <span class="icon">🗂️</span>
           <h3 data-i18n="record.1.h">Both languages, side by side</h3>
-          <p data-i18n="record.1.p">Each turn keeps what was said and how it was interpreted.</p>
+          <p data-i18n="record.1.p">You keep the doctor’s own words and what they mean in your language. If a dose looks wrong later, you can check what was said instead of trusting your memory.</p>
         </div>
         <div class="card">
           <span class="icon">📄</span>
-          <h3 data-i18n="record.2.h">It outlives the appointment</h3>
-          <p data-i18n="record.2.p">The transcript survives a reload and exports as a timestamped file.</p>
+          <h3 data-i18n="record.2.h">It is still there tomorrow</h3>
+          <p data-i18n="record.2.p">The visit stays in your browser after you close the page, and saves as a file you can print, email, or show at the pharmacy counter.</p>
         </div>
         <div class="card">
           <span class="icon">👨‍👩‍👧</span>
-          <h3 data-i18n="record.3.h">For the family who was not in the room</h3>
-          <p data-i18n="record.3.p">They can read exactly what the clinician said, in the patient's own language.</p>
+          <h3 data-i18n="record.3.h">For the family who could not come</h3>
+          <p data-i18n="record.3.p">The daughter who sorts the pills, the son who drives to the next appointment: they can read exactly what the doctor said, in your own language, instead of a summary repeated at the door.</p>
         </div>
       </div>
 
       <!-- What an exported visit looks like: every turn, both languages,
            with the time it was said. -->
       <div class="record-sheet" aria-hidden="true">
-        <div class="sheet-head"><span data-i18n="record.sheet">encounter.srt</span></div>
+        <div class="sheet-head"><span data-i18n="record.sheet">visit-2026-08-23.txt</span></div>
         <div class="sheet-row">
           <span class="sheet-time">00:04:12</span>
           <div>
-            <p class="sheet-said">Take one tablet twice a day, and stop the other one.</p>
-            <p class="sheet-rendered">每天吃一片，一天两次，另外那种就停掉。</p>
+            <p class="sheet-said" data-i18n="record.r1.said">Take one tablet twice a day, and stop the other one.</p>
+            <p class="sheet-rendered" data-i18n="record.r1.rendered">Tome una pastilla dos veces al día, y la otra déjela.</p>
           </div>
         </div>
         <div class="sheet-row">
           <span class="sheet-time">00:04:31</span>
           <div>
-            <p class="sheet-said">吃了以后会不会头晕？</p>
-            <p class="sheet-rendered">Will it make me dizzy?</p>
+            <p class="sheet-said" data-i18n="record.r2.said">¿Me va a dar mareos?</p>
+            <p class="sheet-rendered" data-i18n="record.r2.rendered">Will it make me dizzy?</p>
           </div>
         </div>
         <div class="sheet-row">
           <span class="sheet-time">00:04:38</span>
           <div>
-            <p class="sheet-said">It can at first. Come back in two weeks.</p>
-            <p class="sheet-rendered">刚开始可能会。两个星期后回来复诊。</p>
+            <p class="sheet-said" data-i18n="record.r3.said">It can at first. Come back in two weeks.</p>
+            <p class="sheet-rendered" data-i18n="record.r3.rendered">Al principio puede. Vuelva en dos semanas.</p>
           </div>
         </div>
       </div>
@@ -151,54 +144,54 @@
 <section id="features">
   <div class="wrap">
     <div class="sec-head">
-      <h2 data-i18n="feat.h2">Built for the ways clinical meaning goes missing</h2>
-      <p data-i18n="feat.lede">A general translator optimizes for a smooth sentence. An interpreter has to optimize for nothing being added, dropped, or softened — which is a different target, and occasionally a less elegant one.</p>
+      <h2 data-i18n="feat.h2">Where a medical visit goes wrong in translation</h2>
+      <p data-i18n="feat.lede">A general translation app aims for a sentence that reads well. Here, nothing may be added, dropped or softened, even when the result comes out blunt.</p>
     </div>
     <div class="grid three">
       <div class="card">
         <span class="icon">🔢</span>
-        <h3 data-i18n="feat.doses.h">Doses survive intact</h3>
-        <p data-i18n="feat.doses.p">Numbers, units, routes, frequencies, and durations are reproduced exactly — never converted between unit systems, never rounded, never turned into "a few". Any figure that goes missing from an interpretation is flagged for a second look.</p>
+        <h3 data-i18n="feat.doses.h">The dose stays the dose</h3>
+        <p data-i18n="feat.doses.p">Numbers, units, how often and how long come through exactly as spoken. Nothing is rounded, converted to other units, or turned into “a few”. If a number goes missing from the translation, it is flagged so you can ask again.</p>
       </div>
       <div class="card">
         <span class="icon">🚫</span>
-        <h3 data-i18n="feat.neg.h">Negation stays negative</h3>
-        <p data-i18n="feat.neg.p">"No fever", "not allergic", "never smoked", "don't take it with food" cannot come out the other side as the opposite, and a positive statement cannot acquire a "not".</p>
+        <h3 data-i18n="feat.neg.h">“No” does not turn into “yes”</h3>
+        <p data-i18n="feat.neg.p">“No fever”, “not allergic”, “never smoked”, “do not take it with food”. A “not” cannot be lost on the way into your language, and it cannot appear where nobody said one.</p>
       </div>
       <div class="card">
         <span class="icon">↔️</span>
         <h3 data-i18n="feat.side.h">Left stays left</h3>
-        <p data-i18n="feat.side.p">Laterality and anatomical site are reproduced exactly, and never dropped to make a sentence read more naturally.</p>
+        <p data-i18n="feat.side.p">Which side, which arm, which eye. It comes through as spoken, and is never dropped to make the sentence read more smoothly.</p>
       </div>
       <div class="card">
         <span class="icon">🩻</span>
-        <h3 data-i18n="feat.spec.h">19 specialties</h3>
-        <p data-i18n="feat.spec.p">Cardiology, oncology, OB/GYN, psychiatry, pharmacy, anesthesia and more, each with the terminology and the confusions specific to it — units versus millilitres for insulin, which eye the drops go in, curative versus palliative intent.</p>
+        <h3 data-i18n="feat.spec.h">19 kinds of visit</h3>
+        <p data-i18n="feat.spec.p">Heart, cancer, pregnancy, mental health, pharmacy, surgery and more. Each one knows its own vocabulary and its own traps: units against millilitres for insulin, which eye the drops go in, whether a treatment is meant to cure you or to keep you comfortable.</p>
       </div>
       <div class="card">
         <span class="icon">👂</span>
-        <h3 data-i18n="feat.mishear.h">Mishearings repaired</h3>
-        <p data-i18n-html="feat.mishear.p">Speech recognition writes <code>lay six</code> where a clinician said Lasix. The interpreter knows the specialty's vocabulary and restores the intended term — while never "correcting" a number, which has no context to recover it from.</p>
+        <h3 data-i18n="feat.mishear.h">It repairs what the microphone got wrong</h3>
+        <p data-i18n-html="feat.mishear.p">The doctor says Lasix and speech recognition writes <code>lay six</code>. Knowing the kind of visit, it puts the real word back. It never “fixes” a number that way, because a number has nothing to check it against.</p>
       </div>
       <div class="card">
         <span class="icon">🤔</span>
-        <h3 data-i18n="feat.uncert.h">Uncertainty is preserved</h3>
-        <p data-i18n="feat.uncert.p">"Might be", "we think", "we need to rule out" stay tentative, and definite statements stay definite. That distinction is what a patient's consent rests on.</p>
+        <h3 data-i18n="feat.uncert.h">“Maybe” stays “maybe”</h3>
+        <p data-i18n="feat.uncert.p">“It might be”, “we think”, “we have to rule it out” stay uncertain, and what the doctor is sure about stays sure. That is the difference you are agreeing to when you say yes.</p>
       </div>
       <div class="card">
         <span class="icon">🗣️</span>
         <h3 data-i18n="feat.langs.h">25 languages</h3>
-        <p data-i18n="feat.langs.p">Including Spanish, Mandarin, Hong Kong Cantonese, Vietnamese, Tagalog, Korean, Arabic, Haitian Creole, Somali and more — each rendered the way that language's own healthcare settings actually speak.</p>
+        <p data-i18n="feat.langs.p">Spanish, Mandarin, Hong Kong Cantonese, Vietnamese, Tagalog, Korean, Arabic, Haitian Creole, Somali and more, each written the way people speak it in a clinic rather than the way a textbook would.</p>
       </div>
       <div class="card">
         <span class="icon">✂️</span>
-        <h3 data-i18n="feat.disfl.h">Disfluency removed, meaning kept</h3>
-        <p data-i18n="feat.disfl.p">Fillers, stutters and false starts come out; self-corrections resolve to what the speaker settled on. No number, drug name, negation or body part is touched while tidying.</p>
+        <h3 data-i18n="feat.disfl.h">The stumbles come out, the meaning stays</h3>
+        <p data-i18n="feat.disfl.p">False starts and half-finished words are cleaned up, and when someone corrects themselves you get what they settled on. No number, medicine name, “not” or body part is touched in the cleaning.</p>
       </div>
       <div class="card">
         <span class="icon">🔒</span>
-        <h3 data-i18n="feat.privacy.h">Nothing is kept here</h3>
-        <p data-i18n="feat.privacy.p">The server stores no recordings and no transcripts. The conversation lives in your browser tab until you clear or export it. What we do store is your email address and whether you are subscribed.</p>
+        <h3 data-i18n="feat.privacy.h">Nothing is kept on our side</h3>
+        <p data-i18n="feat.privacy.p">We keep no recording and no transcript of your visit. It lives in your browser until you clear it or save it. What we store is your email address and whether you subscribe.</p>
       </div>
     </div>
   </div>
@@ -207,41 +200,41 @@
 <section id="pricing">
   <div class="wrap">
     <div class="sec-head">
-      <h2 data-i18n="pricing.h2">Start free. Subscribe when you outgrow it.</h2>
-      <p data-i18n="pricing.lede">Both plans are the same interpreter — every specialty, every language, every safety rule. The only difference is how much you can say.</p>
+      <h2 data-i18n="pricing.h2">Free for the occasional appointment</h2>
+      <p data-i18n="pricing.lede">Both plans are the same interpreter, with every language, every kind of visit and every safety rule. The difference is how much can be said.</p>
     </div>
 
     <div class="plans">
       <div class="plan">
-        <span class="plan-tag" data-i18n="plan.free.tag">You start here</span>
+        <span class="plan-tag" data-i18n="plan.free.tag">Where everyone starts</span>
         <h3 data-i18n="plan.free.name">Free</h3>
         <p class="price"><span data-i18n="plan.free.price">$0</span><small data-i18n="plan.free.per"> / forever</small></p>
-        <p class="price-sub" data-i18n="plan.free.sub">No card, no trial clock. Signing up puts you on this plan.</p>
+        <p class="price-sub" data-i18n="plan.free.sub">No card and no trial clock. Signing up puts you here.</p>
         <ul>
-          <li id="freeWordsPlan" data-i18n-html="plan.free.f1" data-i18n-params='{"words":"1,000"}'><strong>1,000</strong> interpreted words a week</li>
-          <li data-i18n-html="plan.free.f2">A <strong>rolling</strong> seven-day window — words free up as they age out, with no reset day to wait for</li>
-          <li data-i18n="plan.free.f3">All 19 specialties and all 25 languages</li>
-          <li data-i18n="plan.free.f4">Every safety rule, the number check, and mishearing repair</li>
-          <li data-i18n="plan.free.f5">Read-aloud and transcript export</li>
+          <li id="freeWordsPlan" data-i18n-html="plan.free.f1" data-i18n-params='{"words":"1,000"}'><strong>{words}</strong> translated words a week</li>
+          <li data-i18n-html="plan.free.f2">A <strong>rolling</strong> seven-day window, so words free up as they age out and there is no reset day to wait for</li>
+          <li data-i18n="plan.free.f3">All 25 languages and all 19 kinds of visit</li>
+          <li data-i18n="plan.free.f4">Every safety rule, the number check, and the microphone repair</li>
+          <li data-i18n="plan.free.f5">Read-aloud, and the written record to take home</li>
         </ul>
         <a class="btn lg" id="freeCta" href="/login" data-i18n="plan.free.cta">Create a free account</a>
-        <p class="plan-foot" data-i18n="plan.free.foot">Both sides of the conversation count toward the weekly words.</p>
+        <p class="plan-foot" data-i18n="plan.free.foot">What you say and what the doctor says both count toward the weekly words.</p>
       </div>
 
       <div class="plan featured">
-        <span class="plan-tag" data-i18n="plan.pro.tag">For regular use</span>
+        <span class="plan-tag" data-i18n="plan.pro.tag">For frequent appointments</span>
         <h3 data-i18n="plan.pro.name">Unlimited</h3>
         <p class="price" id="proPrice" data-i18n="plan.pro.price">Monthly</p>
         <p class="price-sub" id="proPriceSub" data-i18n="plan.pro.sub">Billed monthly through Stripe. Cancel any time.</p>
         <ul>
-          <li data-i18n-html="plan.pro.f1"><strong>Unlimited</strong> interpreted words — no weekly ceiling</li>
-          <li data-i18n="plan.pro.f2">Everything in Free, unchanged</li>
-          <li data-i18n="plan.pro.f3">Full clinic days without watching a counter</li>
-          <li data-i18n="plan.pro.f4">Manage the card or cancel yourself, from inside the app</li>
-          <li data-i18n="plan.pro.f5">Access continues while a card is being retried</li>
+          <li data-i18n-html="plan.pro.f1"><strong>Unlimited</strong> words, with no weekly ceiling</li>
+          <li data-i18n="plan.pro.f2">Everything in the free plan, unchanged</li>
+          <li data-i18n="plan.pro.f3">A long night in the emergency room without watching a counter</li>
+          <li data-i18n="plan.pro.f4">Cancel or change the card yourself, inside the app</li>
+          <li data-i18n="plan.pro.f5">Access continues while a payment is being retried</li>
         </ul>
         <a class="btn primary lg" id="proCta" href="/login" data-i18n="plan.pro.cta">Start free, upgrade later</a>
-        <p class="plan-foot" id="proFoot" data-i18n="plan.pro.foot">Upgrade from inside the app once you have an account.</p>
+        <p class="plan-foot" id="proFoot" data-i18n="plan.pro.foot">You can upgrade from inside the app once you have an account.</p>
       </div>
     </div>
   </div>
@@ -250,97 +243,60 @@
 <section id="faq">
   <div class="wrap">
     <div class="sec-head">
-      <h2 data-i18n="faq.h2">Questions worth asking first</h2>
+      <h2 data-i18n="faq.h2">Questions people ask</h2>
     </div>
 
     <details>
       <summary data-i18n="faq.q1">What counts as a word?</summary>
-      <p data-i18n="faq.a1">
-        The words people actually speak, counted once per turn as they are
-        transcribed — whichever side spoke them. Interpretations are free: one
-        sentence costs the same whether the other language needs three words
-        for it or thirty, and reading a turn aloud costs nothing. Languages
-        that do not put spaces between words, like Chinese and Japanese, are
-        counted character by character.
-      </p>
+      <p data-i18n="faq.a1">The words actually spoken, on both sides. The translation itself is free: a sentence costs the same whether your language needs three words for it or thirty, and hearing it read aloud costs nothing. Chinese, Japanese and other languages written without spaces are counted by character.</p>
     </details>
 
     <details>
-      <summary data-i18n="faq.q2">What does "rolling" mean for the weekly limit?</summary>
-      <p data-i18n="faq.a2">
-        Usage is counted from right now backwards over seven days, rather than
-        being reset on a fixed day. A long visit on Monday stops counting the
-        following Monday, and your allowance returns gradually rather than all
-        at once. There is no reset hour to wait up for and nothing to plan
-        around.
-      </p>
+      <summary data-i18n="faq.q9">How far does a free week go?</summary>
+      <p id="faqWords" data-i18n="faq.a9" data-i18n-params='{"words":"1,000"}'>People speak around 130 to 150 words a minute and both sides count, so {words} words covers a short appointment: the questions and the instructions, not the small talk. If you run out in the middle of a visit the app says so, and the allowance comes back over the following week.</p>
     </details>
 
     <details>
-      <summary data-i18n="faq.q3">Is this a replacement for a qualified medical interpreter?</summary>
-      <p data-i18n="faq.a3">
-        No, and it should not be treated as one. It is a machine interpreter:
-        fast, available at any hour, and unreviewed by anyone before you read
-        it. For consent discussions, breaking bad news, and anything else where
-        a mistranslation would change what a person agrees to, use a qualified
-        human interpreter. Verify anything clinical against the source before
-        acting on it or filing it.
-      </p>
+      <summary data-i18n="faq.q2">What does a “rolling” week mean?</summary>
+      <p data-i18n="faq.a2">Usage is counted from right now backwards over seven days rather than reset on a fixed day. Words spent at Monday’s appointment stop counting the next Monday, so the allowance returns a little at a time. There is no reset hour to wait for.</p>
+    </details>
+
+    <details>
+      <summary data-i18n="faq.q3">Should I still ask for the hospital interpreter?</summary>
+      <p data-i18n="faq.a3">Yes, and you do not have to choose between them. In the United States a hospital or clinic that receives federal funding must provide you a professional interpreter, by phone or in person, free of charge. Ask for one before you sign anything, and for consent, test results, or bad news. This app is a machine translation that nobody checks before you read it, so use it to follow what is happening, to prepare your questions, and to keep the record.</p>
     </details>
 
     <details>
       <summary data-i18n="faq.q4">What happens to the audio and the transcript?</summary>
-      <p data-i18n="faq.a4">
-        Speech is sent to the speech-recognition and language services this
-        deployment is configured to use, and interpreted text comes back. This
-        server keeps neither the audio nor the transcript — the conversation
-        lives in your browser tab until you clear it or export it. Your account
-        record is your email address, your subscription state, and how many
-        words each turn spent.
-      </p>
+      <p data-i18n="faq.a4">Speech goes to the speech recognition and translation services this deployment is set up to use, and the text comes back. This server keeps neither the audio nor the transcript: the visit stays in your browser until you clear it or save it. Your account holds your email address, whether you subscribe, and how many words each turn used.</p>
     </details>
 
     <details>
       <summary data-i18n="faq.q5">How do I sign in?</summary>
-      <p data-i18n="faq.a5">
-        With your email address. We send a link, you click it, and you are in —
-        there is no password to choose, forget, or have stolen. The same link
-        creates your account the first time you use it, and each link works
-        once.
-      </p>
+      <p data-i18n="faq.a5">With your email address. We send a link, you tap it, and you are in. There is no password to choose or forget, the same link creates your account the first time, and each link works once.</p>
     </details>
 
     <details>
       <summary data-i18n="faq.q6">Can I cancel whenever I want?</summary>
-      <p data-i18n="faq.a6">
-        Yes. Subscriptions are managed in Stripe's billing portal, reachable
-        from the account bar inside the app, and cancelling takes effect
-        without contacting anyone. Your account then returns to the free plan
-        rather than disappearing.
-      </p>
+      <p data-i18n="faq.a6">Yes. Subscriptions are handled in Stripe’s billing portal, which you reach from inside the app, and cancelling takes effect without asking anyone. Your account goes back to the free plan rather than disappearing.</p>
     </details>
 
     <details>
-      <summary data-i18n="faq.q8">Can the patient take the transcript home?</summary>
-      <p data-i18n="faq.a8">Yes. Export writes every turn into a timestamped file.</p>
+      <summary data-i18n="faq.q8">Can I take the record home?</summary>
+      <p data-i18n="faq.a8">That is what it is for. Saving writes every turn, in both languages, into a plain text file with the time of each entry: who spoke, what they said, and what it means. The visit also stays in your browser until you clear it, so you can read it again before you leave. Nothing is uploaded to this server for that to work.</p>
     </details>
 
     <details>
-      <summary data-i18n="faq.q7">Does it work on a phone or tablet at the bedside?</summary>
-      <p data-i18n="faq.a7">
-        Yes — it runs in the browser with nothing to install, and the screen is
-        kept awake while a session is open. A browser will only grant
-        microphone access over HTTPS, so use the secure address of your
-        deployment.
-      </p>
+      <summary data-i18n="faq.q7">Does it work on my phone in the waiting room?</summary>
+      <p data-i18n="faq.a7">Yes. It runs in the browser with nothing to install, and the screen stays awake while a visit is open. The browser asks for the microphone the first time, and only allows it over a secure https address.</p>
     </details>
   </div>
 </section>
 
 <section class="cta-band">
   <div class="wrap">
-    <h2 data-i18n="cta.h2">Try it on your next bilingual visit</h2>
-    <p data-i18n="cta.p">An email address is all it takes. You will be on the free plan in under a minute.</p>
+    <h2 data-i18n="cta.h2">Take it to your next appointment</h2>
+    <p data-i18n="cta.p">An email address is all it takes, and you will be set up in under a minute.</p>
     <a class="btn primary lg" id="footCta" href="/login" data-i18n="nav.start">Start free</a>
   </div>
 </section>
@@ -352,16 +308,11 @@
       <span class="foot-links">
         <a href="#how" data-i18n="nav.how">How it works</a>
         <a href="#pricing" data-i18n="nav.pricing">Pricing</a>
-        <a href="#faq" data-i18n="nav.faq">FAQ</a>
+        <a href="#faq" data-i18n="nav.faq">Questions</a>
         <a href="/login" data-i18n="nav.signin">Sign in</a>
       </span>
     </div>
-    <p data-i18n="foot.disclaimer" class="disclaimer">
-      Machine interpreting is an aid for a bilingual encounter, not a certified
-      medical interpretation, and its output is not reviewed by a person before
-      you see it. Verify anything clinical against the source before acting on
-      it or filing it.
-    </p>
+    <p data-i18n="foot.disclaimer" class="disclaimer">This is a machine translation to help you follow a medical visit. It is not a certified medical interpretation, and nobody reviews it before you see it. If a clinic or hospital offers you a professional interpreter, take it, and ask again about anything here that does not match what you understood.</p>
   </div>
 </footer>
 
@@ -382,7 +333,7 @@ fetch('/api/config')
     if (typeof cfg.free_words_per_week === 'number') {
       // Stored as a parameter so the number survives a language change.
       const params = JSON.stringify({ words: cfg.free_words_per_week.toLocaleString() });
-      for (const id of ['heroNote', 'freeWordsPlan']) {
+      for (const id of ['heroNote', 'freeWordsPlan', 'faqWords']) {
         const el = $(id);
         if (el) el.dataset.i18nParams = params;
       }

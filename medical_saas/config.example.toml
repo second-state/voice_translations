@@ -154,6 +154,6 @@ price_id = ""
 webhook_secret = ""
 # What the landing page prints as the plan's price. Cosmetic only: Stripe
 # charges whatever the price object above says and shows that amount at
-# checkout, so keep this in step with it by hand. Left empty, the page says
-# "Monthly" without naming a figure rather than risking a stale one.
-#price_display = "$20 / month"
+# checkout, so keep this in step with it by hand. Left empty, the page prints
+# its built-in figure, $20 / month; set this if you charge anything else.
+#price_display = "$35 / month"

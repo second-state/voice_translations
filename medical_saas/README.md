@@ -188,10 +188,12 @@ cancel from inside the app.
 the portal returns to `{base_url}/app`. If `[email] base_url` is wrong,
 payment still works but the user lands somewhere useless.
 
-**6. Optionally set `price_display`.** The landing page prints it as the
-plan's price (`"$20 / month"`). It is cosmetic — Stripe charges whatever the
-price object says and shows that amount at checkout — so keep it in step by
-hand, or leave it empty and the page says "Monthly" without naming a figure.
+**6. Set `price_display` if you do not charge $20 a month.** Left empty, the
+landing page prints its built-in figure, $20 / month, in whichever language
+the visitor is reading. `price_display` replaces that (`"$35 / month"`,
+`"€18 / month"`). It is cosmetic — Stripe charges whatever the price object
+says and shows that amount at checkout — so a deployment on a different
+price must set this, or the page quotes a figure it will not honour.
 
 ### Trying it locally
 
@@ -337,7 +339,7 @@ edition adds:
 | `[quota]` | `free_words_per_week` | Free allowance per rolling seven days (default 1000) |
 | `[stripe]` | `secret_key`, `price_id` | Checkout for the monthly plan; empty disables billing |
 | `[stripe]` | `webhook_secret` | Endpoint signing secret; without it deliveries are refused |
-| `[stripe]` | `price_display` | Optional, cosmetic: the price shown on the landing page |
+| `[stripe]` | `price_display` | Optional, cosmetic: overrides the $20 / month the landing page shows by default |
 
 ## Layout
 

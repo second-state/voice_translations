@@ -22,7 +22,7 @@ use voice_translations::{
 };
 
 use crate::{
-    config::MedicalConfig,
+    config::{self, MedicalConfig},
     prompt::{self, Speaker},
     specialty::{self, SPECIALTIES},
 };
@@ -67,12 +67,20 @@ pub async fn api_transcribe(
 ) -> Result<Json<Value>, AppError> {
     let form = asr::parse_audio_form(&mut multipart).await?;
     let heard = asr::transcribe(&state.base, &form.audio, &form.options).await?;
-    let turn = state.cfg.resolve_turn_language(heard.language.as_deref());
+    // The pickers, not the configuration, say what this encounter's two
+    // languages are: they can be changed mid-visit.
+    let (clinician_lang, patient_lang) = state.cfg.encounter_languages(
+        form.fields.get("clinician_language").map(String::as_str),
+        form.fields.get("patient_language").map(String::as_str),
+    );
+    let turn =
+        config::resolve_turn_language(&clinician_lang, &patient_lang, heard.language.as_deref());
 
     if turn.substituted {
         tracing::info!(
             detected = heard.language.as_deref().unwrap_or("none"),
             treated_as = %turn.language,
+            encounter = %format!("{clinician_lang}/{patient_lang}"),
             "recognizer named a language outside this encounter; treating the turn as the patient"
         );
     }

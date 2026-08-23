@@ -26,7 +26,11 @@ turn carries a **Clinician/Patient toggle** to reassign it (which re-runs the
 interpretation in the right direction), and a turn whose detected language
 contradicts its speaker's preset gets a warning chip.
 
-**A turn is always in one of the two languages.** Recognizers confuse
+**A turn is always in one of the encounter's two languages** — the two
+selected in the pickers, not the two in `config.toml`. The configured pair is
+only the starting point; changing either picker mid-visit changes what counts
+as inside the encounter, and the browser sends the current pair with every
+utterance. Recognizers confuse
 languages that share a script — Chinese reported as Japanese is the common
 one — and taking that label at face value does real damage: the turn is
 interpreted toward a language nobody in the room speaks, and the
@@ -34,7 +38,8 @@ same-language cleanup pass, told the transcript is Japanese, quietly
 *translates* the Chinese it was given. So a label outside the encounter's
 pair is treated as the patient speaking their own language, and the turn is
 flagged (*"recognizer said Japanese; treated as Chinese"*) so it can be
-reassigned if the guess was wrong. A recognizer that reports nothing at all
+reassigned if the guess was wrong. A language the pickers *do* name is never
+substituted, however far it is from the configured default. A recognizer that reports nothing at all
 is a different case — no claim rather than a wrong one — and falls back to
 the clinician's language.
 

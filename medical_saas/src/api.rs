@@ -25,6 +25,7 @@ use voice_translations::{
 
 use medical_translations::{
     api::{MedicalTranslateRequest, MedicalTtsRequest},
+    config::resolve_turn_language,
     prompt::{self, Speaker},
     specialty::{self, SPECIALTIES},
 };
@@ -119,10 +120,11 @@ pub async fn api_transcribe(
     // Constrain the recognizer's answer to the two languages this encounter
     // actually involves, so a mislabelled turn is not interpreted toward a
     // language nobody in the room speaks.
-    let turn = state
-        .cfg
-        .medical
-        .resolve_turn_language(heard.language.as_deref());
+    let (clinician_lang, patient_lang) = state.cfg.medical.encounter_languages(
+        form.fields.get("clinician_language").map(String::as_str),
+        form.fields.get("patient_language").map(String::as_str),
+    );
+    let turn = resolve_turn_language(&clinician_lang, &patient_lang, heard.language.as_deref());
 
     let words = quota::count_words(&heard.text);
     let role = if turn.clinician {
@@ -137,6 +139,7 @@ pub async fn api_transcribe(
         user = %user.email,
         detected = heard.language.as_deref().unwrap_or("none"),
         language = %turn.language,
+        encounter = %format!("{clinician_lang}/{patient_lang}"),
         substituted = turn.substituted,
         role,
         words,

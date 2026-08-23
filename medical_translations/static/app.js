@@ -401,6 +401,11 @@ async function handleUtterance(blob, start, end) {
 
   const form = new FormData();
   form.append('audio', blob, `turn-${msg.id}.wav`);
+  // The encounter's two languages, so the server resolves the recognizer's
+  // answer against what this visit is actually using rather than the
+  // configured default.
+  form.append('clinician_language', state.clinicianLang);
+  form.append('patient_language', state.patientLang);
 
   try {
     const resp = await fetch('/api/transcribe', { method: 'POST', body: form });

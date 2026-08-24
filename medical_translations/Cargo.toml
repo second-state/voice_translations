@@ -1,6 +1,6 @@
 [package]
 name = "medical-translations"
-version = "0.1.6"
+version = "0.1.7"
 edition = "2021"
 description = "Real-time translation for patient/clinician conversations, tuned per medical specialty"
 license = "Apache-2.0"

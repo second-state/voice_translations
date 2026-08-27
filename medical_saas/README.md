@@ -137,7 +137,14 @@ leaked. A wrong guess takes 600 ms to be told so, which is what makes guessing
 at a single shared secret impractical; the delay is fixed rather than
 escalating, so nobody can lock the operator out by guessing badly on purpose.
 
-Two columns are worth knowing how they are built:
+Click a row and its Stripe history opens beside the table: every webhook that
+resolved to that account, newest first, with what Stripe called it, the amount
+it moved, and the object id to match against the Stripe dashboard. Failed
+payments are shown as failed rather than as money collected, and events that
+moved no money — a plan change, a cancellation — are still listed, because the
+question being asked is usually "why is this account not paid?"
+
+Three columns are worth knowing how they are built:
 
 - **Last active** is the later of two things — the last request made with a
   session, and the last turn actually spoken. An account can be signed in
@@ -147,6 +154,16 @@ Two columns are worth knowing how they are built:
 - **Words this week** is the same rolling seven-day sum the quota enforces, so
   a free account at or over its allowance is shown in amber. **Words total**
   is every turn ever recorded.
+- **Billing** counts the Stripe events recorded against the account, so it is
+  clear which rows have a history to open. Events are stored under Stripe's
+  own event id, so a redelivery — which Stripe does on any non-2xx — is stored
+  once rather than twice.
+
+Recording happens in the webhook handler, so it captures deliveries the app
+otherwise ignores: `invoice.paid` and `invoice.payment_failed` change no plan
+but are the two events most worth seeing later. Anything Stripe sends that
+resolves to an account is kept; anything that resolves to nobody is logged and
+dropped, as before.
 
 The dashboard reads; it does not write. There is no way to change a plan, edit
 an account, or read a transcript from it — transcripts are never on the server
@@ -388,12 +405,39 @@ edition adds:
 | `[admin]` | `password` | Password for `/admin`; empty means no dashboard at all |
 | `[admin]` | `session_hours` | How long an admin stays signed in (default 12) |
 
+## Database migrations
+
+The schema lives in `sql/migrations/` as numbered files — `0001_initial.sql`,
+`0002_admin_dashboard.sql`, and so on — and every one of them is compiled into
+the binary with `include_str!`. A deployment is still one binary and one config
+file: the folder is a source artifact, and nothing looks for it at runtime.
+
+Applied versions are recorded in a `schema_migrations` table, so each migration
+runs exactly once, in order, each inside its own transaction together with the
+row that records it. An interrupted upgrade therefore leaves the database on a
+version boundary rather than half-way through one.
+
+A database created before any of this existed still upgrades in place:
+`0001_initial.sql` is written entirely with `IF NOT EXISTS`, so replaying it
+against the schema it describes changes nothing, and the chain carries on from
+`0002`. That is what lets a v0.1.x deployment adopt migrations by being
+restarted.
+
+To add one: write `sql/migrations/NNNN_what_it_does.sql`, add a line to
+`MIGRATIONS` in `src/migrations.rs`, and write the test that would fail without
+it. A test compares the registry against the files on disk, so a script nobody
+registered fails the build rather than silently never running.
+
+Migrations are forward-only. There is no `down`: rolling back a schema on a
+live database is a restore-from-backup exercise, not a script.
+
 ## Layout
 
 ```
 src/
 ├── main.rs        # router and startup
 ├── admin.rs       # the operator's dashboard, behind one password
+├── migrations.rs  # the migration registry and runner
 ├── config.rs      # [auth] [email] [quota] [stripe]; [medical] and the
 │                  #   library sections are parsed by the crates that own them
 ├── api.rs         # handlers: resolve the account, enforce quota, delegate
@@ -402,8 +446,10 @@ src/
 ├── db.rs          # SQLite: accounts, tokens, subscription state, word ledger
 ├── quota.rs       # rolling-window allowance and word counting
 └── error.rs       # JSON errors with stable codes (401, 402, …)
+sql/migrations/    # the schema, numbered; compiled into the binary
 static/            # home.html + home.css (landing page), login.html
-                   #   (sign-in), and index.html/app.js/style.css (the console)
+                   #   (sign-in), index.html/app.js/style.css (the console),
+                   #   and admin.html/admin.js (the dashboard)
 ```
 
 There is no `prompts/` directory and no `specialty.rs` here: that material

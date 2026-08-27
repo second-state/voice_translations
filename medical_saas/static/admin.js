@@ -83,6 +83,7 @@ function sortValue(user, key) {
     case 'last_active': return user.last_active || null;
     case 'words_window': return user.words_window;
     case 'words_total': return user.words_total;
+    case 'payment_events': return user.payment_events;
     case 'created_at': return user.created_at;
     default: return null;
   }
@@ -181,9 +182,18 @@ function render() {
     const totalCell = cell(tr, numbers.format(user.words_total), 'num');
     totalCell.title = `${numbers.format(user.turns)} turns`;
 
+    const events = user.payment_events || 0;
+    const eventsCell = cell(tr, events ? String(events) : '—', 'num');
+    if (!events) eventsCell.classList.add('count-none');
+    eventsCell.title = events
+      ? `${events} Stripe event${events === 1 ? '' : 's'}`
+      : 'No Stripe events recorded';
+
     const joined = cell(tr, day(user.created_at) || '');
     joined.title = absolute(user.created_at);
 
+    if (user.id === openUserId) tr.classList.add('open');
+    tr.addEventListener('click', () => openPayments(user));
     rowsBody.appendChild(tr);
   }
 
@@ -222,6 +232,140 @@ function renderSortArrows() {
   }
 }
 
+/* ---------- One account's billing history ---------- */
+
+/** Which account's drawer is open, so the row stays highlighted across a
+ *  re-render. */
+let openUserId = null;
+
+/** Stripe sends minor units, except for the currencies that have none. */
+const ZERO_DECIMAL = new Set([
+  'bif', 'clp', 'djf', 'gnf', 'jpy', 'kmf', 'krw', 'mga',
+  'pyg', 'rwf', 'ugx', 'vnd', 'vuv', 'xaf', 'xof', 'xpf',
+]);
+
+function money(cents, currency) {
+  if (cents === null || cents === undefined) return null;
+  const code = (currency || 'usd').toLowerCase();
+  const amount = ZERO_DECIMAL.has(code) ? cents : cents / 100;
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: 'currency',
+      currency: code.toUpperCase(),
+    }).format(amount);
+  } catch {
+    // An unknown currency code should still show the number.
+    return `${amount} ${code.toUpperCase()}`;
+  }
+}
+
+function eventRow(event) {
+  const wrap = document.createElement('div');
+  wrap.className = 'event';
+
+  const top = document.createElement('div');
+  top.className = 'event-top';
+  const type = document.createElement('span');
+  type.className = 'event-type';
+  type.textContent = event.type;
+  top.appendChild(type);
+
+  const amount = document.createElement('span');
+  const formatted = money(event.amount_cents, event.currency);
+  // A failed payment carries an amount too — the amount it tried to take.
+  // Colouring that like a collected one reads as revenue that never arrived.
+  const collected = event.status === 'paid' || event.status === 'complete';
+  const failed = event.type.includes('failed') || event.status === 'unpaid';
+  amount.className = `event-amount ${
+    !formatted ? 'none' : failed ? 'failed' : collected ? 'paid' : 'pending'
+  }`;
+  amount.textContent = formatted ? (failed ? `${formatted} failed` : formatted) : 'no charge';
+  top.appendChild(amount);
+  wrap.appendChild(top);
+
+  const meta = document.createElement('div');
+  meta.className = 'event-meta';
+  meta.textContent = [absolute(event.created_at), event.status].filter(Boolean).join(' · ');
+  wrap.appendChild(meta);
+
+  if (event.object_id) {
+    const id = document.createElement('div');
+    id.className = 'event-id';
+    id.textContent = event.object_id;
+    wrap.appendChild(id);
+  }
+  return wrap;
+}
+
+function closeDrawer() {
+  openUserId = null;
+  $('drawer').hidden = true;
+  for (const tr of rowsBody.querySelectorAll('tr.open')) tr.classList.remove('open');
+}
+
+async function openPayments(user) {
+  openUserId = user.id;
+  $('drawer').hidden = false;
+  $('drawerEmail').textContent = user.email;
+  $('drawerSub').textContent = 'Loading…';
+  $('drawerBody').replaceChildren();
+  for (const tr of rowsBody.querySelectorAll('tr.open')) tr.classList.remove('open');
+  for (const tr of rowsBody.querySelectorAll('tr')) {
+    if (tr.children[0].textContent === user.email) tr.classList.add('open');
+  }
+
+  const body = $('drawerBody');
+  try {
+    const res = await fetch(`/api/admin/users/${encodeURIComponent(user.id)}/payments`);
+    if (!res.ok) throw new Error(`Could not load billing history (${res.status})`);
+    const data = await res.json();
+    // The drawer may have been closed, or another row opened, while this was
+    // in flight.
+    if (openUserId !== user.id) return;
+
+    const events = data.events || [];
+    $('drawerSub').textContent = events.length
+      ? `${events.length} Stripe event${events.length === 1 ? '' : 's'}`
+      : 'No Stripe events';
+
+    body.replaceChildren();
+    if (data.stripe_customer_id || data.stripe_subscription_id) {
+      const ids = document.createElement('p');
+      ids.className = 'ids';
+      for (const [label, value] of [
+        ['Customer', data.stripe_customer_id],
+        ['Subscription', data.stripe_subscription_id],
+      ]) {
+        if (!value) continue;
+        const line = document.createElement('span');
+        line.textContent = `${label}: `;
+        const code = document.createElement('code');
+        code.textContent = value;
+        line.appendChild(code);
+        line.appendChild(document.createElement('br'));
+        ids.appendChild(line);
+      }
+      body.appendChild(ids);
+    }
+    if (!events.length) {
+      const none = document.createElement('p');
+      none.className = 'event-meta';
+      none.textContent = 'Nothing has come in from Stripe for this account.';
+      body.appendChild(none);
+      return;
+    }
+    for (const event of events) body.appendChild(eventRow(event));
+  } catch (err) {
+    if (openUserId !== user.id) return;
+    $('drawerSub').textContent = '';
+    body.replaceChildren();
+    const error = document.createElement('div');
+    error.className = 'error';
+    error.textContent = err.message;
+    body.appendChild(error);
+  }
+}
+
 /* ---------- Loading ---------- */
 
 async function loadUsers() {
@@ -242,6 +386,7 @@ async function loadUsers() {
 }
 
 function showGate() {
+  closeDrawer();
   gate.hidden = false;
   dashboard.hidden = true;
   $('refresh').hidden = true;
@@ -289,7 +434,13 @@ $('loginForm').addEventListener('submit', async (event) => {
 $('signout').addEventListener('click', async () => {
   await fetch('/admin/logout', { method: 'POST' }).catch(() => {});
   allUsers = [];
+  closeDrawer();
   showGate();
+});
+
+$('drawerClose').addEventListener('click', closeDrawer);
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') closeDrawer();
 });
 
 $('refresh').addEventListener('click', () => {

@@ -167,6 +167,66 @@ td.email { font-weight: 500; }
 /* A free account that has spent its week. */
 .over { color: var(--amber); }
 
+tbody tr { cursor: pointer; }
+tbody tr.open { background: rgba(79, 140, 255, 0.09); }
+.count-none { color: #4a5568; }
+
+/* ---------- One account's billing history ---------- */
+.drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(460px, 100vw);
+  background: var(--panel);
+  border-left: 1px solid var(--border);
+  box-shadow: -20px 0 50px rgba(0, 0, 0, 0.45);
+  display: flex;
+  flex-direction: column;
+  z-index: 10;
+}
+.drawer-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.drawer-head h2 { margin: 0 0 2px; font-size: 15px; font-weight: 600; word-break: break-all; }
+.drawer-head .sub { font-size: 12px; color: var(--muted); }
+.drawer-body { overflow: auto; padding: 8px 20px 24px; }
+.close {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 6px;
+}
+.close:hover { color: var(--text); }
+
+.event {
+  border-bottom: 1px solid var(--border);
+  padding: 13px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.event:last-child { border-bottom: none; }
+.event-top { display: flex; align-items: baseline; gap: 10px; }
+.event-type { font-weight: 600; font-size: 13px; }
+.event-amount { margin-left: auto; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.event-amount.paid { color: var(--green); }
+.event-amount.failed { color: var(--red); }
+.event-amount.pending { color: var(--amber); }
+.event-amount.none { color: var(--muted); }
+.event-meta { font-size: 12px; color: var(--muted); }
+.event-id { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: #5c6779; word-break: break-all; }
+.ids { font-size: 12px; color: var(--muted); margin: 12px 0 4px; }
+.ids code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--text); }
+
 .empty { padding: 40px; text-align: center; color: var(--muted); }
 
 @media (max-width: 720px) {
@@ -228,6 +288,7 @@ td.email { font-weight: 500; }
           <th data-sort="last_active">Last active</th>
           <th data-sort="words_window" class="num">Words this week</th>
           <th data-sort="words_total" class="num">Words total</th>
+          <th data-sort="payment_events" class="num">Billing</th>
           <th data-sort="created_at">Joined</th>
         </tr>
       </thead>
@@ -236,6 +297,18 @@ td.email { font-weight: 500; }
     <div class="empty" id="empty" hidden>No accounts match.</div>
   </div>
 </main>
+
+<!-- One account's Stripe history, opened by clicking its row. -->
+<aside class="drawer" id="drawer" hidden>
+  <div class="drawer-head">
+    <div>
+      <h2 id="drawerEmail"></h2>
+      <div class="sub" id="drawerSub"></div>
+    </div>
+    <button class="close" id="drawerClose" aria-label="Close">&times;</button>
+  </div>
+  <div class="drawer-body" id="drawerBody"></div>
+</aside>
 
 <script src="/admin.js"></script>
 </body>

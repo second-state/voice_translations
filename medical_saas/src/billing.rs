@@ -160,11 +160,29 @@ pub async fn webhook(
     let object = &event["data"]["object"];
     tracing::info!("stripe webhook: {event_type}");
 
+    // Whoever this concerns, resolved once: the account is recorded against
+    // every delivery, not only the ones that move a plan. A failed payment or
+    // a refund changes nothing here and is exactly what someone reading the
+    // dashboard later needs to see.
+    let user = state.db.user_for_stripe(
+        object["metadata"]["user_id"]
+            .as_str()
+            .or_else(|| object["client_reference_id"].as_str()),
+        object["customer"].as_str(),
+        subscription_id(object),
+        object["customer_email"]
+            .as_str()
+            .or_else(|| object["customer_details"]["email"].as_str()),
+    )?;
+    if let Some(user) = &user {
+        record_event(&state, &event, object, &user.id)?;
+    }
+
     match event_type {
         // The subscription was just paid for the first time. One-off
         // payment sessions, if this account ever sells any, are not plans.
         "checkout.session.completed" if object["mode"].as_str() == Some("subscription") => {
-            apply(&state, object, "active", true)?;
+            apply(&state, user.as_ref(), object, "active", true)?;
         }
         // Renewals, plan changes, cancellations scheduled or immediate.
         "customer.subscription.created" | "customer.subscription.updated" => {
@@ -172,10 +190,10 @@ pub async fn webhook(
             // `past_due` keeps access while Stripe retries the card; the
             // terminal states below are what actually end a subscription.
             let entitled = matches!(status, "active" | "trialing" | "past_due");
-            apply(&state, object, status, entitled)?;
+            apply(&state, user.as_ref(), object, status, entitled)?;
         }
         "customer.subscription.deleted" => {
-            apply(&state, object, "canceled", false)?;
+            apply(&state, user.as_ref(), object, "canceled", false)?;
         }
         _ => {}
     }
@@ -184,27 +202,62 @@ pub async fn webhook(
 }
 
 /// Move one account to the plan an event implies.
-fn apply(state: &SaasState, object: &Value, status: &str, entitled: bool) -> Result<(), AppError> {
-    // A checkout session names the subscription it created; a subscription
-    // event *is* that object.
-    let subscription_id = object["subscription"]
+/// A checkout session names the subscription it created; a subscription event
+/// *is* that object.
+fn subscription_id(object: &Value) -> Option<&str> {
+    object["subscription"]
         .as_str()
-        .or_else(|| object["id"].as_str().filter(|id| id.starts_with("sub_")));
-    let customer_id = object["customer"].as_str();
-    let user_id = object["metadata"]["user_id"]
-        .as_str()
-        .or_else(|| object["client_reference_id"].as_str());
-    let email = object["customer_email"]
-        .as_str()
-        .or_else(|| object["customer_details"]["email"].as_str());
+        .or_else(|| object["id"].as_str().filter(|id| id.starts_with("sub_")))
+}
 
-    let Some(user) = state
-        .db
-        .user_for_stripe(user_id, customer_id, subscription_id, email)?
-    else {
+/// Store one delivery against the account it concerns.
+///
+/// Money lives under a different key on every kind of object, and is absent
+/// on plan changes and cancellations, which are still worth a line in the
+/// history.
+fn record_event(
+    state: &SaasState,
+    event: &Value,
+    object: &Value,
+    user_id: &str,
+) -> Result<(), AppError> {
+    let Some(event_id) = event["id"].as_str() else {
+        tracing::warn!("stripe webhook: delivery has no event id; not recording it");
+        return Ok(());
+    };
+    let amount = object["amount_paid"]
+        .as_i64()
+        .or_else(|| object["amount_total"].as_i64())
+        .or_else(|| object["amount_due"].as_i64())
+        .or_else(|| object["amount"].as_i64());
+
+    state.db.record_payment_event(
+        event_id,
+        user_id,
+        event["type"].as_str().unwrap_or("unknown"),
+        object["status"].as_str(),
+        amount,
+        object["currency"].as_str(),
+        object["id"].as_str(),
+        event["created"].as_i64().unwrap_or_else(crate::db::now),
+    )?;
+    Ok(())
+}
+
+fn apply(
+    state: &SaasState,
+    user: Option<&crate::db::User>,
+    object: &Value,
+    status: &str,
+    entitled: bool,
+) -> Result<(), AppError> {
+    let subscription_id = subscription_id(object);
+    let customer_id = object["customer"].as_str();
+
+    let Some(user) = user else {
         tracing::warn!(
             "stripe webhook: no account matches customer={customer_id:?} \
-             subscription={subscription_id:?} email={email:?}; ignoring"
+             subscription={subscription_id:?}; ignoring"
         );
         return Ok(());
     };

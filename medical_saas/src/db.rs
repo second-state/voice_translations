@@ -1,10 +1,11 @@
 //! The embedded SQLite database: accounts, magic-link and session tokens,
 //! subscription state, and the word-usage ledger the quota is computed from.
 //!
-//! One file on disk, created and migrated at startup. Every operation is a
-//! short synchronous statement — SQLite is microseconds fast at this size —
-//! so the connection lives behind a plain mutex that is never held across an
-//! await point.
+//! One file on disk, created and migrated at startup by
+//! [`crate::migrations`] — the schema itself lives in `sql/migrations/`,
+//! compiled into the binary. Every operation here is a short synchronous
+//! statement — SQLite is microseconds fast at this size — so the connection
+//! lives behind a plain mutex that is never held across an await point.
 //!
 //! Tokens are stored as SHA-256 hashes rather than in the clear: a leaked
 //! database copy then yields no usable session or login link.
@@ -118,95 +119,27 @@ impl AdminUserRow {
     }
 }
 
+/// One Stripe webhook as the dashboard shows it.
+#[derive(Debug, Clone, Serialize)]
+pub struct PaymentEvent {
+    /// Stripe's event id (`evt_…`).
+    pub id: String,
+    #[serde(rename = "type")]
+    pub event_type: String,
+    pub status: Option<String>,
+    /// In the currency's minor unit, as Stripe sends it; null when the event
+    /// moved no money.
+    pub amount_cents: Option<i64>,
+    pub currency: Option<String>,
+    pub object_id: Option<String>,
+    pub created_at: i64,
+}
+
 /// How stale `last_seen_at` may get before another write is worth it.
 const LAST_SEEN_RESOLUTION_SECS: i64 = 300;
 
 pub const PLAN_FREE: &str = "free";
 pub const PLAN_PRO: &str = "pro";
-
-const SCHEMA: &str = "
-PRAGMA journal_mode = WAL;
-PRAGMA foreign_keys = ON;
-
-CREATE TABLE IF NOT EXISTS users (
-    id                     TEXT PRIMARY KEY,
-    email                  TEXT NOT NULL UNIQUE,
-    plan                   TEXT NOT NULL DEFAULT 'free',
-    magic_token_hash       TEXT,
-    magic_expires          INTEGER,
-    session_token_hash     TEXT,
-    session_expires        INTEGER,
-    stripe_customer_id     TEXT,
-    stripe_subscription_id TEXT,
-    subscription_status    TEXT,
-    subscribed_at          INTEGER,
-    unsubscribed_at        INTEGER,
-    last_seen_at           INTEGER,
-    created_at             INTEGER NOT NULL,
-    updated_at             INTEGER NOT NULL
-);
-
-CREATE INDEX IF NOT EXISTS idx_users_email   ON users(email);
-CREATE INDEX IF NOT EXISTS idx_users_session ON users(session_token_hash);
-CREATE INDEX IF NOT EXISTS idx_users_magic   ON users(magic_token_hash);
-CREATE INDEX IF NOT EXISTS idx_users_customer ON users(stripe_customer_id);
-CREATE INDEX IF NOT EXISTS idx_users_subscription ON users(stripe_subscription_id);
-
--- One row per spoken turn. The quota is a SUM over a rolling window of this
--- table, so nothing has to be reset on a schedule.
-CREATE TABLE IF NOT EXISTS word_usage (
-    id         INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id    TEXT NOT NULL REFERENCES users(id),
-    words      INTEGER NOT NULL,
-    role       TEXT NOT NULL DEFAULT '',
-    created_at INTEGER NOT NULL
-);
-
-CREATE INDEX IF NOT EXISTS idx_usage_user_time ON word_usage(user_id, created_at);
-
--- Signed-in admins. Separate from user sessions: the dashboard is not an
--- account, it is one shared password, and its sessions die when that
--- password changes.
-CREATE TABLE IF NOT EXISTS admin_sessions (
-    token_hash    TEXT PRIMARY KEY,
-    password_hash TEXT NOT NULL,
-    created_at    INTEGER NOT NULL,
-    expires_at    INTEGER NOT NULL
-);
-
-CREATE INDEX IF NOT EXISTS idx_admin_sessions_expiry ON admin_sessions(expires_at);
-";
-
-/// Columns added after the first release. `CREATE TABLE IF NOT EXISTS` does
-/// nothing to a table that already exists, so a database from an earlier
-/// version needs them added explicitly.
-const ADDED_COLUMNS: &[(&str, &str, &str)] = &[
-    ("users", "subscribed_at", "INTEGER"),
-    ("users", "unsubscribed_at", "INTEGER"),
-    ("users", "last_seen_at", "INTEGER"),
-];
-
-/// Add a column that an older database is missing. Table and column names
-/// here are literals from [`ADDED_COLUMNS`], never anything a request
-/// supplies.
-fn add_missing_column(
-    conn: &Connection,
-    table: &str,
-    column: &str,
-    decl: &str,
-) -> rusqlite::Result<()> {
-    let present = conn
-        .prepare(&format!("PRAGMA table_info({table})"))?
-        .query_map([], |row| row.get::<_, String>(1))?
-        .collect::<rusqlite::Result<Vec<_>>>()?
-        .iter()
-        .any(|name| name == column);
-    if !present {
-        conn.execute_batch(&format!("ALTER TABLE {table} ADD COLUMN {column} {decl}"))?;
-        tracing::info!("account database migrated: added {table}.{column}");
-    }
-    Ok(())
-}
 
 /// Handle to the account database.
 #[derive(Clone)]
@@ -215,31 +148,37 @@ pub struct Db {
 }
 
 impl Db {
-    /// Open (creating if needed) the database at `path` and apply the schema.
+    /// Open (creating if needed) the database at `path` and migrate it.
     pub fn open(path: impl AsRef<Path>) -> Result<Self> {
         let path = path.as_ref();
-        let conn = Connection::open(path).with_context(|| {
+        let mut conn = Connection::open(path).with_context(|| {
             format!("failed to open the account database at {}", path.display())
         })?;
-        conn.execute_batch(SCHEMA)
-            .context("failed to apply the account database schema")?;
-        for (table, column, decl) in ADDED_COLUMNS {
-            add_missing_column(&conn, table, column, decl)
-                .with_context(|| format!("failed to add {table}.{column}"))?;
-        }
+        Self::prepare(&mut conn)?;
         Ok(Self {
             conn: Arc::new(Mutex::new(conn)),
         })
     }
 
-    /// An in-memory database, for tests.
+    /// An in-memory database, for tests. Built by the same migration chain as
+    /// a real one, so a test is never run against a schema that only exists
+    /// in the test.
     #[cfg(test)]
     pub fn open_in_memory() -> Result<Self> {
-        let conn = Connection::open_in_memory()?;
-        conn.execute_batch(SCHEMA)?;
+        let mut conn = Connection::open_in_memory()?;
+        Self::prepare(&mut conn)?;
         Ok(Self {
             conn: Arc::new(Mutex::new(conn)),
         })
+    }
+
+    /// Connection settings, then the schema. `journal_mode` is a property of
+    /// the file and `foreign_keys` of the connection, so neither belongs in a
+    /// migration; both are set before one runs.
+    fn prepare(conn: &mut Connection) -> Result<()> {
+        conn.execute_batch("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;")
+            .context("failed to configure the account database")?;
+        crate::migrations::run(conn).context("failed to migrate the account database")
     }
 
     fn with<T>(&self, f: impl FnOnce(&Connection) -> rusqlite::Result<T>) -> Result<T> {
@@ -579,6 +518,81 @@ impl Db {
                 })
             })?;
             rows.collect::<rusqlite::Result<Vec<_>>>()
+        })
+    }
+
+    /// Record one Stripe webhook against the account it concerns.
+    ///
+    /// Keyed by Stripe's event id, so a redelivery — which Stripe does on any
+    /// non-2xx, and may do anyway — is stored once.
+    #[allow(clippy::too_many_arguments)]
+    pub fn record_payment_event(
+        &self,
+        event_id: &str,
+        user_id: &str,
+        event_type: &str,
+        status: Option<&str>,
+        amount_cents: Option<i64>,
+        currency: Option<&str>,
+        object_id: Option<&str>,
+        created_at: i64,
+    ) -> Result<()> {
+        self.with(|conn| {
+            conn.execute(
+                "INSERT OR IGNORE INTO payment_events
+                     (id, user_id, type, status, amount_cents, currency, object_id,
+                      created_at, recorded_at)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+                params![
+                    event_id,
+                    user_id,
+                    event_type,
+                    status,
+                    amount_cents,
+                    currency,
+                    object_id,
+                    created_at,
+                    now()
+                ],
+            )
+        })?;
+        Ok(())
+    }
+
+    /// One account's billing history, newest first.
+    pub fn payment_events_for_user(&self, user_id: &str, limit: i64) -> Result<Vec<PaymentEvent>> {
+        self.with(|conn| {
+            let mut stmt = conn.prepare(
+                "SELECT id, type, status, amount_cents, currency, object_id, created_at
+                 FROM payment_events WHERE user_id = ?1
+                 ORDER BY created_at DESC, rowid DESC
+                 LIMIT ?2",
+            )?;
+            let rows = stmt.query_map(params![user_id, limit], |row| {
+                Ok(PaymentEvent {
+                    id: row.get(0)?,
+                    event_type: row.get(1)?,
+                    status: row.get(2)?,
+                    amount_cents: row.get(3)?,
+                    currency: row.get(4)?,
+                    object_id: row.get(5)?,
+                    created_at: row.get(6)?,
+                })
+            })?;
+            rows.collect::<rusqlite::Result<Vec<_>>>()
+        })
+    }
+
+    /// How many billing events each account has, so the dashboard can show
+    /// which rows are worth opening without fetching them all.
+    pub fn payment_event_counts(&self) -> Result<std::collections::HashMap<String, i64>> {
+        self.with(|conn| {
+            let mut stmt = conn.prepare(
+                "SELECT user_id, COUNT(*) FROM payment_events
+                 WHERE user_id IS NOT NULL GROUP BY user_id",
+            )?;
+            let rows = stmt.query_map([], |row| Ok((row.get::<_, String>(0)?, row.get(1)?)))?;
+            rows.collect::<rusqlite::Result<std::collections::HashMap<_, _>>>()
         })
     }
 
@@ -926,43 +940,84 @@ mod tests {
     }
 
     #[test]
-    fn a_database_from_an_earlier_version_gains_the_new_columns() {
-        // The shape v0.1.7 shipped: no subscribed_at, unsubscribed_at or
-        // last_seen_at, and no admin_sessions table.
-        let conn = Connection::open_in_memory().unwrap();
-        conn.execute_batch(
-            "CREATE TABLE users (
-                 id TEXT PRIMARY KEY, email TEXT NOT NULL UNIQUE,
-                 plan TEXT NOT NULL DEFAULT 'free',
-                 magic_token_hash TEXT, magic_expires INTEGER,
-                 session_token_hash TEXT, session_expires INTEGER,
-                 stripe_customer_id TEXT, stripe_subscription_id TEXT,
-                 subscription_status TEXT,
-                 created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL);
-             INSERT INTO users (id, email, plan, created_at, updated_at)
-             VALUES ('u1', 'old@example.com', 'free', 1, 1);",
+    fn payment_events_are_stored_once_per_stripe_event() {
+        let db = db();
+        let user = db.upsert_user("payer@example.com").unwrap();
+
+        db.record_payment_event(
+            "evt_1",
+            &user.id,
+            "invoice.paid",
+            Some("paid"),
+            Some(2000),
+            Some("usd"),
+            Some("in_1"),
+            now() - 60,
         )
         .unwrap();
-        conn.execute_batch(SCHEMA).unwrap();
-        for (table, column, decl) in ADDED_COLUMNS {
-            add_missing_column(&conn, table, column, decl).unwrap();
-        }
-        let db = Db {
-            conn: Arc::new(Mutex::new(conn)),
-        };
+        // Stripe redelivers on any non-2xx; the event id keeps that to one row.
+        db.record_payment_event(
+            "evt_1",
+            &user.id,
+            "invoice.paid",
+            Some("paid"),
+            Some(2000),
+            Some("usd"),
+            Some("in_1"),
+            now() - 60,
+        )
+        .unwrap();
+        db.record_payment_event(
+            "evt_2",
+            &user.id,
+            "customer.subscription.deleted",
+            Some("canceled"),
+            None,
+            None,
+            Some("sub_1"),
+            now(),
+        )
+        .unwrap();
 
-        // The account survived, and the dashboard can read it.
+        let events = db.payment_events_for_user(&user.id, 100).unwrap();
+        assert_eq!(events.len(), 2);
+        // Newest first.
+        assert_eq!(events[0].id, "evt_2");
+        assert_eq!(events[0].amount_cents, None);
+        assert_eq!(events[1].event_type, "invoice.paid");
+        assert_eq!(events[1].amount_cents, Some(2000));
+        assert_eq!(events[1].currency.as_deref(), Some("usd"));
+
+        let counts = db.payment_event_counts().unwrap();
+        assert_eq!(counts.get(&user.id).copied(), Some(2));
+
+        // An account nobody has paid for has no history and no count.
+        let other = db.upsert_user("free@example.com").unwrap();
+        assert!(db
+            .payment_events_for_user(&other.id, 100)
+            .unwrap()
+            .is_empty());
+        assert!(!counts.contains_key(&other.id));
+    }
+
+    #[test]
+    fn the_dashboard_row_carries_its_billing_count() {
+        let db = db();
+        let user = db.upsert_user("payer@example.com").unwrap();
+        db.record_payment_event(
+            "evt_1",
+            &user.id,
+            "invoice.paid",
+            None,
+            Some(2000),
+            Some("usd"),
+            None,
+            now(),
+        )
+        .unwrap();
+        let counts = db.payment_event_counts().unwrap();
         let rows = db.admin_user_rows(604_800, 10).unwrap();
-        assert_eq!(rows.len(), 1);
-        assert_eq!(rows[0].email, "old@example.com");
-        assert!(rows[0].last_seen_at.is_none());
-        assert_eq!(db.user_count().unwrap(), 1);
-
-        // And the columns really are usable, not just absent-tolerated.
-        db.touch_last_seen("u1").unwrap();
-        assert!(db.admin_user_rows(604_800, 10).unwrap()[0]
-            .last_seen_at
-            .is_some());
+        assert_eq!(counts.get(&rows[0].id).copied(), Some(1));
     }
 
     #[test]

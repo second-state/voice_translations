@@ -28,6 +28,7 @@ mod billing;
 mod config;
 mod db;
 mod error;
+mod migrations;
 mod quota;
 
 use std::sync::Arc;
@@ -166,6 +167,7 @@ async fn main() -> anyhow::Result<()> {
         .route("/admin/logout", post(admin::logout))
         .route("/api/admin/session", get(admin::session))
         .route("/api/admin/users", get(admin::users))
+        .route("/api/admin/users/{id}/payments", get(admin::payments))
         // Accounts
         .route("/auth/request", post(auth::request_link))
         .route("/verify", get(auth::verify))

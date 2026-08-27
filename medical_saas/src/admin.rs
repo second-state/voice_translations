@@ -14,7 +14,7 @@
 use std::time::Duration;
 
 use axum::{
-    extract::State,
+    extract::{Path, State},
     http::{header, HeaderMap, StatusCode},
     response::{Html, IntoResponse, Response},
     Json,
@@ -32,6 +32,10 @@ pub const ADMIN_COOKIE: &str = "ms_admin";
 /// user count for this kind of deployment, and a bound rather than an
 /// unbounded read of the table.
 const MAX_ROWS: i64 = 5_000;
+
+/// Billing events shown for one account. A monthly subscription generates a
+/// handful a year; this is a bound, not a page size anyone will reach.
+const MAX_EVENTS: i64 = 500;
 
 /// How long a wrong password takes to be told it is wrong. Guessing is a
 /// remote attack against one shared secret, so the cost per attempt is what
@@ -215,6 +219,7 @@ pub async fn users(
 
     let rows = state.db.admin_user_rows(quota::WINDOW_SECS, MAX_ROWS)?;
     let total = state.db.user_count()?;
+    let events = state.db.payment_event_counts()?;
 
     let mut users = Vec::with_capacity(rows.len());
     for row in &rows {
@@ -223,6 +228,12 @@ pub async fn users(
             // Derived rather than stored: an account can be signed in without
             // speaking, and a long visit leaves no page loads behind.
             obj.insert("last_active".into(), json!(row.last_active()));
+            // Just the count, so the table can say which rows have a billing
+            // history worth opening without carrying every event.
+            obj.insert(
+                "payment_events".into(),
+                json!(events.get(&row.id).copied().unwrap_or(0)),
+            );
         }
         users.push(value);
     }
@@ -236,6 +247,31 @@ pub async fn users(
         "free_words_per_week": state.cfg.quota.free_words_per_week,
         "billing_enabled": state.cfg.stripe.enabled(),
         "generated_at": db::now(),
+    }))
+    .into_response())
+}
+
+/// GET /api/admin/users/{id}/payments — one account's billing history.
+///
+/// Fetched when a row is opened rather than with the list: most accounts have
+/// none, and the ones that do are read one at a time.
+pub async fn payments(
+    State(state): State<SaasState>,
+    headers: HeaderMap,
+    Path(user_id): Path<String>,
+) -> Result<Response, AppError> {
+    require_admin(&state, &headers)?;
+
+    let Some(user) = state.db.user_by_id(&user_id)? else {
+        return Err(AppError::NotFound("No such account.".to_string()));
+    };
+    let events = state.db.payment_events_for_user(&user.id, MAX_EVENTS)?;
+
+    Ok(Json(json!({
+        "user": { "id": user.id, "email": user.email },
+        "events": events,
+        "stripe_customer_id": user.stripe_customer_id,
+        "stripe_subscription_id": user.stripe_subscription_id,
     }))
     .into_response())
 }

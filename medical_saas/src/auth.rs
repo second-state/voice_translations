@@ -31,13 +31,19 @@ pub const SESSION_COOKIE: &str = "ms_session";
 /// The account behind this request, or `None` for an anonymous visitor.
 pub fn current_user(state: &SaasState, headers: &HeaderMap) -> Option<User> {
     let token = session_cookie(headers)?;
-    match state.db.user_by_session(&token) {
+    let user = match state.db.user_by_session(&token) {
         Ok(user) => user,
         Err(err) => {
             tracing::error!("session lookup failed: {err:#}");
             None
         }
+    }?;
+    // Cheap and throttled inside the database: a request every few seconds
+    // does not become a write every few seconds.
+    if let Err(err) = state.db.touch_last_seen(&user.id) {
+        tracing::warn!("could not record activity for {}: {err:#}", user.email);
     }
+    Some(user)
 }
 
 /// The account behind this request, or a 401 telling the browser to log in.

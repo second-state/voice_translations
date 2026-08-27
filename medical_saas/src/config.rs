@@ -30,6 +30,7 @@ pub struct Settings {
     pub email: EmailConfig,
     pub quota: QuotaConfig,
     pub stripe: StripeConfig,
+    pub admin: AdminConfig,
 }
 
 impl AppConfig {
@@ -56,6 +57,7 @@ impl AppConfig {
         let medical = root.medical.normalized()?;
         let email = root.email.normalized()?;
         let quota = root.quota.validated()?;
+        let admin = root.admin.validated()?;
         Ok(Self {
             base,
             settings: Settings {
@@ -64,6 +66,7 @@ impl AppConfig {
                 email,
                 quota,
                 stripe: root.stripe,
+                admin,
             },
         })
     }
@@ -82,6 +85,8 @@ struct FileRoot {
     quota: QuotaConfig,
     #[serde(default)]
     stripe: StripeConfig,
+    #[serde(default)]
+    admin: AdminConfig,
 }
 
 /// Where accounts live and how long credentials last.
@@ -223,9 +228,54 @@ impl StripeConfig {
     }
 }
 
+/// The operator's dashboard at `/admin`.
+///
+/// One shared password rather than accounts of its own: the dashboard is for
+/// whoever runs the deployment, and a second account system to administer
+/// would be the thing most likely to go stale. Left empty the dashboard does
+/// not exist at all — no page, no API, nothing to guess at.
+#[derive(Debug, Default, Deserialize)]
+#[serde(default)]
+pub struct AdminConfig {
+    /// Password for `/admin`. Empty disables the dashboard.
+    pub password: String,
+    /// How long an admin stays signed in before typing it again.
+    pub session_hours: i64,
+}
+
+impl AdminConfig {
+    /// Whether the dashboard is served at all.
+    pub fn enabled(&self) -> bool {
+        !self.password.trim().is_empty()
+    }
+
+    /// How long an admin session lasts, in seconds.
+    pub fn session_secs(&self) -> i64 {
+        let hours = if self.session_hours > 0 {
+            self.session_hours
+        } else {
+            12
+        };
+        hours * 60 * 60
+    }
+
+    /// Short enough to be worth guessing. The dashboard lists every user's
+    /// address, so this is worth saying out loud at startup.
+    pub fn password_is_weak(&self) -> bool {
+        self.enabled() && self.password.trim().len() < 12
+    }
+
+    fn validated(self) -> Result<Self> {
+        if self.session_hours < 0 {
+            anyhow::bail!("[admin] session_hours cannot be negative");
+        }
+        Ok(self)
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{AuthConfig, EmailConfig, FileRoot, QuotaConfig};
+    use super::{AdminConfig, AuthConfig, EmailConfig, FileRoot, QuotaConfig};
 
     fn parse(toml: &str) -> anyhow::Result<(EmailConfig, QuotaConfig, AuthConfig)> {
         let root: FileRoot = toml::from_str(toml)?;
@@ -276,6 +326,40 @@ mod tests {
         assert!(err.to_string().contains("negative"));
         // Zero is legitimate: it makes the service paid-only.
         assert!(parse("[quota]\nfree_words_per_week = 0\n").is_ok());
+    }
+
+    #[test]
+    fn the_dashboard_is_off_until_a_password_is_set() {
+        let root: FileRoot = toml::from_str("").unwrap();
+        assert!(
+            !root.admin.enabled(),
+            "no [admin] section means no dashboard"
+        );
+
+        let root: FileRoot = toml::from_str("[admin]\npassword = \"   \"\n").unwrap();
+        assert!(!root.admin.enabled(), "whitespace is not a password");
+
+        let root: FileRoot =
+            toml::from_str("[admin]\npassword = \"a-long-enough-secret\"\n").unwrap();
+        assert!(root.admin.enabled());
+        assert!(!root.admin.password_is_weak());
+        assert_eq!(root.admin.session_secs(), 12 * 60 * 60);
+    }
+
+    #[test]
+    fn a_short_admin_password_is_flagged_but_still_works() {
+        let root: FileRoot = toml::from_str("[admin]\npassword = \"hunter2\"\n").unwrap();
+        assert!(root.admin.enabled());
+        assert!(root.admin.password_is_weak());
+    }
+
+    #[test]
+    fn a_negative_admin_session_is_a_startup_error() {
+        let cfg = AdminConfig {
+            password: "x".into(),
+            session_hours: -1,
+        };
+        assert!(cfg.validated().is_err());
     }
 
     #[test]

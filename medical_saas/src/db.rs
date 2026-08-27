@@ -87,6 +87,40 @@ impl User {
     }
 }
 
+/// One account as the operator's dashboard sees it: the account row plus the
+/// aggregates over its usage.
+#[derive(Debug, Clone, Serialize)]
+pub struct AdminUserRow {
+    pub id: String,
+    pub email: String,
+    pub plan: String,
+    pub subscription_status: Option<String>,
+    pub created_at: i64,
+    /// Last authenticated request, to the resolution below.
+    pub last_seen_at: Option<i64>,
+    pub subscribed_at: Option<i64>,
+    pub unsubscribed_at: Option<i64>,
+    /// Last turn actually spoken, which is a narrower thing than being seen.
+    pub last_used_at: Option<i64>,
+    pub words_window: i64,
+    pub words_total: i64,
+    pub turns: i64,
+}
+
+impl AdminUserRow {
+    /// The later of being seen and speaking. An account can be signed in
+    /// without saying anything, and a long visit leaves no page loads.
+    pub fn last_active(&self) -> Option<i64> {
+        match (self.last_seen_at, self.last_used_at) {
+            (Some(a), Some(b)) => Some(a.max(b)),
+            (a, b) => a.or(b),
+        }
+    }
+}
+
+/// How stale `last_seen_at` may get before another write is worth it.
+const LAST_SEEN_RESOLUTION_SECS: i64 = 300;
+
 pub const PLAN_FREE: &str = "free";
 pub const PLAN_PRO: &str = "pro";
 
@@ -105,6 +139,9 @@ CREATE TABLE IF NOT EXISTS users (
     stripe_customer_id     TEXT,
     stripe_subscription_id TEXT,
     subscription_status    TEXT,
+    subscribed_at          INTEGER,
+    unsubscribed_at        INTEGER,
+    last_seen_at           INTEGER,
     created_at             INTEGER NOT NULL,
     updated_at             INTEGER NOT NULL
 );
@@ -126,7 +163,50 @@ CREATE TABLE IF NOT EXISTS word_usage (
 );
 
 CREATE INDEX IF NOT EXISTS idx_usage_user_time ON word_usage(user_id, created_at);
+
+-- Signed-in admins. Separate from user sessions: the dashboard is not an
+-- account, it is one shared password, and its sessions die when that
+-- password changes.
+CREATE TABLE IF NOT EXISTS admin_sessions (
+    token_hash    TEXT PRIMARY KEY,
+    password_hash TEXT NOT NULL,
+    created_at    INTEGER NOT NULL,
+    expires_at    INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_admin_sessions_expiry ON admin_sessions(expires_at);
 ";
+
+/// Columns added after the first release. `CREATE TABLE IF NOT EXISTS` does
+/// nothing to a table that already exists, so a database from an earlier
+/// version needs them added explicitly.
+const ADDED_COLUMNS: &[(&str, &str, &str)] = &[
+    ("users", "subscribed_at", "INTEGER"),
+    ("users", "unsubscribed_at", "INTEGER"),
+    ("users", "last_seen_at", "INTEGER"),
+];
+
+/// Add a column that an older database is missing. Table and column names
+/// here are literals from [`ADDED_COLUMNS`], never anything a request
+/// supplies.
+fn add_missing_column(
+    conn: &Connection,
+    table: &str,
+    column: &str,
+    decl: &str,
+) -> rusqlite::Result<()> {
+    let present = conn
+        .prepare(&format!("PRAGMA table_info({table})"))?
+        .query_map([], |row| row.get::<_, String>(1))?
+        .collect::<rusqlite::Result<Vec<_>>>()?
+        .iter()
+        .any(|name| name == column);
+    if !present {
+        conn.execute_batch(&format!("ALTER TABLE {table} ADD COLUMN {column} {decl}"))?;
+        tracing::info!("account database migrated: added {table}.{column}");
+    }
+    Ok(())
+}
 
 /// Handle to the account database.
 #[derive(Clone)]
@@ -143,6 +223,10 @@ impl Db {
         })?;
         conn.execute_batch(SCHEMA)
             .context("failed to apply the account database schema")?;
+        for (table, column, decl) in ADDED_COLUMNS {
+            add_missing_column(&conn, table, column, decl)
+                .with_context(|| format!("failed to add {table}.{column}"))?;
+        }
         Ok(Self {
             conn: Arc::new(Mutex::new(conn)),
         })
@@ -325,6 +409,10 @@ impl Db {
                 "UPDATE users SET plan = ?1, subscription_status = ?2,
                         stripe_customer_id = COALESCE(?3, stripe_customer_id),
                         stripe_subscription_id = COALESCE(?4, stripe_subscription_id),
+                        -- A renewal must not move the date they subscribed;
+                        -- only the free-to-paid transition does.
+                        subscribed_at = CASE WHEN plan = ?1 THEN COALESCE(subscribed_at, ?5)
+                                             ELSE ?5 END,
                         updated_at = ?5
                  WHERE id = ?6",
                 params![
@@ -345,7 +433,8 @@ impl Db {
     pub fn deactivate_subscription(&self, user_id: &str, status: &str) -> Result<()> {
         self.with(|conn| {
             conn.execute(
-                "UPDATE users SET plan = ?1, subscription_status = ?2, updated_at = ?3
+                "UPDATE users SET plan = ?1, subscription_status = ?2,
+                        unsubscribed_at = ?3, updated_at = ?3
                  WHERE id = ?4",
                 params![PLAN_FREE, status, now(), user_id],
             )
@@ -386,6 +475,117 @@ impl Db {
             Some(email) => self.user_by_email(email),
             None => Ok(None),
         }
+    }
+
+    /// Note that this account did something just now.
+    ///
+    /// Called on every authenticated request, so it writes at most once every
+    /// few minutes per account: the dashboard wants to know who is still
+    /// around, not to the second.
+    pub fn touch_last_seen(&self, user_id: &str) -> Result<()> {
+        let ts = now();
+        self.with(|conn| {
+            conn.execute(
+                "UPDATE users SET last_seen_at = ?1 WHERE id = ?2
+                 AND (last_seen_at IS NULL OR last_seen_at < ?3)",
+                params![ts, user_id, ts - LAST_SEEN_RESOLUTION_SECS],
+            )
+        })?;
+        Ok(())
+    }
+
+    /// Open an admin session. The password's hash is stored alongside it, so
+    /// changing the password in the configuration ends every session that was
+    /// opened with the old one.
+    pub fn set_admin_session(&self, token: &str, password_hash: &str, expires: i64) -> Result<()> {
+        let hash = hash_token(token);
+        let ts = now();
+        self.with(|conn| {
+            conn.execute("DELETE FROM admin_sessions WHERE expires_at <= ?1", params![ts])?;
+            conn.execute(
+                "INSERT OR REPLACE INTO admin_sessions (token_hash, password_hash, created_at, expires_at)
+                 VALUES (?1, ?2, ?3, ?4)",
+                params![hash, password_hash, ts, expires],
+            )
+        })?;
+        Ok(())
+    }
+
+    /// Whether this cookie is a live admin session opened with the password
+    /// currently configured.
+    pub fn admin_session_valid(&self, token: &str, password_hash: &str) -> Result<bool> {
+        let hash = hash_token(token);
+        let ts = now();
+        self.with(|conn| {
+            conn.query_row(
+                "SELECT COUNT(*) FROM admin_sessions
+                 WHERE token_hash = ?1 AND password_hash = ?2 AND expires_at > ?3",
+                params![hash, password_hash, ts],
+                |r| r.get::<_, i64>(0),
+            )
+        })
+        .map(|n| n > 0)
+    }
+
+    pub fn clear_admin_session(&self, token: &str) -> Result<()> {
+        let hash = hash_token(token);
+        self.with(|conn| {
+            conn.execute(
+                "DELETE FROM admin_sessions WHERE token_hash = ?1",
+                params![hash],
+            )
+        })?;
+        Ok(())
+    }
+
+    /// Every account with the numbers the dashboard shows, newest first.
+    ///
+    /// One statement rather than a query per user: the two aggregates over
+    /// the usage ledger are grouped once and joined, so the cost does not
+    /// grow with the number of accounts on the page.
+    pub fn admin_user_rows(&self, window_secs: i64, limit: i64) -> Result<Vec<AdminUserRow>> {
+        let cutoff = now() - window_secs;
+        self.with(|conn| {
+            let mut stmt = conn.prepare(
+                "SELECT u.id, u.email, u.plan, u.subscription_status, u.created_at,
+                        u.last_seen_at, u.subscribed_at, u.unsubscribed_at,
+                        COALESCE(all_time.words, 0), COALESCE(all_time.turns, 0),
+                        all_time.last_used, COALESCE(recent.words, 0)
+                 FROM users u
+                 LEFT JOIN (SELECT user_id, SUM(words) AS words, COUNT(*) AS turns,
+                                   MAX(created_at) AS last_used
+                            FROM word_usage GROUP BY user_id) all_time
+                        ON all_time.user_id = u.id
+                 LEFT JOIN (SELECT user_id, SUM(words) AS words FROM word_usage
+                            WHERE created_at > ?1 GROUP BY user_id) recent
+                        ON recent.user_id = u.id
+                 ORDER BY u.created_at DESC
+                 LIMIT ?2",
+            )?;
+            let rows = stmt.query_map(params![cutoff, limit], |row| {
+                Ok(AdminUserRow {
+                    id: row.get(0)?,
+                    email: row.get(1)?,
+                    plan: row.get(2)?,
+                    subscription_status: row.get(3)?,
+                    created_at: row.get(4)?,
+                    last_seen_at: row.get(5)?,
+                    subscribed_at: row.get(6)?,
+                    unsubscribed_at: row.get(7)?,
+                    words_total: row.get(8)?,
+                    turns: row.get(9)?,
+                    last_used_at: row.get(10)?,
+                    words_window: row.get(11)?,
+                })
+            })?;
+            rows.collect::<rusqlite::Result<Vec<_>>>()
+        })
+    }
+
+    /// How many accounts exist, which the page reports when the list is
+    /// capped.
+    pub fn user_count(&self) -> Result<i64> {
+        self.with(|conn| conn.query_row("SELECT COUNT(*) FROM users", [], |r| r.get(0)))
     }
 }
 
@@ -556,6 +756,213 @@ mod tests {
             .user_for_stripe(Some("nope"), Some("nope"), Some("nope"), Some("no@one.com"))
             .unwrap()
             .is_none());
+    }
+
+    #[test]
+    fn the_dashboard_query_reports_usage_inside_and_outside_the_window() {
+        let db = db();
+        let quiet = db.upsert_user("quiet@example.com").unwrap();
+        let busy = db.upsert_user("busy@example.com").unwrap();
+
+        db.record_words(&busy.id, 120, "clinician").unwrap();
+        db.record_words(&busy.id, 80, "patient").unwrap();
+        // One turn older than the window: all-time counts it, this week does not.
+        db.record_words(&busy.id, 500, "patient").unwrap();
+        db.with(|c| {
+            c.execute(
+                "UPDATE word_usage SET created_at = ?1 WHERE words = 500",
+                params![now() - 604_800 - 60],
+            )
+        })
+        .unwrap();
+
+        let rows = db.admin_user_rows(604_800, 100).unwrap();
+        assert_eq!(rows.len(), 2);
+        let row = rows.iter().find(|r| r.id == busy.id).unwrap();
+        assert_eq!(row.words_window, 200);
+        assert_eq!(row.words_total, 700);
+        assert_eq!(row.turns, 3);
+        assert!(row.last_used_at.is_some());
+
+        // An account that has never spoken still appears, with zeros.
+        let row = rows.iter().find(|r| r.id == quiet.id).unwrap();
+        assert_eq!((row.words_window, row.words_total, row.turns), (0, 0, 0));
+        assert!(row.last_used_at.is_none());
+        assert!(row.last_active().is_none());
+    }
+
+    #[test]
+    fn last_active_takes_the_later_of_being_seen_and_speaking() {
+        let db = db();
+        let user = db.upsert_user("a@b.com").unwrap();
+        db.touch_last_seen(&user.id).unwrap();
+        let seen_only = db.admin_user_rows(604_800, 10).unwrap();
+        let row = &seen_only[0];
+        assert!(row.last_seen_at.is_some() && row.last_used_at.is_none());
+        assert_eq!(row.last_active(), row.last_seen_at);
+
+        // A turn spoken after that moves it on.
+        db.with(|c| {
+            c.execute(
+                "UPDATE users SET last_seen_at = ?1 WHERE id = ?2",
+                params![now() - 900, user.id],
+            )
+        })
+        .unwrap();
+        db.record_words(&user.id, 10, "patient").unwrap();
+        let row = db.admin_user_rows(604_800, 10).unwrap().remove(0);
+        assert_eq!(row.last_active(), row.last_used_at);
+    }
+
+    #[test]
+    fn last_seen_is_not_rewritten_on_every_request() {
+        let db = db();
+        let user = db.upsert_user("a@b.com").unwrap();
+        db.touch_last_seen(&user.id).unwrap();
+        let first: i64 = db
+            .with(|c| {
+                c.query_row(
+                    "SELECT last_seen_at FROM users WHERE id = ?1",
+                    params![user.id],
+                    |r| r.get(0),
+                )
+            })
+            .unwrap();
+
+        // A second request moments later leaves the stamp alone.
+        db.touch_last_seen(&user.id).unwrap();
+        let again: i64 = db
+            .with(|c| {
+                c.query_row(
+                    "SELECT last_seen_at FROM users WHERE id = ?1",
+                    params![user.id],
+                    |r| r.get(0),
+                )
+            })
+            .unwrap();
+        assert_eq!(first, again);
+
+        // Once the stamp is stale, the next request refreshes it.
+        db.with(|c| {
+            c.execute(
+                "UPDATE users SET last_seen_at = ?1 WHERE id = ?2",
+                params![now() - LAST_SEEN_RESOLUTION_SECS - 1, user.id],
+            )
+        })
+        .unwrap();
+        db.touch_last_seen(&user.id).unwrap();
+        let refreshed: i64 = db
+            .with(|c| {
+                c.query_row(
+                    "SELECT last_seen_at FROM users WHERE id = ?1",
+                    params![user.id],
+                    |r| r.get(0),
+                )
+            })
+            .unwrap();
+        assert!(refreshed > now() - 5);
+    }
+
+    #[test]
+    fn subscribing_is_dated_once_and_cancelling_is_dated_too() {
+        let db = db();
+        let user = db.upsert_user("a@b.com").unwrap();
+        db.activate_subscription(&user.id, Some("cus_1"), Some("sub_1"), "active")
+            .unwrap();
+        let subscribed = db
+            .admin_user_rows(604_800, 10)
+            .unwrap()
+            .remove(0)
+            .subscribed_at;
+        assert!(subscribed.is_some());
+
+        // A renewal keeps the original date rather than moving it forward.
+        db.with(|c| {
+            c.execute(
+                "UPDATE users SET subscribed_at = ?1 WHERE id = ?2",
+                params![now() - 86_400, user.id],
+            )
+        })
+        .unwrap();
+        db.activate_subscription(&user.id, None, None, "active")
+            .unwrap();
+        let row = db.admin_user_rows(604_800, 10).unwrap().remove(0);
+        assert_eq!(row.subscribed_at, Some(now() - 86_400));
+        assert!(row.unsubscribed_at.is_none());
+
+        db.deactivate_subscription(&user.id, "canceled").unwrap();
+        let row = db.admin_user_rows(604_800, 10).unwrap().remove(0);
+        assert!(row.unsubscribed_at.is_some());
+        // The date they first subscribed survives the cancellation.
+        assert_eq!(row.subscribed_at, Some(now() - 86_400));
+
+        // Subscribing again after a cancellation does move the date.
+        db.activate_subscription(&user.id, None, None, "active")
+            .unwrap();
+        let row = db.admin_user_rows(604_800, 10).unwrap().remove(0);
+        assert!(row.subscribed_at.unwrap() > now() - 5);
+    }
+
+    #[test]
+    fn admin_sessions_expire_and_die_with_the_password() {
+        let db = db();
+        let token = generate_token();
+        let pw = hash_token("correct horse battery staple");
+        db.set_admin_session(&token, &pw, now() + 3600).unwrap();
+        assert!(db.admin_session_valid(&token, &pw).unwrap());
+
+        // A different password means this session was opened with the old one.
+        assert!(!db
+            .admin_session_valid(&token, &hash_token("rotated"))
+            .unwrap());
+        assert!(!db.admin_session_valid("not-a-token", &pw).unwrap());
+
+        db.clear_admin_session(&token).unwrap();
+        assert!(!db.admin_session_valid(&token, &pw).unwrap());
+
+        let stale = generate_token();
+        db.set_admin_session(&stale, &pw, now() - 1).unwrap();
+        assert!(!db.admin_session_valid(&stale, &pw).unwrap());
+    }
+
+    #[test]
+    fn a_database_from_an_earlier_version_gains_the_new_columns() {
+        // The shape v0.1.7 shipped: no subscribed_at, unsubscribed_at or
+        // last_seen_at, and no admin_sessions table.
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch(
+            "CREATE TABLE users (
+                 id TEXT PRIMARY KEY, email TEXT NOT NULL UNIQUE,
+                 plan TEXT NOT NULL DEFAULT 'free',
+                 magic_token_hash TEXT, magic_expires INTEGER,
+                 session_token_hash TEXT, session_expires INTEGER,
+                 stripe_customer_id TEXT, stripe_subscription_id TEXT,
+                 subscription_status TEXT,
+                 created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL);
+             INSERT INTO users (id, email, plan, created_at, updated_at)
+             VALUES ('u1', 'old@example.com', 'free', 1, 1);",
+        )
+        .unwrap();
+        conn.execute_batch(SCHEMA).unwrap();
+        for (table, column, decl) in ADDED_COLUMNS {
+            add_missing_column(&conn, table, column, decl).unwrap();
+        }
+        let db = Db {
+            conn: Arc::new(Mutex::new(conn)),
+        };
+
+        // The account survived, and the dashboard can read it.
+        let rows = db.admin_user_rows(604_800, 10).unwrap();
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].email, "old@example.com");
+        assert!(rows[0].last_seen_at.is_none());
+        assert_eq!(db.user_count().unwrap(), 1);
+
+        // And the columns really are usable, not just absent-tolerated.
+        db.touch_last_seen("u1").unwrap();
+        assert!(db.admin_user_rows(604_800, 10).unwrap()[0]
+            .last_seen_at
+            .is_some());
     }
 
     #[test]

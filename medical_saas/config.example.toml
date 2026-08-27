@@ -157,3 +157,18 @@ webhook_secret = ""
 # checkout, so keep this in step with it by hand. Left empty, the page prints
 # its built-in figure, $20 / month; set this if you charge anything else.
 #price_display = "$35 / month"
+
+# ---------------------------------------------------------------------------
+# The operator's dashboard at /admin: every account, when it was last active,
+# what it is paying, and how many words it has spoken.
+#
+# Left empty, the dashboard does not exist — /admin and its API answer 404,
+# so a deployment that does not want it is not running a login form over its
+# own user list. Set a password and it appears.
+[admin]
+# The only thing between the internet and every user's email address. Make it
+# long; the server says so at startup if it is under 12 characters.
+password = ""
+# How long an admin stays signed in before typing it again. Changing the
+# password above ends every session opened with the old one.
+session_hours = 12

@@ -56,6 +56,7 @@ English rather than showing a bare key.
 | `/` | Public landing page: what the service does, and the free vs. subscription plans. Links straight into the app when a session is found. |
 | `/login` | Sign-in page: enter an email, receive a link. |
 | `/app` | The translator console. Anonymous visitors are sent to `/login`, and every API it calls requires a session regardless. |
+| `/admin` | The operator's dashboard, behind one password. Absent entirely unless `[admin] password` is set. |
 
 ## Accounts
 
@@ -106,6 +107,50 @@ window** (`[quota] free_words_per_week`). Paid accounts are unlimited.
 An account that is out of words gets HTTP 402 with its current standing
 attached, on both `/api/transcribe` and `/api/translate`, so a client that
 ignores the first cannot simply call the second.
+
+## The dashboard
+
+Set a password and `/admin` shows every account: address, plan, when they
+subscribed or cancelled, when they were last active, and the words they have
+spoken — this rolling week and in total. The list sorts by any column and
+filters by plan, by activity, and by a search on the address.
+
+```toml
+[admin]
+password = "something long and random"
+session_hours = 12
+```
+
+Leave `password` empty and the dashboard is not there: `/admin`, its script,
+and every `/api/admin/*` route answer 404, so a deployment that does not want
+one is not quietly running a login form over its own user list. The server
+says at startup whether the dashboard is on, and warns when the password is
+under 12 characters — it is the only thing between the internet and every
+user's email address.
+
+There is no admin account, just the password. It buys a session cookie
+(`HttpOnly`, `SameSite=Lax`, `Secure` behind HTTPS) rather than being re-sent
+with each request, and the session records a hash of the password that opened
+it: **change the password and restart, and every session opened with the old
+one stops working.** That is the way to cut off a password you think has
+leaked. A wrong guess takes 600 ms to be told so, which is what makes guessing
+at a single shared secret impractical; the delay is fixed rather than
+escalating, so nobody can lock the operator out by guessing badly on purpose.
+
+Two columns are worth knowing how they are built:
+
+- **Last active** is the later of two things — the last request made with a
+  session, and the last turn actually spoken. An account can be signed in
+  without saying anything, and a long visit leaves no page loads behind. The
+  first is recorded at most once every five minutes per account, so a polling
+  console does not turn into a write per request.
+- **Words this week** is the same rolling seven-day sum the quota enforces, so
+  a free account at or over its allowance is shown in amber. **Words total**
+  is every turn ever recorded.
+
+The dashboard reads; it does not write. There is no way to change a plan, edit
+an account, or read a transcript from it — transcripts are never on the server
+to begin with.
 
 ## Subscriptions
 
@@ -340,12 +385,15 @@ edition adds:
 | `[stripe]` | `secret_key`, `price_id` | Checkout for the monthly plan; empty disables billing |
 | `[stripe]` | `webhook_secret` | Endpoint signing secret; without it deliveries are refused |
 | `[stripe]` | `price_display` | Optional, cosmetic: overrides the $20 / month the landing page shows by default |
+| `[admin]` | `password` | Password for `/admin`; empty means no dashboard at all |
+| `[admin]` | `session_hours` | How long an admin stays signed in (default 12) |
 
 ## Layout
 
 ```
 src/
 ├── main.rs        # router and startup
+├── admin.rs       # the operator's dashboard, behind one password
 ├── config.rs      # [auth] [email] [quota] [stripe]; [medical] and the
 │                  #   library sections are parsed by the crates that own them
 ├── api.rs         # handlers: resolve the account, enforce quota, delegate

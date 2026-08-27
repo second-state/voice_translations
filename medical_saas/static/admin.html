@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Admin · Medical Translator</title>
+<style>
+:root {
+  --bg: #0e1117;
+  --panel: #161b24;
+  --panel-2: #1d2430;
+  --border: #2a3342;
+  --text: #e6ebf2;
+  --muted: #8b96a8;
+  --accent: #4f8cff;
+  --green: #2dd4a7;
+  --red: #ff6b6b;
+  --amber: #ffb454;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 22px;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+}
+.topbar h1 { font-size: 16px; margin: 0; font-weight: 600; }
+.topbar .tag {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  background: rgba(79, 140, 255, 0.12);
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+.spacer { flex: 1; }
+
+.btn {
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+}
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn:disabled { opacity: 0.55; cursor: default; filter: none; }
+
+.wrap { padding: 22px; }
+
+/* ---------- Password gate ---------- */
+.gate {
+  max-width: 380px;
+  margin: 12vh auto 0;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 26px;
+}
+.gate h2 { margin: 0 0 6px; font-size: 17px; }
+.gate p { margin: 0 0 18px; color: var(--muted); font-size: 13px; }
+.gate form { display: flex; flex-direction: column; gap: 12px; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label { font-size: 12px; color: var(--muted); }
+
+input[type="password"], input[type="search"], select {
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 11px;
+  font-size: 14px;
+  font-family: inherit;
+}
+input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+
+.error {
+  color: var(--red);
+  font-size: 13px;
+  background: rgba(255, 107, 107, 0.1);
+  border-radius: 8px;
+  padding: 9px 12px;
+}
+
+/* ---------- Controls ---------- */
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.controls input[type="search"] { flex: 1 1 260px; min-width: 0; max-width: 420px; }
+.summary { color: var(--muted); font-size: 13px; margin-bottom: 16px; }
+.summary b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* ---------- Table ---------- */
+.table-wrap {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: auto;
+  background: var(--panel);
+  max-height: calc(100vh - 240px);
+}
+table { border-collapse: collapse; width: 100%; }
+thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--panel-2);
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  padding: 10px 14px;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+}
+thead th:hover { color: var(--text); }
+thead th .arrow { color: var(--accent); }
+tbody td {
+  border-bottom: 1px solid var(--border);
+  padding: 10px 14px;
+  vertical-align: middle;
+}
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover { background: rgba(79, 140, 255, 0.05); }
+td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+td.email { font-weight: 500; }
+.muted { color: var(--muted); }
+.stale { color: var(--muted); }
+
+.pill {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.pill.free { background: var(--panel-2); color: var(--muted); }
+.pill.pro { background: rgba(45, 212, 167, 0.16); color: var(--green); }
+.pill.past_due { background: rgba(255, 180, 84, 0.16); color: var(--amber); }
+
+/* A free account that has spent its week. */
+.over { color: var(--amber); }
+
+.empty { padding: 40px; text-align: center; color: var(--muted); }
+
+@media (max-width: 720px) {
+  .wrap { padding: 14px; }
+  .topbar { padding: 12px 14px; }
+  .table-wrap { max-height: none; }
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <h1>Medical Translator</h1>
+  <span class="tag">Admin</span>
+  <span class="spacer"></span>
+  <button class="btn" id="refresh" hidden>Refresh</button>
+  <button class="btn" id="signout" hidden>Sign out</button>
+</header>
+
+<!-- Shown until the password is accepted. -->
+<section class="gate" id="gate" hidden>
+  <h2>Dashboard</h2>
+  <p>This page is for whoever runs this deployment.</p>
+  <form id="loginForm">
+    <div class="field">
+      <label for="password">Password</label>
+      <input type="password" id="password" autocomplete="current-password" required autofocus>
+    </div>
+    <div class="error" id="loginError" hidden></div>
+    <button class="btn primary" type="submit" id="loginButton">Sign in</button>
+  </form>
+</section>
+
+<main class="wrap" id="dashboard" hidden>
+  <div class="controls">
+    <input type="search" id="search" placeholder="Search email…" autocomplete="off" spellcheck="false">
+    <select id="planFilter" aria-label="Plan">
+      <option value="all">All plans</option>
+      <option value="pro">Paid</option>
+      <option value="free">Free</option>
+    </select>
+    <select id="activityFilter" aria-label="Activity">
+      <option value="all">Any activity</option>
+      <option value="week">Active this week</option>
+      <option value="spoken">Has spoken</option>
+      <option value="never">Never spoken</option>
+    </select>
+  </div>
+
+  <p class="summary" id="summary"></p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th data-sort="email">Email</th>
+          <th data-sort="plan">Plan</th>
+          <th data-sort="subscribed">Subscription</th>
+          <th data-sort="last_active">Last active</th>
+          <th data-sort="words_window" class="num">Words this week</th>
+          <th data-sort="words_total" class="num">Words total</th>
+          <th data-sort="created_at">Joined</th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <div class="empty" id="empty" hidden>No accounts match.</div>
+  </div>
+</main>
+
+<script src="/admin.js"></script>
+</body>
+</html>

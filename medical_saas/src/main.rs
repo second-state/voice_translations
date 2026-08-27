@@ -21,6 +21,7 @@
 /// the sign-in email still using the old name.
 pub const BRAND: &str = "Medical Translator";
 
+mod admin;
 mod api;
 mod auth;
 mod billing;
@@ -102,6 +103,18 @@ async fn main() -> anyhow::Result<()> {
             }
         );
     }
+    if settings.admin.enabled() {
+        tracing::info!(
+            "admin dashboard at /admin (sessions last {} hours)",
+            settings.admin.session_secs() / 3600
+        );
+        if settings.admin.password_is_weak() {
+            tracing::warn!(
+                "[admin] password is under 12 characters. It is the only thing between the \
+                 internet and every user's email address; make it long."
+            );
+        }
+    }
     if !settings.stripe.enabled() {
         tracing::warn!(
             "[stripe] is not configured: every account stays on the free plan and the \
@@ -145,6 +158,14 @@ async fn main() -> anyhow::Result<()> {
         .route("/i18n.js", get(i18n_js))
         .route("/style.css", get(style_css))
         .route("/home.css", get(home_css))
+        // The operator's dashboard, gated by one password from config.toml.
+        // Every route 404s when none is set.
+        .route("/admin", get(admin::page))
+        .route("/admin.js", get(admin::script))
+        .route("/admin/login", post(admin::login))
+        .route("/admin/logout", post(admin::logout))
+        .route("/api/admin/session", get(admin::session))
+        .route("/api/admin/users", get(admin::users))
         // Accounts
         .route("/auth/request", post(auth::request_link))
         .route("/verify", get(auth::verify))

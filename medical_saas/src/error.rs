@@ -22,6 +22,9 @@ pub enum AppError {
     BadRequest(String),
     /// A feature that this deployment has not configured.
     Unavailable(String),
+    /// Nothing here — including a feature switched off by configuration,
+    /// which should not advertise that it exists.
+    NotFound(String),
     /// A Stripe webhook whose signature did not verify.
     WebhookVerificationFailed,
     Internal(anyhow::Error),
@@ -43,6 +46,7 @@ impl IntoResponse for AppError {
             AppError::Unavailable(msg) => {
                 (StatusCode::SERVICE_UNAVAILABLE, "unavailable", msg, None)
             }
+            AppError::NotFound(message) => (StatusCode::NOT_FOUND, "not_found", message, None),
             AppError::WebhookVerificationFailed => (
                 StatusCode::BAD_REQUEST,
                 "webhook_verification_failed",

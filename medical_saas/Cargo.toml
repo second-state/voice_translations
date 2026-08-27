@@ -1,6 +1,6 @@
 [package]
 name = "medical-saas"
-version = "0.1.7"
+version = "0.1.8"
 edition = "2021"
 description = "The medical translator as a hosted service: accounts, magic-link login, a rolling weekly word quota, and Stripe subscriptions"
 license = "Apache-2.0"

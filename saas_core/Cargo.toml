@@ -1,6 +1,6 @@
 [package]
 name = "saas-core"
-version = "0.1.8"
+version = "0.1.9"
 edition = "2021"
 description = "The hosted-service layer the *_saas apps share: accounts, magic-link sign-in, a rolling weekly word quota, Stripe subscriptions, and the operator's dashboard"
 license = "Apache-2.0"

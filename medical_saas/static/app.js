@@ -1179,6 +1179,15 @@ function wrapText(text, indent = '') {
   return out;
 }
 
+function downloadFile(filename, content) {
+  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
 function fmtClock(ts) {
   return new Date(ts).toTimeString().slice(0, 8);
 }

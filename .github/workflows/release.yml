@@ -142,7 +142,8 @@ jobs:
           for pair in \
             "conf-translations:conf_translations" \
             "medical-translations:medical_translations" \
-            "medical-saas:medical_saas"; do
+            "medical-saas:medical_saas" \
+            "conf-saas:conf_saas"; do
             app="${pair%%:*}"
             dir="${pair##*:}"
             name="$app-$version-$target"
@@ -188,7 +189,7 @@ jobs:
           tag="${{ inputs.version }}"
           version="${tag#v}"
           cat > notes.md <<EOF
-          Three self-contained apps, built from this tag. Each archive holds
+          Four self-contained apps, built from this tag. Each archive holds
           one binary, its \`config.example.toml\`, and its README — the Silero
           VAD and onnxruntime assets are compiled into the binary, so there is
           nothing else to install.
@@ -197,7 +198,8 @@ jobs:
           | --- | --- | --- |
           | \`conf-translations\` | Conference-call translator, tuned per call type | 8080 |
           | \`medical-translations\` | Patient/clinician interpreter, tuned per specialty | 8090 |
-          | \`medical-saas\` | The interpreter as a service: accounts, weekly quota, Stripe plans | 8100 |
+          | \`medical-saas\` | The medical translator as a service: accounts, weekly quota, Stripe plans | 8100 |
+          | \`conf-saas\` | The conference translator as the same service | 8110 |
 
           Pick \`x86_64-unknown-linux-musl\` unless you have a reason not to:
           it is statically linked and runs on any Linux. The \`-gnu\` build

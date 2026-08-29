@@ -7,12 +7,13 @@
 #   medical-saas          — the medical translator as a hosted service:
 #                           accounts, magic-link login, weekly word quota,
 #                           Stripe plans
+#   conf-saas             — the conference translator as the same service
 #   saas-core             — the service layer those hosted apps share
 #                           (a library, like this one)
 # `cargo build --release` builds every app into target/release/.
 [workspace]
-members = ["conf_translations", "medical_saas", "medical_translations", "saas_core"]
-default-members = [".", "conf_translations", "medical_saas", "medical_translations", "saas_core"]
+members = ["conf_saas", "conf_translations", "medical_saas", "medical_translations", "saas_core"]
+default-members = [".", "conf_saas", "conf_translations", "medical_saas", "medical_translations", "saas_core"]
 
 [package]
 name = "voice-translations"

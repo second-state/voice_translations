@@ -1,0 +1,172 @@
+# Copy this file to config.toml and fill in your credentials.
+# config.toml is git-ignored and must never be committed.
+#
+# The [server] [audio] [languages] [asr] [llm] [tts] sections are the upstream
+# voice_translations settings; [conference] is the translator's own; and
+# everything from [auth] on is the hosted layer, shared with medical-saas.
+
+[server]
+host = "127.0.0.1"
+# Deliberately not 8080/8090/8100: the other apps in this workspace default to
+# those, and all four are meant to be able to run side by side.
+port = 8110
+
+[audio]
+# Silence duration (ms) that ends a sentence/utterance. Between-sentence
+# pauses in conversation average ~500-1000ms; values below ~200ms will split
+# on the silent closure of stop consonants (p/t/k) mid-word. Higher values
+# (1200+) keep hesitant speech with thinking pauses together in one
+# sentence, which lets the translator clean up fillers and self-corrections.
+sentence_break_ms = 1200
+# Utterances shorter than this (ms) are discarded as noise.
+min_speech_ms = 250
+# Force a sentence break if one utterance runs longer than this (ms).
+max_utterance_ms = 30000
+# Silero VAD speech probability above which a frame counts as speech (0-1).
+# Lower it (e.g. 0.35) to capture quiet speakers far from the microphone;
+# raise it (e.g. 0.6) in noisy rooms to reject non-speech sounds.
+vad_positive_threshold = 0.5
+# Silero VAD speech probability below which a frame counts as silence (0-1).
+# Keep it below vad_positive_threshold; lower it together with the positive
+# threshold for distant speakers (e.g. 0.25).
+vad_negative_threshold = 0.35
+# Audio (ms) prepended before the detected speech onset so the first
+# syllable is not clipped.
+pre_speech_pad_ms = 300
+
+[languages]
+# ISO 639-1 codes (en, ko, ja, zh, es, ...); full names are also accepted.
+# The spoken language is always detected in this edition; this is only the
+# fallback when the ASR service reports none.
+default_source = "en"
+# Fallback targets, used only when the interface language is not one of the
+# [conference] languages below: the page otherwise starts by translating into
+# whatever language it is being read in.
+default_targets = ["en"]
+
+[asr]
+# OpenAI-compatible base URL; the server appends /audio/transcriptions.
+endpoint = "https://api.example.com/v1"
+api_key = "your-asr-api-key"
+model = "whisper-1"
+
+[llm]
+# OpenAI-compatible base URL; the server appends /chat/completions.
+endpoint = "https://api.example.com/v1"
+api_key = "your-llm-api-key"
+model = "gpt-4o-mini"
+# How many past messages to include as translation context.
+context_messages = 5
+# Sampling temperature; omit to use the model's default.
+#temperature = 0.3
+
+[tts]
+# OpenAI-compatible base URL; the server appends /audio/speech.
+# Remove this whole section to hide the read-aloud buttons in the UI.
+endpoint = "https://api.example.com/v1"
+api_key = "your-tts-api-key"
+# e.g. "gpt-4o-mini-tts", or "elevenlabs/eleven_multilingual_v2" on gateways
+# that expose ElevenLabs (better multilingual quality).
+model = "gpt-4o-mini-tts"
+voice = "alloy"
+
+[conference]
+# Call type selected when the page loads. One of: business, formal, friends,
+# politics, book_club, tech.
+default_type = "business"
+# Languages offered as translation targets, in the order the chips appear.
+# ISO 639-1 codes or full names. Keep every interface language in here, since
+# the page starts by translating into the language it is being read in.
+languages = ["en", "zh", "yue", "es", "ko", "ja"]
+
+# ── Hosted service ───────────────────────────────────────────────────────
+# Everything below turns the translator into a service with accounts. The
+# standalone conf_translations app has none of it.
+
+[auth]
+# SQLite file holding accounts and the word ledger. Created on first run;
+# the parent directory must already exist. Back this up: it is the only
+# record of who has an account and who has paid.
+database = "conf_saas.db"
+# How long an emailed sign-in link stays valid.
+magic_link_minutes = 60
+# How long a session lasts before the user needs a new link.
+session_days = 30
+# Force the Secure cookie flag on or off. Left unset, it is on exactly when
+# the request arrived over HTTPS (directly or via X-Forwarded-Proto), so
+# local plain-HTTP development still signs in.
+#secure_cookies = true
+
+[email]
+# The public origin of this deployment. Sign-in links are built from it, so
+# it must be the address users actually reach — not the bind address.
+base_url = "https://calls.example.com"
+# Sender of the sign-in email. Left empty, the product name is used.
+from_name = "Conference Translator"
+from_address = "login@example.com"
+# Resend API key (https://resend.com). Leave empty and sign-in links are
+# written to the server log instead of delivered — fine for local work,
+# useless in production.
+resend_api_key = ""
+# Development only, and refused when resend_api_key is set: also return the
+# sign-in link in the HTTP response so a browser or test can follow it
+# without an inbox.
+dev_echo_link = false
+
+[quota]
+# Spoken words a free account may translate in any rolling seven-day
+# window. Everyone who speaks draws on the same allowance, and the window is
+# counted from each moment backwards — there is no reset hour. Paid accounts
+# are unlimited. Translating into five languages costs the same as one.
+free_words_per_week = 1000
+
+[stripe]
+# Step-by-step setup, local testing with the Stripe CLI, and a
+# troubleshooting table are in README.md ("Setting up Stripe").
+#
+# Leave all three empty to run without paid plans: every account stays free
+# and the upgrade button disappears. Test-mode and live-mode values are
+# separate; mixing them is the usual reason a subscription never activates.
+#
+# Dashboard -> Developers -> API keys -> Secret key (sk_test_… / sk_live_…).
+secret_key = ""
+# Dashboard -> Product catalogue -> your product -> a RECURRING price
+# (price_…). A one-off price cannot be subscribed to.
+price_id = ""
+# Dashboard -> Developers -> Webhooks -> your endpoint -> Signing secret
+# (whsec_…). Specific to that one endpoint. Without it every delivery is
+# refused, so no account could ever become paid.
+#
+# Point the endpoint at https://<your-host>/stripe/webhook and subscribe it
+# to these events:
+#   checkout.session.completed      first payment succeeded -> plan becomes paid
+#   customer.subscription.created   subscription exists
+#   customer.subscription.updated   renewals, plan and status changes
+#   customer.subscription.deleted   subscription ended -> back to free
+#   invoice.paid                    recorded for the dashboard's billing history
+#   invoice.payment_failed          recorded for the dashboard's billing history
+#
+# Also save a Customer portal configuration once per mode (Settings ->
+# Billing -> Customer portal), or /api/billing/portal cannot open and
+# subscribers have no in-app way to cancel.
+webhook_secret = ""
+# What the landing page prints as the plan's price. Cosmetic only: Stripe
+# charges whatever the price object above says and shows that amount at
+# checkout, so keep this in step with it by hand. Left empty, the page prints
+# its built-in figure, $20 / month; set this if you charge anything else.
+#price_display = "$35 / month"
+
+# ---------------------------------------------------------------------------
+# The operator's dashboard at /admin: every account, when it was last active,
+# what it is paying, and how many words it has spoken.
+#
+# Left empty, the dashboard does not exist — /admin and its API answer 404,
+# so a deployment that does not want it is not running a login form over its
+# own user list. Set a password and it appears.
+[admin]
+# The only thing between the internet and every user's email address. Make it
+# long; the server says so at startup if it is under 12 characters.
+password = ""
+# How long an admin stays signed in before typing it again. Changing the
+# password above ends every session opened with the old one.
+session_hours = 12

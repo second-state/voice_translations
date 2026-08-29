@@ -46,7 +46,7 @@ jobs:
         run: |
           set -euo pipefail
           cargo build --workspace --locked
-          for app in conf-translations medical-translations medical-saas; do
+          for app in conf-translations medical-translations medical-saas conf-saas; do
             ./target/debug/$app --version
             ./target/debug/$app --help > /dev/null
           done

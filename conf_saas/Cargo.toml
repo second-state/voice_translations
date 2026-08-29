@@ -1,0 +1,39 @@
+[package]
+name = "conf-saas"
+version = "0.1.8"
+edition = "2021"
+description = "The conference-call translator as a hosted service: accounts, magic-link login, a rolling weekly word quota, and Stripe subscriptions"
+license = "Apache-2.0"
+
+[dependencies]
+# The speech pipeline (VAD assets, ASR, streaming LLM translation, TTS) comes
+# from the voice_translations library. `embed-assets` compiles the Silero VAD
+# and onnxruntime-web files into this binary, since the library's `vendor/`
+# tree is not reachable at runtime from a dependency.
+voice-translations = { path = "..", features = ["embed-assets"] }
+
+# The conference domain — call types, the register and terminology notes
+# behind each, the per-language rendering notes, and the prompt files behind
+# them — comes from the standalone translator, so this crate carries none of
+# it.
+conf-translations = { path = "../conf_translations" }
+
+# The service layer — accounts, magic-link sign-in, the weekly word quota,
+# Stripe subscriptions, the operator's dashboard, and the database behind
+# them — is shared with the other hosted translator. What this crate adds is
+# the glue between the three and the UI.
+saas-core = { path = "../saas_core" }
+
+# Web server
+axum = { version = "0.8", features = ["multipart"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+
+# Serialization / config
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "0.8"
+
+# Errors / logging
+anyhow = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }

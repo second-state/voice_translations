@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title data-i18n="login.title">Sign in · Conference Translator</title>
+<link rel="stylesheet" href="/style.css">
+<script src="/i18n.js"></script>
+</head>
+<body class="auth-body">
+
+<main class="auth-card">
+  <div class="auth-top"><h1><span class="logo">🎧</span> <span data-i18n="brand">Conference Translator</span></h1><select id="localePicker" class="select lang-select" aria-label="Language" data-i18n-attr="aria-label:lang.label,title:lang.label"></select></div>
+  <p class="auth-lede" data-i18n="login.lede">Follow a call in your own language, and keep the transcript. Enter your email and we will send you a sign-in link, with no password to choose or forget.</p>
+
+  <form id="loginForm" class="auth-form" autocomplete="on">
+    <label class="auth-label" for="email" data-i18n="login.email">Email address</label>
+    <input id="email" name="email" type="email" class="auth-input"
+           placeholder="you@example.com" required autocomplete="email" autofocus
+           data-i18n-attr="placeholder:login.placeholder">
+    <button id="submitBtn" type="submit" class="mic-btn auth-submit" data-i18n="login.submit">Email me a sign-in link</button>
+  </form>
+
+  <p id="authMsg" class="auth-msg" hidden></p>
+
+  <p class="auth-foot" id="authFoot" data-i18n-html="login.foot" data-i18n-params='{"words":"1,000"}'>New here? The same link signs you up. Free accounts include <strong>{words}</strong> translated words a week, and a monthly subscription removes the limit.</p>
+</main>
+
+<script>
+'use strict';
+
+const $ = (id) => document.getElementById(id);
+
+renderLocalePicker($('localePicker'));
+document.addEventListener('DOMContentLoaded', () => applyTranslations());
+
+// The free allowance is a server setting, so read it rather than hard-coding
+// a number that could drift out of date.
+fetch('/api/config')
+  .then((r) => (r.ok ? r.json() : null))
+  .then((cfg) => {
+    if (cfg && typeof cfg.free_words_per_week === 'number') {
+      $('authFoot').dataset.i18nParams =
+        JSON.stringify({ words: cfg.free_words_per_week.toLocaleString() });
+      applyTranslations();
+    }
+  })
+  .catch(() => {});
+
+// An expired, reused, or unknown link lands back here with ?error=link.
+if (new URLSearchParams(location.search).get('error') === 'link') {
+  show(t('login.expired'), 'error');
+}
+
+$('loginForm').addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  const email = $('email').value.trim();
+  if (!email) return;
+  const btn = $('submitBtn');
+  btn.disabled = true;
+  btn.removeAttribute('data-i18n');
+  btn.textContent = t('login.sending');
+  try {
+    const resp = await fetch('/auth/request', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok) throw new Error(data.error || `HTTP ${resp.status}`);
+
+    if (data.link) {
+      // Development deployments with no mail provider hand the link back
+      // so there is something to click.
+      show(t('login.devlink', { link: data.link }), 'ok', true);
+    } else {
+      show(t('login.sent', { email: data.email, minutes: data.expires_in_minutes }), 'ok');
+    }
+    $('loginForm').reset();
+  } catch (err) {
+    show(err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.dataset.i18n = 'login.submit';
+    btn.textContent = t('login.submit');
+  }
+});
+
+function show(message, kind, html) {
+  const el = $('authMsg');
+  el.className = 'auth-msg ' + kind;
+  if (html) el.innerHTML = message;
+  else el.textContent = message;
+  el.hidden = false;
+}
+</script>
+</body>
+</html>

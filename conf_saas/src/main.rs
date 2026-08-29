@@ -1,0 +1,188 @@
+//! Conference Translator (hosted edition) — the multi-language conference
+//! translator of `conf_translations`, run as a service.
+//!
+//! Three dependencies carry everything this app does not invent: the speech
+//! pipeline (browser-side Silero VAD, ASR, streaming LLM translation, TTS)
+//! is the `voice_translations` library; the conference domain — call types,
+//! the register and terminology notes behind each, and the per-language
+//! rendering notes — is the `conf_translations` crate; and the service
+//! around them — accounts in an embedded SQLite database, passwordless
+//! sign-in by emailed magic link, a rolling weekly word allowance on the
+//! free plan, Stripe subscriptions for unlimited use, and the operator's
+//! dashboard — is the `saas_core` crate, shared with the hosted medical
+//! translator.
+//!
+//! What this crate adds is the glue between the three, and the UI.
+
+/// The product name, as a person reading an email from us sees it.
+///
+/// The browser gets its own name from the interface catalogue, translated per
+/// language; this is the English one the server sends out. Keeping it in a
+/// single place is what stops a rename from reaching the pages and leaving
+/// the sign-in email still using the old name.
+pub const BRAND: &str = "Conference Translator";
+
+mod api;
+mod config;
+
+use std::sync::Arc;
+
+use axum::{
+    extract::DefaultBodyLimit,
+    http::header,
+    middleware,
+    response::{Html, IntoResponse},
+    routing::{get, post},
+    Router,
+};
+
+use voice_translations::{
+    assets,
+    cli::{Cli, CliSpec},
+    AppState,
+};
+
+use conf_translations::call_type;
+use saas_core::SaasState;
+
+use crate::{api::HostedState, config::AppConfig};
+
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| "conf_saas=info,saas_core=info,voice_translations=info".into()),
+        )
+        .init();
+
+    let Some(cli) = Cli::parse(&CliSpec {
+        app: "conf-saas",
+        version: env!("CARGO_PKG_VERSION"),
+        about: "Hosted conference-call translation with accounts, quotas, and subscriptions.",
+        env_var: "CONF_SAAS_CONFIG",
+        default_config: "config.toml",
+    })?
+    else {
+        return Ok(()); // --help or --version
+    };
+
+    // Every app in the workspace defaults to `config.toml`, so the resolved
+    // absolute path is logged: running one from another's directory would
+    // otherwise load the wrong file silently.
+    tracing::info!(
+        "loading configuration from {}",
+        std::fs::canonicalize(&cli.config)
+            .unwrap_or_else(|_| cli.config.clone())
+            .display()
+    );
+    let cfg = AppConfig::load(&cli.config)?;
+    let addr = cfg.base.listen_addr()?;
+
+    let base = AppState::new(cfg.base);
+    // Resend and Stripe reuse the pipeline's client and its connection pool
+    // rather than opening a second one.
+    let saas = SaasState::open(cfg.saas, base.http.clone(), BRAND)?;
+    saas_core::report_configuration(&saas.cfg);
+    let conference = Arc::new(cfg.conference);
+
+    tracing::info!(
+        call_types = call_type::CALL_TYPES.len(),
+        default = %conference.default_type,
+        languages = conference.languages.len(),
+        free_words_per_week = saas.cfg.quota.free_words_per_week,
+        billing = saas.cfg.stripe.enabled(),
+        "hosted conference translator ready"
+    );
+
+    let state = HostedState {
+        base,
+        conference,
+        saas,
+    };
+
+    let app = Router::new()
+        // Pages: a public landing page at the root, the translator itself
+        // behind /app, and the sign-in page between them.
+        .route("/", get(home_page))
+        .route("/app", get(app_page))
+        .route("/login", get(login_page))
+        .route("/app.js", get(app_js))
+        // Interface strings, shared by all three pages.
+        .route("/i18n.js", get(i18n_js))
+        .route("/style.css", get(style_css))
+        .route("/home.css", get(home_css))
+        // Accounts, billing, and the dashboard: the service layer's own
+        // routes, identical in every hosted translator.
+        .merge(saas_core::routes())
+        // The translator itself
+        .route("/api/config", get(api::api_config))
+        .route("/api/transcribe", post(api::api_transcribe))
+        .route("/api/translate", post(api::api_translate))
+        .route("/api/tts", post(api::api_tts))
+        // Silero VAD + onnxruntime-web, compiled into this binary by the
+        // library crate's `embed-assets` feature.
+        .nest("/vendor", assets::vendor_router())
+        .layer(DefaultBodyLimit::max(32 * 1024 * 1024))
+        // Microphone access requires HTTPS, so a plain-HTTP tunnel URL would
+        // load the page and then silently have no microphone API.
+        .layer(middleware::from_fn(voice_translations::force_https))
+        .with_state(state);
+
+    tracing::info!("listening on http://{addr}");
+    let listener = tokio::net::TcpListener::bind(addr).await?;
+    axum::serve(listener, app).await?;
+    Ok(())
+}
+
+/// The public landing page: what the service does and what the two plans
+/// cost. Reachable signed out, and links straight into the app when a
+/// session is found.
+async fn home_page() -> Html<&'static str> {
+    Html(include_str!("../static/home.html"))
+}
+
+/// The translator console. The page itself is public; its scripts send an
+/// unauthenticated visitor to the sign-in page, and every API it calls
+/// requires a session regardless.
+async fn app_page() -> Html<&'static str> {
+    Html(include_str!("../static/index.html"))
+}
+
+async fn login_page() -> Html<&'static str> {
+    Html(include_str!("../static/login.html"))
+}
+
+async fn i18n_js() -> impl IntoResponse {
+    (
+        [(
+            header::CONTENT_TYPE,
+            "application/javascript; charset=utf-8",
+        )],
+        include_str!("../static/i18n.js"),
+    )
+}
+
+async fn app_js() -> impl IntoResponse {
+    (
+        [(
+            header::CONTENT_TYPE,
+            "application/javascript; charset=utf-8",
+        )],
+        include_str!("../static/app.js"),
+    )
+}
+
+async fn style_css() -> impl IntoResponse {
+    (
+        [(header::CONTENT_TYPE, "text/css; charset=utf-8")],
+        include_str!("../static/style.css"),
+    )
+}
+
+async fn home_css() -> impl IntoResponse {
+    (
+        [(header::CONTENT_TYPE, "text/css; charset=utf-8")],
+        include_str!("../static/home.css"),
+    )
+}

@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title data-i18n="app.title">Conference Translator</title>
+<link rel="stylesheet" href="/style.css">
+<script src="/i18n.js"></script>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="logo">🎧</span>
+    <h1 data-i18n="app.title">Conference Translator</h1>
+  </div>
+  <div class="mic-controls">
+    <div class="meter" data-i18n-attr="title:app.meter" title="Microphone level"><div id="meterFill" class="meter-fill"></div></div>
+    <span id="status" class="status idle" data-i18n="app.status.idle">Idle</span>
+    <button id="micBtn" class="mic-btn" data-i18n="app.mic.start">Start listening</button>
+  </div>
+</header>
+
+<!-- Who is signed in, what is left of this week's allowance, and the way to
+     lift the limit. Populated from /api/me. -->
+<section id="accountBar" class="account-bar" hidden>
+  <span class="account-email" id="accountEmail"></span>
+  <span class="plan-badge" id="planBadge"></span>
+  <span class="quota-wrap" id="quotaWrap">
+    <span class="quota-meter"><span id="quotaFill" class="quota-fill"></span></span>
+    <span class="quota-text" id="quotaText"></span>
+  </span>
+  <span class="spacer"></span>
+  <select id="localePicker" class="select lang-select" aria-label="Language" data-i18n-attr="aria-label:lang.label,title:lang.label"></select>
+  <button id="upgradeBtn" class="btn accent" hidden data-i18n="app.upgrade">Subscribe for unlimited</button>
+  <button id="manageBtn" class="btn" hidden data-i18n="app.manage">Manage subscription</button>
+  <button id="logoutBtn" class="btn subtle" data-i18n="app.logout">Log out</button>
+</section>
+
+<div id="quotaNotice" class="quota-notice" hidden></div>
+
+<button id="settingsToggle" class="settings-toggle" aria-expanded="true"><span data-i18n="app.setup">Options</span> ▾</button>
+<section id="settings" class="settings">
+  <div class="setting-row">
+    <label class="setting-label" for="callType" data-i18n="app.callType">Call type</label>
+    <select id="callType" class="select" data-i18n-attr="title:app.callType.hint" title="What kind of call this is"></select>
+  </div>
+  <div class="setting-row">
+    <span class="setting-label"><span data-i18n="app.targets">Translate into</span> <em data-i18n="app.targets.hint">(pick one or more)</em></span>
+    <div id="langChips" class="chips"></div>
+  </div>
+  <div class="setting-row">
+    <label class="setting-label" for="sourceLang" data-i18n="app.source">Spoken language</label>
+    <select id="sourceLang" class="select" data-i18n-attr="title:app.source.hint" title="Detected on every sentence unless you pin one here"></select>
+    <span class="spacer"></span>
+    <button id="exportBtn" class="btn" data-i18n="app.export">Export</button>
+    <button id="clearBtn" class="btn subtle" data-i18n="app.clear">Clear</button>
+  </div>
+</section>
+
+<main id="messages" class="messages">
+  <div id="empty" class="empty" data-i18n-html="app.empty">
+    Press <strong>Start listening</strong> and speak.<br>
+    Each sentence is transcribed, cleaned up, then translated into every selected language at once.
+  </div>
+</main>
+
+<script src="/vendor/ort.wasm.min.js"></script>
+<script src="/vendor/bundle.min.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>

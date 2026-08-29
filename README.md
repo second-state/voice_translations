@@ -12,7 +12,9 @@ its own configuration file, and can run side by side:
 | --- | --- | --- |
 | [`conf_translations/`](conf_translations/) | Conference-call translator: pick target languages, and a call-type selector (business, formal, friends, politics, book club, tech) tunes the register of every translation | `conf_translations/` |
 | [`medical_translations/`](medical_translations/) | Patient/clinician translator: two-party turns, per-specialty terminology rules, safety-first translation prompts | `medical_translations/` |
-| [`medical_saas/`](medical_saas/) | The same translator run as a service: accounts in embedded SQLite, magic-link sign-in, a rolling weekly word allowance, Stripe subscriptions. Depends on `medical_translations` for the medical domain, so it carries only the service and its UI | `medical_saas/` |
+| [`medical_saas/`](medical_saas/) | The medical translator run as a service: accounts in embedded SQLite, magic-link sign-in, a rolling weekly word allowance, Stripe subscriptions. Depends on `medical_translations` for the domain and on `saas_core` for the service, so it carries only the glue and its UI | `medical_saas/` |
+| [`conf_saas/`](conf_saas/) | The conference translator run as the same service, on `conf_translations` and `saas_core`. Translation targets default to the interface language; the spoken language is always detected | `conf_saas/` |
+| [`saas_core/`](saas_core/) | A second library: the hosted-service layer both `*_saas` apps share — accounts, magic links, the rolling quota, Stripe, the operator's dashboard, and the SQL migrations. Nothing in it knows what is being translated | `saas_core/` |
 
 ## The pipeline (what the library does)
 
@@ -49,16 +51,17 @@ shared `target/`:
 cargo build --release                          # all apps
 cargo build --release -p conf-translations     # just the conference app
 cargo build --release -p medical-translations  # just the medical one
-cargo build --release -p medical-saas          # just the hosted edition
+cargo build --release -p medical-saas          # just the hosted medical edition
+cargo build --release -p conf-saas             # just the hosted conference edition
 ```
 
-| | Conference translator | Medical translator | Medical, hosted |
-| --- | --- | --- | --- |
-| Binary | `target/release/conf-translations` | `target/release/medical-translations` | `target/release/medical-saas` |
-| Source | `conf_translations/` | `medical_translations/` | `medical_saas/` |
-| Example config | `conf_translations/config.example.toml` | `medical_translations/config.example.toml` | `medical_saas/config.example.toml` |
-| Default port | 8080 | 8090 | 8100 |
-| Config env var | `CONF_TRANSLATIONS_CONFIG` | `MEDICAL_TRANSLATIONS_CONFIG` | `MEDICAL_SAAS_CONFIG` |
+| | Conference translator | Medical translator | Medical, hosted | Conference, hosted |
+| --- | --- | --- | --- | --- |
+| Binary | `target/release/conf-translations` | `target/release/medical-translations` | `target/release/medical-saas` | `target/release/conf-saas` |
+| Source | `conf_translations/` | `medical_translations/` | `medical_saas/` | `conf_saas/` |
+| Example config | `conf_translations/config.example.toml` | `medical_translations/config.example.toml` | `medical_saas/config.example.toml` | `conf_saas/config.example.toml` |
+| Default port | 8080 | 8090 | 8100 | 8110 |
+| Config env var | `CONF_TRANSLATIONS_CONFIG` | `MEDICAL_TRANSLATIONS_CONFIG` | `MEDICAL_SAAS_CONFIG` | `CONF_SAAS_CONFIG` |
 
 To run one from its folder:
 
@@ -88,9 +91,10 @@ All binaries take the same flags:
 ## Configuration
 
 Every app reads one `config.toml`: the library's sections below, plus the
-app's own — `[conference]`, `[medical]`, and for the hosted edition
-`[auth] [email] [quota] [stripe]` (see its
-[README](medical_saas/README.md#configuration)). The shared sections:
+app's own — `[conference]`, `[medical]`, and for the hosted editions
+`[auth] [email] [quota] [stripe] [admin]` (see the
+[medical](medical_saas/README.md#configuration) or
+[conference](conf_saas/README.md#configuration) README). The shared sections:
 
 | Section | Key | Meaning |
 | --- | --- | --- |
@@ -117,15 +121,17 @@ can live anywhere. Copy the apps to the same directory and give each its own
 config:
 
 ```sh
-scp target/release/{conf-translations,medical-translations,medical-saas} server:/opt/translate/
+scp target/release/{conf-translations,medical-translations,medical-saas,conf-saas} server:/opt/translate/
 scp conf_translations/config.toml server:/opt/translate/conference.toml
 scp medical_translations/config.toml server:/opt/translate/medical.toml
-scp medical_saas/config.toml server:/opt/translate/saas.toml
+scp medical_saas/config.toml server:/opt/translate/medical-saas.toml
+scp conf_saas/config.toml server:/opt/translate/conf-saas.toml
 
 # on the server, in /opt/translate:
-./conf-translations    --config conference.toml  # :8080
-./medical-translations --config medical.toml     # :8090
-./medical-saas         --config saas.toml        # :8100, plus its SQLite file
+./conf-translations    --config conference.toml    # :8080
+./medical-translations --config medical.toml       # :8090
+./medical-saas         --config medical-saas.toml  # :8100, plus its SQLite file
+./conf-saas            --config conf-saas.toml     # :8110, plus its own SQLite file
 ```
 
 Every app logs the **absolute path** of the configuration it loaded at
@@ -236,5 +242,6 @@ voice-translations = { git = "https://github.com/second-state/voice_translations
 The apps in this workspace are worked examples: `conf_translations` adds a
 call-type layer to a broadcast translator, `medical_translations` adds
 translation rules, per-specialty terminology, and a two-party UI, and
-`medical_saas` wraps that same translator in accounts, quotas, and billing —
-none of them changes anything in the library's own behavior.
+`medical_saas` and `conf_saas` wrap those two translators in accounts,
+quotas, and billing (the layer itself is the `saas_core` library) — none of
+them changes anything in the library's own behavior.

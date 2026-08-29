@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title data-i18n="home.title">Conference Translator — every word of the meeting, in every language</title>
+<meta name="description" content="Transcribes any speech, cleans out the fillers, translates every sentence into every language you pick at once, and keeps a record of the meeting. Runs in the browser. Free to start.">
+<link rel="stylesheet" href="/home.css">
+<script src="/i18n.js"></script>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="wrap nav-inner">
+    <a class="nav-brand" href="/"><span>🎧</span> <span class="brand-name" data-i18n="brand">Conference Translator</span></a>
+    <div class="nav-links">
+      <a href="#how" data-i18n="nav.how">How it works</a>
+      <a href="#features" data-i18n="nav.features">What it does</a>
+      <a href="#record" data-i18n="nav.record">The record</a>
+      <a href="#pricing" data-i18n="nav.pricing">Pricing</a>
+      <a href="#faq" data-i18n="nav.faq">Questions</a>
+    </div>
+    <div class="nav-cta">
+      <!-- Swapped for "Open the translator" once a session is found. -->
+      <select id="localePicker" class="btn ghost lang-select" aria-label="Language" data-i18n-attr="aria-label:lang.label,title:lang.label"></select>
+      <a class="btn ghost" id="navSignIn" href="/login" data-i18n="nav.signin">Sign in</a>
+      <a class="btn primary" id="navStart" href="/login" data-i18n="nav.start">Start free</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <span class="eyebrow" data-i18n="hero.eyebrow">🎙️ One microphone, every language on the call</span>
+      <h1 data-i18n-html="hero.h1">Every word of the meeting, <span class="hl">in every language</span>.</h1>
+      <p data-i18n="hero.lede" class="lede">Someone speaks, and a second later their sentence is on screen — transcribed, cleaned of the ums and false starts, and translated into every language you picked, all at once. When the call ends, the whole conversation is written down, ready to keep.</p>
+      <div class="hero-actions">
+        <a class="btn primary lg" id="heroStart" href="/login" data-i18n="nav.start">Start free</a>
+        <a class="btn lg" href="#how" data-i18n="hero.seehow">See how it works</a>
+      </div>
+      <p class="hero-note" id="heroNote" data-i18n-html="hero.note" data-i18n-params='{"words":"1,000"}'>New accounts are free: <strong>1,000</strong> words a week, no card.</p>
+    </div>
+
+    <div class="shot" aria-hidden="true">
+      <div class="shot-bar"><span class="dot live"></span> <span data-i18n="shot.bar">Listening · Business meeting · detecting the language</span></div>
+
+      <div class="turn">
+        <div class="turn-head"><span class="role" data-i18n="shot.source">English · detected</span></div>
+        <p class="said" data-i18n="shot.said">Let’s move the launch to Friday, and I’ll send the revised numbers tonight.</p>
+      </div>
+
+      <div class="turn alt">
+        <p class="rendered"><span class="rendered-lang" data-i18n="shot.t1.lang">Chinese</span><span data-i18n="shot.t1.text">我们把发布改到周五，修改后的数字我今晚发给大家。</span></p>
+        <p class="rendered"><span class="rendered-lang" data-i18n="shot.t2.lang">Spanish</span><span data-i18n="shot.t2.text">Pasemos el lanzamiento al viernes; esta noche les mando las cifras revisadas.</span></p>
+        <p class="rendered"><span class="rendered-lang" data-i18n="shot.t3.lang">Japanese</span><span data-i18n="shot.t3.text">ローンチは金曜に変更しましょう。修正した数字は今夜お送りします。</span></p>
+      </div>
+
+      <div class="shot-flag"><span>⇶</span><span data-i18n="shot.note">Every sentence goes to every selected language at the same time.</span></div>
+    </div>
+  </div>
+</header>
+
+<section id="how">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2 data-i18n="how.h2">Three steps, then it stays out of the way</h2>
+      <p data-i18n="how.lede">Nothing to install, and nothing for the other people on the call to do. It runs in the browser on the laptop or phone that is already in the room.</p>
+    </div>
+    <div class="grid three steps">
+      <div class="step">
+        <h3 data-i18n="how.1.h">Pick the languages</h3>
+        <p data-i18n="how.1.p">Choose what to translate into — one language or five — and what kind of call this is: a meeting, a family catch-up, a book club. The spoken language is detected on every sentence, so nobody has to say who is talking.</p>
+      </div>
+      <div class="step">
+        <h3 data-i18n="how.2.h">Talk normally</h3>
+        <p data-i18n="how.2.p">A speech detector in the browser notices when someone starts and stops, so nothing is sent while the room is quiet and nobody holds a button. A long monologue is split at its natural pauses.</p>
+      </div>
+      <div class="step">
+        <h3 data-i18n="how.3.h">Read it, hear it, keep it</h3>
+        <p data-i18n="how.3.p">Each sentence appears in every chosen language within a second or two, and can be read aloud. When the call ends, export it as a subtitle file.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="features">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2 data-i18n="feat.h2">What it does</h2>
+      <p data-i18n="feat.lede">Four things, in order, to every sentence anyone says.</p>
+    </div>
+    <div class="grid two">
+      <div class="card">
+        <span class="icon">🎙️</span>
+        <h3 data-i18n="feat.transcribe.h">Transcribes any speech</h3>
+        <p data-i18n="feat.transcribe.p">Whoever is talking, in whichever of 25 languages, is written down as they speak. The language is detected sentence by sentence, so a call that switches between English and Mandarin needs no settings changed mid-way.</p>
+      </div>
+      <div class="card">
+        <span class="icon">✂️</span>
+        <h3 data-i18n="feat.cleanup.h">Cleans it up</h3>
+        <p data-i18n="feat.cleanup.p">The ums, the false starts, the sentence begun twice: all gone from the transcript. When someone corrects themselves, you get what they settled on. Numbers, names and dates are never touched in the cleaning.</p>
+      </div>
+      <div class="card">
+        <span class="icon">🌐</span>
+        <h3 data-i18n="feat.translate.h">Translates into every language</h3>
+        <p data-i18n="feat.translate.p">One sentence, every language you picked, all streaming at once. Pick the kind of call — a meeting, a formal event, friends, politics, a book club, engineering — and the register follows: formal stays formal, casual stays casual, in each language’s own way.</p>
+      </div>
+      <div class="card">
+        <span class="icon">📄</span>
+        <h3 data-i18n="feat.record.h">Keeps a record of the meeting</h3>
+        <p data-i18n="feat.record.p">Every sentence is kept with the time it was said, in the original and in every language. It survives a reload, and exports as a subtitle file for the recording or a text file anyone can open.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="record">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2 data-i18n="record.h2">The meeting, written down as it happened</h2>
+      <p data-i18n="record.lede">Decisions get made in the last five minutes, when half the room has stopped taking notes. Every sentence is kept as it is spoken, in the original and in every language it was translated into, with the time beside it.</p>
+    </div>
+
+    <div class="record-grid">
+      <div class="grid three">
+        <div class="card">
+          <span class="icon">🗂️</span>
+          <h3 data-i18n="record.1.h">Every language, side by side</h3>
+          <p data-i18n="record.1.p">Each entry keeps what was said and how it was translated, so a number or a date can be checked against the original rather than against memory.</p>
+        </div>
+        <div class="card">
+          <span class="icon">💾</span>
+          <h3 data-i18n="record.2.h">It outlives the call</h3>
+          <p data-i18n="record.2.p">The transcript survives a reload and stays until it is cleared. Export writes it as an SRT file: subtitles for the recording, or plain text anyone can read.</p>
+        </div>
+        <div class="card">
+          <span class="icon">🕓</span>
+          <h3 data-i18n="record.3.h">For the people who could not join</h3>
+          <p data-i18n="record.3.p">A colleague in another time zone, a relative who missed the call: they can read exactly what was said, in their own language.</p>
+        </div>
+      </div>
+
+      <!-- What an exported call looks like: every sentence, both languages,
+           with the time it was said. -->
+      <div class="record-sheet" aria-hidden="true">
+        <div class="sheet-head"><span data-i18n="record.sheet">call-2026-08-29.srt</span></div>
+        <div class="sheet-row">
+          <span class="sheet-time">00:04:12</span>
+          <div>
+            <p class="sheet-said" data-i18n="record.r1.said">Let’s move the launch to Friday.</p>
+            <p class="sheet-rendered" data-i18n="record.r1.rendered">我们把发布改到周五。</p>
+          </div>
+        </div>
+        <div class="sheet-row">
+          <span class="sheet-time">00:04:31</span>
+          <div>
+            <p class="sheet-said" data-i18n="record.r2.said">服务器那边周四能准备好吗？</p>
+            <p class="sheet-rendered" data-i18n="record.r2.rendered">Can the server side be ready by Thursday?</p>
+          </div>
+        </div>
+        <div class="sheet-row">
+          <span class="sheet-time">00:04:38</span>
+          <div>
+            <p class="sheet-said" data-i18n="record.r3.said">Thursday morning, if the review passes.</p>
+            <p class="sheet-rendered" data-i18n="record.r3.rendered">如果评审通过，周四上午。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="pricing">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2 data-i18n="pricing.h2">Free for the occasional call</h2>
+      <p data-i18n="pricing.lede">Both plans are the same translator, with every language, every call type and every rule. The difference is how much can be said.</p>
+    </div>
+
+    <div class="plans">
+      <div class="plan">
+        <span class="plan-tag" data-i18n="plan.free.tag">Where everyone starts</span>
+        <h3 data-i18n="plan.free.name">Free</h3>
+        <p class="price"><span data-i18n="plan.free.price">$0</span><small data-i18n="plan.free.per"> / forever</small></p>
+        <p class="price-sub" data-i18n="plan.free.sub">No card and no trial clock. Signing up puts you here.</p>
+        <ul>
+          <li id="freeWordsPlan" data-i18n-html="plan.free.f1" data-i18n-params='{"words":"1,000"}'><strong>1,000</strong> translated words a week</li>
+          <li data-i18n-html="plan.free.f2">A <strong>rolling</strong> seven-day window for the weekly free quota</li>
+          <li data-i18n="plan.free.f3">All 25 languages and all six call types</li>
+          <li data-i18n="plan.free.f4">As many target languages per call as you like</li>
+          <li data-i18n="plan.free.f5">Read-aloud, and the subtitle file to keep</li>
+        </ul>
+        <a class="btn lg" id="freeCta" href="/login" data-i18n="plan.free.cta">Create a free account</a>
+        <p class="plan-foot" data-i18n="plan.free.foot">Everyone who speaks draws on the same weekly words.</p>
+      </div>
+
+      <div class="plan featured">
+        <span class="plan-tag" data-i18n="plan.pro.tag">For regular calls</span>
+        <h3 data-i18n="plan.pro.name">Unlimited</h3>
+        <p class="price" id="proPrice"><span data-i18n="plan.pro.price">$20</span><small data-i18n="plan.pro.per"> / month</small></p>
+        <p class="price-sub" id="proPriceSub" data-i18n="plan.pro.sub">Billed monthly through Stripe. Cancel any time.</p>
+        <ul>
+          <li data-i18n-html="plan.pro.f1"><strong>Unlimited</strong> words, with no weekly ceiling</li>
+          <li data-i18n="plan.pro.f2">Everything in the free plan, unchanged</li>
+          <li data-i18n="plan.pro.f3">A full day of meetings without watching a counter</li>
+          <li data-i18n="plan.pro.f4">Cancel or change the card yourself, inside the app</li>
+          <li data-i18n="plan.pro.f5">Access continues while a payment is being retried</li>
+        </ul>
+        <a class="btn primary lg" id="proCta" href="/login" data-i18n="plan.pro.cta">Start free, upgrade later</a>
+        <p class="plan-foot" id="proFoot" data-i18n="plan.pro.foot">You can upgrade from inside the app once you have an account.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2 data-i18n="faq.h2">Questions people ask</h2>
+    </div>
+
+    <details>
+      <summary data-i18n="faq.q1">What counts as a word?</summary>
+      <p data-i18n="faq.a1">The words actually spoken, whoever said them. Translations are free: a sentence costs the same whether it goes into one language or five, and hearing it read aloud costs nothing. Chinese, Japanese and other languages written without spaces are counted by character.</p>
+    </details>
+
+    <details>
+      <summary data-i18n="faq.q2">How far does a free week go?</summary>
+      <p id="faqWords" data-i18n="faq.a2" data-i18n-params='{"words":"1,000"}'>People speak around 130 to 150 words a minute, so 1,000 words is a short meeting: the decisions and the questions, not an hour of discussion. If you run out mid-call the app says so, and the allowance comes back over the following week.</p>
+    </details>
+
+    <details>
+      <summary data-i18n="faq.q3">What does a “rolling” week mean?</summary>
+      <p data-i18n="faq.a3">Usage is counted from right now backwards over seven days rather than reset on a fixed day. Words spent in Monday’s call stop counting the next Monday, so the allowance returns a little at a time. There is no reset hour to wait for.</p>
+    </details>
+
+    <details>
+      <summary data-i18n="faq.q4">Do the other people on the call need anything?</summary>
+      <p data-i18n="faq.a4">No. One person runs it, on the device that hears the room or the call audio; everyone else just talks. Share the screen into the call and the others see the translations too.</p>
+    </details>
+
+    <details>
+      <summary data-i18n="faq.q5">What happens to the audio and the transcript?</summary>
+      <p data-i18n="faq.a5">Speech goes to the speech recognition and translation services this deployment is set up to use, and the text comes back. This server keeps neither the audio nor the transcript: the call stays in your browser until you clear it or export it. Your account holds your email address, whether you subscribe, and how many words each sentence used.</p>
+    </details>
+
+    <details>
+      <summary data-i18n="faq.q6">How do I sign in?</summary>
+      <p data-i18n="faq.a6">With your email address. We send a link, you tap it, and you are in. There is no password to choose or forget, the same link creates your account the first time, and each link works once.</p>
+    </details>
+
+    <details>
+      <summary data-i18n="faq.q7">Can I cancel whenever I want?</summary>
+      <p data-i18n="faq.a7">Yes. Subscriptions are handled in Stripe’s billing portal, which you reach from inside the app, and cancelling takes effect without asking anyone. Your account goes back to the free plan rather than disappearing.</p>
+    </details>
+
+    <details>
+      <summary data-i18n="faq.q8">What does the export look like?</summary>
+      <p data-i18n="faq.a8">An SRT subtitle file: every sentence with the time it was said, the cleaned-up original on one line and each translation on its own line beneath it. Drop it onto the call recording as subtitles, or open it as text. Nothing is uploaded to this server for that to work.</p>
+    </details>
+  </div>
+</section>
+
+<section class="cta-band">
+  <div class="wrap">
+    <h2 data-i18n="cta.h2">Bring it to your next call</h2>
+    <p data-i18n="cta.p">An email address is all it takes, and you will be set up in under a minute.</p>
+    <a class="btn primary lg" id="footCta" href="/login" data-i18n="nav.start">Start free</a>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-top">
+      <span class="nav-brand">🎧 <span data-i18n="brand">Conference Translator</span></span>
+      <span class="foot-links">
+        <a href="#how" data-i18n="nav.how">How it works</a>
+        <a href="#pricing" data-i18n="nav.pricing">Pricing</a>
+        <a href="#faq" data-i18n="nav.faq">Questions</a>
+        <a href="/login" data-i18n="nav.signin">Sign in</a>
+      </span>
+    </div>
+    <p data-i18n="foot.disclaimer" class="disclaimer">This is a machine translation to help you follow a call. Nobody reviews it before you see it, and it is not a certified translation. For anything contractual or legal, check the original before acting on it.</p>
+  </div>
+</footer>
+
+<script>
+'use strict';
+
+const $ = (id) => document.getElementById(id);
+
+renderLocalePicker($('localePicker'));
+document.addEventListener('DOMContentLoaded', () => applyTranslations());
+
+// The allowance and whether subscriptions are sold are server settings, so
+// read them rather than hard-coding numbers that could drift.
+fetch('/api/config')
+  .then((r) => (r.ok ? r.json() : null))
+  .then((cfg) => {
+    if (!cfg) return;
+    if (typeof cfg.free_words_per_week === 'number') {
+      // Stored as a parameter so the number survives a language change.
+      const params = JSON.stringify({ words: cfg.free_words_per_week.toLocaleString() });
+      for (const id of ['heroNote', 'freeWordsPlan', 'faqWords']) {
+        const el = $(id);
+        if (el) el.dataset.i18nParams = params;
+      }
+    }
+    if (cfg.price_display) {
+      $('proPrice').removeAttribute('data-i18n');
+      $('proPrice').innerHTML = cfg.price_display;
+    }
+    if (cfg.billing_enabled === false) {
+      // Nothing is being sold on this deployment; say so rather than
+      // sending people toward a checkout that cannot open.
+      $('proPrice').dataset.i18n = 'plan.pro.off';
+      $('proPriceSub').dataset.i18n = 'plan.pro.offsub';
+      $('proFoot').dataset.i18n = 'plan.pro.offfoot';
+    }
+    applyTranslations();
+  })
+  .catch(() => {});
+
+// A signed-in visitor should not be asked to sign in again.
+fetch('/api/me')
+  .then((r) => (r.ok ? r.json() : null))
+  .then((me) => {
+    if (!me || !me.authenticated) return;
+    const signIn = $('navSignIn');
+    signIn.removeAttribute('data-i18n');
+    signIn.classList.add('is-account');
+    signIn.parentElement.classList.add('has-account');
+    signIn.textContent = me.user.email;
+    signIn.href = '/app';
+    for (const [id, key] of [
+      ['navStart', 'nav.open'],
+      ['heroStart', 'nav.open'],
+      ['freeCta', 'nav.open'],
+      ['proCta', me.user.plan === 'pro' ? 'nav.open' : 'plan.pro.upgrade'],
+      ['footCta', 'nav.open'],
+    ]) {
+      const el = $(id);
+      if (el) { el.dataset.i18n = key; el.href = '/app'; }
+    }
+    applyTranslations();
+  })
+  .catch(() => {});
+</script>
+</body>
+</html>

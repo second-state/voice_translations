@@ -14,28 +14,18 @@ voice-translations = { path = "..", features = ["embed-assets"] }
 
 # The medical domain — specialties, translation rules, per-language clinical
 # notes, and the prompt files behind them — comes from the standalone
-# translator, so this crate carries none of it. What it adds is the account
-# layer and the UI around it.
+# translator, so this crate carries none of it.
 medical-translations = { path = "../medical_translations" }
+
+# The service layer — accounts, magic-link sign-in, the weekly word quota,
+# Stripe subscriptions, the operator's dashboard, and the database behind
+# them — is shared with the other hosted translator. What this crate adds is
+# the glue between the three and the UI.
+saas-core = { path = "../saas_core" }
 
 # Web server
 axum = { version = "0.8", features = ["multipart"] }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
-
-# Accounts: embedded SQLite, magic-link tokens, Stripe webhook signatures
-rusqlite = { version = "0.32", features = ["bundled"] }
-rand = "0.8"
-hex = "0.4"
-hmac = "0.12"
-sha2 = "0.10"
-uuid = { version = "1", features = ["v4"] }
-urlencoding = "2"
-
-# Upstream HTTP (Resend email, Stripe API)
-reqwest = { version = "0.12", default-features = false, features = [
-    "json",
-    "rustls-tls",
-] }
 
 # Serialization / config
 serde = { version = "1", features = ["derive"] }

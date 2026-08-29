@@ -6,18 +6,21 @@ accounts in an embedded SQLite database, passwordless sign-in by emailed
 magic link, a rolling weekly word allowance on the free plan, and Stripe
 subscriptions for unlimited use.
 
-**This crate contains only the service and its UI.** Everything it
-translates and every way it translates comes from its two dependencies, not
-from copies:
+**This crate contains only the glue and its UI.** Everything it translates,
+every way it translates, and everything that makes it a service comes from
+its three dependencies, not from copies:
 
 | Comes from | What |
 | --- | --- |
 | [`voice_translations`](../) | The whole speech pipeline: Silero VAD assets, the ASR call, streaming LLM translation, TTS, config loading, the CLI, and the HTTPS middleware |
 | [`medical_translations`](../medical_translations/) | The medical domain: the 19 specialties, the translation rules, mishearing repair, the per-language clinical notes, and the prompt files behind them |
+| [`saas_core`](../saas_core/) | The service: accounts, magic-link sign-in, sessions, the rolling word quota, Stripe checkout and webhooks, the operator's dashboard, and the SQL migrations behind them — shared with the hosted [conference translator](../conf_saas/) |
 
 So a change to how medicine is translated lands in the standalone app and
-here at once, and neither this crate nor the standalone one implements any
-speech or model plumbing of its own.
+here at once, a change to how accounts or billing work lands in both hosted
+apps at once, and this crate implements no speech, model, or account
+plumbing of its own. The sections below describe how that service behaves;
+the code is in `saas_core`.
 
 ## Interface language
 
@@ -407,7 +410,7 @@ edition adds:
 
 ## Database migrations
 
-The schema lives in `sql/migrations/` as numbered files — `0001_initial.sql`,
+The schema lives in [`saas_core/sql/migrations/`](../saas_core/sql/migrations/) as numbered files — `0001_initial.sql`,
 `0002_admin_dashboard.sql`, and so on — and every one of them is compiled into
 the binary with `include_str!`. A deployment is still one binary and one config
 file: the folder is a source artifact, and nothing looks for it at runtime.
@@ -423,9 +426,9 @@ against the schema it describes changes nothing, and the chain carries on from
 `0002`. That is what lets a v0.1.x deployment adopt migrations by being
 restarted.
 
-To add one: write `sql/migrations/NNNN_what_it_does.sql`, add a line to
-`MIGRATIONS` in `src/migrations.rs`, and write the test that would fail without
-it. A test compares the registry against the files on disk, so a script nobody
+To add one: write `saas_core/sql/migrations/NNNN_what_it_does.sql`, add a
+line to `MIGRATIONS` in `saas_core/src/migrations.rs`, and write the test that
+would fail without it. A test compares the registry against the files on disk, so a script nobody
 registered fails the build rather than silently never running.
 
 Migrations are forward-only. There is no `down`: rolling back a schema on a
@@ -435,25 +438,19 @@ live database is a restore-from-backup exercise, not a script.
 
 ```
 src/
-├── main.rs        # router and startup
-├── admin.rs       # the operator's dashboard, behind one password
-├── migrations.rs  # the migration registry and runner
-├── config.rs      # [auth] [email] [quota] [stripe]; [medical] and the
-│                  #   library sections are parsed by the crates that own them
-├── api.rs         # handlers: resolve the account, enforce quota, delegate
-├── auth.rs        # magic links, sessions, /api/me
-├── billing.rs     # Stripe checkout, portal, and webhook
-├── db.rs          # SQLite: accounts, tokens, subscription state, word ledger
-├── quota.rs       # rolling-window allowance and word counting
-└── error.rs       # JSON errors with stable codes (401, 402, …)
-sql/migrations/    # the schema, numbered; compiled into the binary
+├── main.rs        # router and startup; mounts saas_core's routes
+├── config.rs      # reads config.toml once, hands it to the three crates
+└── api.rs         # handlers: resolve the account, enforce quota, delegate
 static/            # home.html + home.css (landing page), login.html
-                   #   (sign-in), index.html/app.js/style.css (the console),
-                   #   and admin.html/admin.js (the dashboard)
+                   #   (sign-in), and index.html/app.js/style.css (the console)
 ```
 
 There is no `prompts/` directory and no `specialty.rs` here: that material
-lives in `medical_translations` and is used from there.
+lives in `medical_translations`. There is no `db.rs`, `auth.rs`,
+`billing.rs`, `admin.rs`, or `sql/` either: accounts, sessions, quota,
+Stripe, the dashboard (`/admin`, served with this app's name), and the
+numbered migrations live in [`saas_core`](../saas_core/), whose README
+covers how to add a migration.
 
 ## Caveats
 

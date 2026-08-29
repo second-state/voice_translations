@@ -1,17 +1,17 @@
 //! Medical Translator (hosted edition) — the two-way patient/clinician
 //! translator of `medical_translations`, run as a service.
 //!
-//! Two dependencies carry everything this app does not invent: the speech
+//! Three dependencies carry everything this app does not invent: the speech
 //! pipeline (browser-side Silero VAD, ASR, streaming LLM translation, TTS)
-//! is the `voice_translations` library, and the medical domain —
-//! specialties, interpreting rules, per-language clinical notes, and the
-//! prompt files behind them — is the `medical_translations` crate. Neither
-//! is copied here.
+//! is the `voice_translations` library; the medical domain — specialties,
+//! interpreting rules, per-language clinical notes, and the prompt files
+//! behind them — is the `medical_translations` crate; and the service around
+//! them — accounts in an embedded SQLite database, passwordless sign-in by
+//! emailed magic link, a rolling weekly word allowance on the free plan,
+//! Stripe subscriptions for unlimited use, and the operator's dashboard — is
+//! the `saas_core` crate, shared with the hosted conference translator.
 //!
-//! What this edition adds is only the service around them: accounts in an
-//! embedded SQLite database, passwordless sign-in by emailed magic link, a
-//! rolling weekly word allowance on the free plan, Stripe subscriptions for
-//! unlimited use, and the UI for all of it.
+//! What this crate adds is the glue between the three, and the UI.
 
 /// The product name, as a person reading an email from us sees it.
 ///
@@ -21,15 +21,8 @@
 /// the sign-in email still using the old name.
 pub const BRAND: &str = "Medical Translator";
 
-mod admin;
 mod api;
-mod auth;
-mod billing;
 mod config;
-mod db;
-mod error;
-mod migrations;
-mod quota;
 
 use std::sync::Arc;
 
@@ -49,15 +42,17 @@ use voice_translations::{
 };
 
 use medical_translations::specialty;
+use saas_core::SaasState;
 
-use crate::{api::SaasState, config::AppConfig, db::Db};
+use crate::{api::HostedState, config::AppConfig};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt()
         .with_env_filter(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "medical_saas=info,voice_translations=info".into()),
+            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
+                "medical_saas=info,saas_core=info,voice_translations=info".into()
+            }),
         )
         .init();
 
@@ -83,73 +78,32 @@ async fn main() -> anyhow::Result<()> {
     );
     let cfg = AppConfig::load(&cli.config)?;
     let addr = cfg.base.listen_addr()?;
-    let settings = Arc::new(cfg.settings);
-
-    let db = Db::open(&settings.auth.database)?;
-    tracing::info!(
-        "accounts stored in {}",
-        std::fs::canonicalize(&settings.auth.database)
-            .unwrap_or_else(|_| settings.auth.database.clone().into())
-            .display()
-    );
-
-    if !settings.email.sends_email() {
-        tracing::warn!(
-            "[email] resend_api_key is empty: sign-in links will be written to this log \
-             instead of delivered{}",
-            if settings.email.echoes_link() {
-                " and returned in the HTTP response (dev_echo_link)"
-            } else {
-                ""
-            }
-        );
-    }
-    if settings.admin.enabled() {
-        tracing::info!(
-            "admin dashboard at /admin (sessions last {} hours)",
-            settings.admin.session_secs() / 3600
-        );
-        if settings.admin.password_is_weak() {
-            tracing::warn!(
-                "[admin] password is under 12 characters. It is the only thing between the \
-                 internet and every user's email address; make it long."
-            );
-        }
-    }
-    if !settings.stripe.enabled() {
-        tracing::warn!(
-            "[stripe] is not configured: every account stays on the free plan and the \
-             upgrade button is hidden"
-        );
-    } else if settings.stripe.webhook_secret.trim().is_empty() {
-        tracing::warn!(
-            "[stripe] webhook_secret is empty: subscription webhooks will be refused, so \
-             paid accounts would never be activated"
-        );
-    }
 
     let base = AppState::new(cfg.base);
-    let state = SaasState {
-        // Resend and Stripe reuse the pipeline's client and its connection
-        // pool rather than opening a second one.
-        http: base.http.clone(),
-        base,
-        cfg: Arc::clone(&settings),
-        db,
-    };
+    // Resend and Stripe reuse the pipeline's client and its connection pool
+    // rather than opening a second one.
+    let saas = SaasState::open(cfg.saas, base.http.clone(), BRAND)?;
+    saas_core::report_configuration(&saas.cfg);
+    let medical = Arc::new(cfg.medical);
 
     tracing::info!(
         specialties = specialty::SPECIALTIES.len(),
-        default = %settings.medical.default_specialty,
-        clinician = %settings.medical.clinician_language,
-        patient = %settings.medical.patient_language,
-        free_words_per_week = settings.quota.free_words_per_week,
-        billing = settings.stripe.enabled(),
+        default = %medical.default_specialty,
+        clinician = %medical.clinician_language,
+        patient = %medical.patient_language,
+        free_words_per_week = saas.cfg.quota.free_words_per_week,
+        billing = saas.cfg.stripe.enabled(),
         "hosted medical translator ready"
     );
 
+    let state = HostedState {
+        base,
+        medical,
+        saas,
+    };
+
     let app = Router::new()
-        // Pages: a public landing page at the root, the interpreter itself
+        // Pages: a public landing page at the root, the translator itself
         // behind /app, and the sign-in page between them.
         .route("/", get(home_page))
         .route("/app", get(app_page))
@@ -159,26 +113,10 @@ async fn main() -> anyhow::Result<()> {
         .route("/i18n.js", get(i18n_js))
         .route("/style.css", get(style_css))
         .route("/home.css", get(home_css))
-        // The operator's dashboard, gated by one password from config.toml.
-        // Every route 404s when none is set.
-        .route("/admin", get(admin::page))
-        .route("/admin.js", get(admin::script))
-        .route("/admin/login", post(admin::login))
-        .route("/admin/logout", post(admin::logout))
-        .route("/api/admin/session", get(admin::session))
-        .route("/api/admin/users", get(admin::users))
-        .route("/api/admin/users/{id}/payments", get(admin::payments))
-        // Accounts
-        .route("/auth/request", post(auth::request_link))
-        .route("/verify", get(auth::verify))
-        .route("/auth/logout", post(auth::logout))
-        .route("/api/me", get(auth::me))
-        // Billing: the browser may start a checkout, but only Stripe's
-        // signed webhook ever changes a plan.
-        .route("/api/billing/checkout", post(billing::checkout))
-        .route("/api/billing/portal", post(billing::portal))
-        .route("/stripe/webhook", post(billing::webhook))
-        // The interpreter itself
+        // Accounts, billing, and the dashboard: the service layer's own
+        // routes, identical in every hosted translator.
+        .merge(saas_core::routes())
+        // The translator itself
         .route("/api/config", get(api::api_config))
         .route("/api/transcribe", post(api::api_transcribe))
         .route("/api/translate", post(api::api_translate))
@@ -205,7 +143,7 @@ async fn home_page() -> Html<&'static str> {
     Html(include_str!("../static/home.html"))
 }
 
-/// The interpreter console. The page itself is public; its scripts send an
+/// The translator console. The page itself is public; its scripts send an
 /// unauthenticated visitor to the sign-in page, and every API it calls
 /// requires a session regardless.
 async fn app_page() -> Html<&'static str> {

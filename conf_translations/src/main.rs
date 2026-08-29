@@ -8,12 +8,6 @@
 //! translation, so a negotiation is not rendered like banter and banter is
 //! not rendered like a communiqué.
 
-mod api;
-mod call_type;
-mod config;
-mod lang;
-mod prompt;
-
 use std::sync::Arc;
 
 use axum::{
@@ -31,7 +25,11 @@ use voice_translations::{
     AppState,
 };
 
-use crate::{api::ConfState, config::AppConfig};
+use conf_translations::{
+    api::{self, ConfState},
+    call_type,
+    config::AppConfig,
+};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -72,6 +70,7 @@ async fn main() -> anyhow::Result<()> {
     tracing::info!(
         call_types = call_type::CALL_TYPES.len(),
         default = %state.cfg.default_type,
+        languages = state.cfg.languages.len(),
         "conference translator ready"
     );
 

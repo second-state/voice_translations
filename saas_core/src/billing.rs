@@ -17,7 +17,7 @@ use hmac::{Hmac, Mac};
 use serde_json::{json, Value};
 use sha2::Sha256;
 
-use crate::{api::SaasState, auth, error::AppError};
+use crate::{auth, error::AppError, state::SaasState};
 
 /// How far a webhook's timestamp may be from our clock. Stripe signs the
 /// timestamp, so a narrow window turns a captured delivery into a useless

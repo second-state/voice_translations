@@ -18,10 +18,10 @@ use serde::Deserialize;
 use serde_json::json;
 
 use crate::{
-    api::SaasState,
     db::{self, User},
     error::AppError,
     quota,
+    state::SaasState,
 };
 
 /// Name of the session cookie. Prefixed so it cannot collide with a cookie
@@ -49,7 +49,7 @@ pub fn current_user(state: &SaasState, headers: &HeaderMap) -> Option<User> {
 /// The account behind this request, or a 401 telling the browser to log in.
 pub fn require_user(state: &SaasState, headers: &HeaderMap) -> Result<User, AppError> {
     current_user(state, headers)
-        .ok_or_else(|| AppError::Unauthorized("Log in to use the translator.".to_string()))
+        .ok_or_else(|| AppError::Unauthorized("Log in to continue.".to_string()))
 }
 
 fn session_cookie(headers: &HeaderMap) -> Option<String> {
@@ -137,8 +137,7 @@ pub async fn request_link(
 
 /// Subject and body of the sign-in email, so the wording can be tested
 /// without a mail provider.
-fn magic_link_email(link: &str, minutes: i64) -> (String, String) {
-    let brand = crate::BRAND;
+fn magic_link_email(brand: &str, link: &str, minutes: i64) -> (String, String) {
     (
         format!("Your {brand} sign-in link"),
         format!(
@@ -151,7 +150,7 @@ fn magic_link_email(link: &str, minutes: i64) -> (String, String) {
 
 async fn send_magic_email(state: &SaasState, email: &str, link: &str) -> Result<(), AppError> {
     let cfg = &state.cfg.email;
-    let (subject, text) = magic_link_email(link, state.cfg.auth.magic_link_minutes);
+    let (subject, text) = magic_link_email(state.brand, link, state.cfg.auth.magic_link_minutes);
 
     let resp = state
         .http
@@ -285,9 +284,10 @@ mod tests {
 
     #[test]
     fn the_sign_in_email_calls_the_product_by_its_name() {
-        let (subject, body) = magic_link_email("https://example.test/auth/abc", 60);
-        assert_eq!(subject, format!("Your {} sign-in link", crate::BRAND));
-        assert!(body.contains(crate::BRAND), "{body}");
+        let brand = "Test Translator";
+        let (subject, body) = magic_link_email(brand, "https://example.test/auth/abc", 60);
+        assert_eq!(subject, format!("Your {brand} sign-in link"));
+        assert!(body.contains(brand), "{body}");
         assert!(body.contains("https://example.test/auth/abc"));
         assert!(body.contains("expires in 60 minutes"));
         // The email is the one place a rename is easy to miss, because no

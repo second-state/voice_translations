@@ -7,10 +7,11 @@
 //! sitting on the boundary — the allowance returns gradually as the oldest
 //! turns fall out the back of the window.
 //!
-//! Only *spoken* words are counted, once per turn, whoever spoke them — the
-//! clinician's turns and the patient's both draw on the same allowance.
-//! Interpretations are not counted: one utterance costs what it costs no
-//! matter how many words the target language happens to need.
+//! Only *spoken* words are counted, once per turn, whoever spoke them —
+//! everyone on the call, or both sides of a visit, draws on the same
+//! allowance. Translations are not counted: one utterance costs what it costs
+//! no matter how many words the target language happens to need, or how many
+//! target languages there are.
 
 use serde::Serialize;
 

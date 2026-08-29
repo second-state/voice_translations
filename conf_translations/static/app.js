@@ -29,7 +29,9 @@ document.addEventListener('visibilitychange', () => {
 document.addEventListener('click', () => { if (!wakeLock) keepScreenAwake(); }, { capture: true });
 keepScreenAwake();
 
-const ALL_LANGS = ['English', 'Chinese', 'Cantonese', 'Korean', 'Japanese'];
+// The languages offered as targets, from [conference] languages in the
+// server's config; filled in once /api/config answers.
+let ALL_LANGS = [];
 
 // ISO 639-1 codes (plus common country-code slips) -> display names, so
 // config values and ASR results always collapse onto the chip names above.
@@ -76,8 +78,12 @@ async function init() {
   const resp = await fetch('/api/config');
   if (!resp.ok) throw new Error(await resp.text());
   state.cfg = await resp.json();
+  ALL_LANGS = (state.cfg.languages || []).map(langName);
   state.cfg.default_source = langName(state.cfg.default_source);
-  for (const lang of state.cfg.default_targets) state.targets.add(langName(lang));
+  for (const lang of state.cfg.default_targets) {
+    const name = langName(lang);
+    if (ALL_LANGS.includes(name)) state.targets.add(name);
+  }
   renderLangChips();
   renderSourceSelect();
   renderCallTypeSelect();

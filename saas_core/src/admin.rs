@@ -22,7 +22,7 @@ use axum::{
 use serde::Deserialize;
 use serde_json::json;
 
-use crate::{api::SaasState, db, error::AppError, quota};
+use crate::{db, error::AppError, quota, state::SaasState};
 
 /// Name of the admin session cookie, kept apart from the user session so
 /// signing out of one does nothing to the other.
@@ -135,7 +135,9 @@ pub async fn page(State(state): State<SaasState>) -> Response {
     if !state.cfg.admin.enabled() {
         return not_configured();
     }
-    Html(include_str!("../static/admin.html")).into_response()
+    // The page is shared by every app built on this crate; the one thing
+    // that differs between them is what the product is called.
+    Html(include_str!("../static/admin.html").replace("{{brand}}", state.brand)).into_response()
 }
 
 /// GET /admin.js

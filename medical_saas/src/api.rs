@@ -9,7 +9,7 @@
 use std::sync::Arc;
 
 use axum::{
-    extract::{Multipart, State},
+    extract::{FromRef, Multipart, State},
     http::HeaderMap,
     response::{IntoResponse, Response},
     Json,
@@ -25,50 +25,33 @@ use voice_translations::{
 
 use medical_translations::{
     api::{MedicalTranslateRequest, MedicalTtsRequest},
-    config::resolve_turn_language,
+    config::{resolve_turn_language, MedicalConfig},
     prompt::{self, Speaker},
     specialty::{self, SPECIALTIES},
 };
 
-use crate::{auth, config::Settings, db::Db, error::AppError, quota};
+use saas_core::{auth, quota, AppError, SaasState};
 
-/// The pipeline state, this app's settings, the account database, and the
-/// HTTP client the email and Stripe calls share.
+/// The pipeline state, the translator's settings, and the service layer.
 #[derive(Clone)]
-pub struct SaasState {
+pub struct HostedState {
     pub base: AppState,
-    pub cfg: Arc<Settings>,
-    pub db: Db,
-    pub http: reqwest::Client,
+    pub medical: Arc<MedicalConfig>,
+    pub saas: SaasState,
 }
 
-impl SaasState {
-    /// The signed-in account's current standing.
-    fn quota_for(&self, user: &crate::db::User) -> Result<quota::Quota, AppError> {
-        Ok(quota::current(
-            &self.db,
-            user,
-            self.cfg.quota.free_words_per_week,
-        )?)
-    }
-
-    /// Refuse the turn when a free account has spent its allowance. Checked
-    /// before every billable step so a client that ignores the 402 on one
-    /// endpoint cannot simply call the next one.
-    fn enforce_quota(&self, user: &crate::db::User) -> Result<quota::Quota, AppError> {
-        let quota = self.quota_for(user)?;
-        if quota.allows_more() {
-            Ok(quota)
-        } else {
-            Err(AppError::QuotaExceeded(quota))
-        }
+/// What lets the service layer's handlers — accounts, billing, the dashboard
+/// — mount on this app's router and pull their own state out of ours.
+impl FromRef<HostedState> for SaasState {
+    fn from_ref(state: &HostedState) -> SaasState {
+        state.saas.clone()
     }
 }
 
 /// GET /api/config — the pipeline's audio settings plus the specialty list
 /// and encounter defaults the UI needs. Public: the sign-in page renders
 /// before there is a session.
-pub async fn api_config(State(state): State<SaasState>) -> Json<Value> {
+pub async fn api_config(State(state): State<HostedState>) -> Json<Value> {
     let mut view = state.base.cfg.client_view();
     if let Some(obj) = view.as_object_mut() {
         // The library's language settings do not apply: this app pairs one
@@ -76,27 +59,22 @@ pub async fn api_config(State(state): State<SaasState>) -> Json<Value> {
         // broadcasting to a set of targets.
         obj.remove("default_source");
         obj.remove("default_targets");
-        let cfg = &state.cfg;
+        let medical = &state.medical;
+        let saas = &state.saas.cfg;
         obj.insert("specialties".into(), json!(SPECIALTIES));
-        obj.insert(
-            "default_specialty".into(),
-            json!(cfg.medical.default_specialty),
-        );
+        obj.insert("default_specialty".into(), json!(medical.default_specialty));
         obj.insert(
             "clinician_language".into(),
-            json!(cfg.medical.clinician_language),
+            json!(medical.clinician_language),
         );
-        obj.insert(
-            "patient_language".into(),
-            json!(cfg.medical.patient_language),
-        );
-        obj.insert("languages".into(), json!(cfg.medical.languages));
-        obj.insert("billing_enabled".into(), json!(cfg.stripe.enabled()));
+        obj.insert("patient_language".into(), json!(medical.patient_language));
+        obj.insert("languages".into(), json!(medical.languages));
+        obj.insert("billing_enabled".into(), json!(saas.stripe.enabled()));
         obj.insert(
             "free_words_per_week".into(),
-            json!(cfg.quota.free_words_per_week),
+            json!(saas.quota.free_words_per_week),
         );
-        obj.insert("price_display".into(), json!(cfg.stripe.price_display));
+        obj.insert("price_display".into(), json!(saas.stripe.price_display));
     }
     Json(view)
 }
@@ -108,19 +86,19 @@ pub async fn api_config(State(state): State<SaasState>) -> Json<Value> {
 /// transcript are the words the speaker said, counted once for the turn
 /// whichever side spoke them.
 pub async fn api_transcribe(
-    State(state): State<SaasState>,
+    State(state): State<HostedState>,
     headers: HeaderMap,
     mut multipart: Multipart,
 ) -> Result<Response, AppError> {
-    let user = auth::require_user(&state, &headers)?;
-    state.enforce_quota(&user)?;
+    let user = auth::require_user(&state.saas, &headers)?;
+    state.saas.enforce_quota(&user)?;
 
     let form = asr::parse_audio_form(&mut multipart).await?;
     let heard = asr::transcribe(&state.base, &form.audio, &form.options).await?;
     // Constrain the recognizer's answer to the two languages this encounter
     // actually involves, so a mislabelled turn is not interpreted toward a
     // language nobody in the room speaks.
-    let (clinician_lang, patient_lang) = state.cfg.medical.encounter_languages(
+    let (clinician_lang, patient_lang) = state.medical.encounter_languages(
         form.fields.get("clinician_language").map(String::as_str),
         form.fields.get("patient_language").map(String::as_str),
     );
@@ -132,8 +110,8 @@ pub async fn api_transcribe(
     } else {
         "patient"
     };
-    state.db.record_words(&user.id, words, role)?;
-    let quota = state.quota_for(&user)?;
+    state.saas.db.record_words(&user.id, words, role)?;
+    let quota = state.saas.quota_for(&user)?;
 
     tracing::info!(
         user = %user.email,
@@ -166,12 +144,12 @@ pub async fn api_transcribe(
 /// nothing extra. The quota is still checked, so an exhausted account cannot
 /// keep interpreting text it obtained some other way.
 pub async fn api_translate(
-    State(state): State<SaasState>,
+    State(state): State<HostedState>,
     headers: HeaderMap,
     Json(req): Json<MedicalTranslateRequest>,
 ) -> Result<Response, AppError> {
-    let user = auth::require_user(&state, &headers)?;
-    state.enforce_quota(&user)?;
+    let user = auth::require_user(&state.saas, &headers)?;
+    state.saas.enforce_quota(&user)?;
 
     let spec = specialty::find_or_default(req.specialty.as_deref());
     let speaker = req.speaker;
@@ -211,15 +189,15 @@ pub async fn api_translate(
 /// POST /api/tts — reads one turn aloud. Reading back text the account has
 /// already paid for costs no further allowance.
 pub async fn api_tts(
-    State(state): State<SaasState>,
+    State(state): State<HostedState>,
     headers: HeaderMap,
     Json(req): Json<MedicalTtsRequest>,
 ) -> Result<Response, AppError> {
-    let user = auth::require_user(&state, &headers)?;
+    let user = auth::require_user(&state.saas, &headers)?;
     let options = SpeechOptions {
         voice: match req.speaker {
-            Speaker::Clinician => state.cfg.medical.clinician_voice.clone(),
-            Speaker::Patient => state.cfg.medical.patient_voice.clone(),
+            Speaker::Clinician => state.medical.clinician_voice.clone(),
+            Speaker::Patient => state.medical.patient_voice.clone(),
             Speaker::Unknown => None,
         },
         ..Default::default()

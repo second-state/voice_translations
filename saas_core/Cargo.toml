@@ -1,0 +1,45 @@
+[package]
+name = "saas-core"
+version = "0.1.8"
+edition = "2021"
+description = "The hosted-service layer the *_saas apps share: accounts, magic-link sign-in, a rolling weekly word quota, Stripe subscriptions, and the operator's dashboard"
+license = "Apache-2.0"
+
+# A library only. Every translator in this workspace that is run as a
+# service — accounts, quota, billing — depends on this crate for that layer
+# and adds nothing but its own domain and its own UI. Nothing here knows what
+# is being translated.
+[lib]
+name = "saas_core"
+path = "src/lib.rs"
+
+[dependencies]
+# Web server. Handlers here are mounted on the app's router; the app's state
+# yields ours through `FromRef`.
+axum = "0.8"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "time"] }
+
+# Accounts: embedded SQLite, magic-link tokens, Stripe webhook signatures
+rusqlite = { version = "0.32", features = ["bundled"] }
+rand = "0.8"
+hex = "0.4"
+hmac = "0.12"
+sha2 = "0.10"
+uuid = { version = "1", features = ["v4"] }
+urlencoding = "2"
+
+# Upstream HTTP (Resend email, Stripe API). The client itself is handed in
+# by the app so the pipeline's connection pool is shared.
+reqwest = { version = "0.12", default-features = false, features = [
+    "json",
+    "rustls-tls",
+] }
+
+# Serialization / config
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "0.8"
+
+# Errors / logging
+anyhow = "1"
+tracing = "0.1"

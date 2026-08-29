@@ -41,6 +41,7 @@ pub async fn api_config(State(state): State<ConfState>) -> Json<Value> {
     if let Some(obj) = view.as_object_mut() {
         obj.insert("call_types".into(), json!(CALL_TYPES));
         obj.insert("default_type".into(), json!(state.cfg.default_type));
+        obj.insert("languages".into(), json!(state.cfg.languages));
     }
     Json(view)
 }

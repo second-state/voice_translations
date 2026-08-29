@@ -65,3 +65,7 @@ voice = "alloy"
 # Call type selected when the page loads. One of: business, formal, friends,
 # politics, book_club, tech.
 default_type = "business"
+# Languages offered as translation targets, in the order the chips appear.
+# ISO 639-1 codes or full names. [languages] default_targets above picks
+# which of these start selected.
+languages = ["en", "zh", "yue", "es", "ko", "ja"]

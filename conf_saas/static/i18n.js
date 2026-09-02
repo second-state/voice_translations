@@ -836,7 +836,7 @@ STRINGS.es = {
   'shot.note': 'Cada frase va a todos los idiomas elegidos al mismo tiempo.',
 
   'how.h2': 'Tres pasos, y después no estorba',
-  'how.lede': 'No hay nada que instalar, y los demás en la llamada no tienen que hacer nada. Funciona en el navegador de la computadora o el teléfono que ya está en la sala. Avisa a los demás de que está funcionando: la traducción está ahí para que la lea todo el mundo, y en algunos lugares se exige que todos los participantes lo sepan.',
+  'how.lede': 'No hay nada que instalar, y los demás en la llamada no tienen que hacer nada. Funciona en el navegador de la computadora o el teléfono que ya está en la sala. Avise a los demás de que está funcionando: la traducción está ahí para que la lea todo el mundo, y en algunos lugares se exige que todos los participantes lo sepan.',
   'how.1.h': 'Elija los idiomas',
   'how.1.p': 'Escoja a qué idiomas traducir, uno o cinco, y qué tipo de llamada es: una reunión, una charla familiar, un club de lectura. El idioma hablado se detecta en cada frase, así que nadie tiene que decir quién está hablando.',
   'how.2.h': 'Hable como siempre',
@@ -919,10 +919,10 @@ STRINGS.es = {
   'faq.a7': 'Sí. Las suscripciones se manejan en el portal de Stripe, al que se entra desde la aplicación, y la cancelación se aplica sin tener que hablar con nadie. Su cuenta regresa al plan gratis en vez de desaparecer.',
   'faq.q8': '¿Cómo es lo que se exporta?',
   'faq.a8': 'Un archivo de subtítulos SRT: cada frase con la hora en que se dijo, el original ya limpio en una línea y cada traducción en su propia línea debajo. Póngalo sobre la grabación de la llamada como subtítulos, o ábralo como texto. Para eso no se sube nada a este servidor.',
-  'faq.q9': '¿Cómo oye una llamada en mi portátil?',
-  'faq.a9': 'Por el micrófono del dispositivo, igual que oye una sala. En una videollamada, deja que la otra parte salga por los altavoces en lugar de los auriculares, y coloca el portátil donde pueda oírla y oírte a ti. En una sala de reuniones basta con un portátil o un móvil sobre la mesa.',
+  'faq.q9': '¿Cómo oye una llamada en mi computadora?',
+  'faq.a9': 'Por el micrófono del dispositivo, igual que oye una sala. En una videollamada, deje que la otra parte salga por las bocinas en lugar de los audífonos, y coloque la computadora donde pueda oírla y oírlo a usted. En una sala de reuniones basta con una computadora o un teléfono sobre la mesa.',
   'faq.q10': '¿Puedo subir una grabación que ya tengo?',
-  'faq.a10': 'Todavía no. Funciona sobre una conversación mientras ocurre, escuchando por el micrófono, así que no hay ningún sitio donde subir un archivo. Lo que te entrega al final es un archivo de subtítulos que puedes guardar.',
+  'faq.a10': 'Todavía no. Funciona sobre una conversación mientras ocurre, escuchando por el micrófono, así que no hay ningún lugar donde subir un archivo. Lo que le entrega al final es un archivo de subtítulos que puede guardar.',
 
   'cta.h2': 'Llévelo a su próxima llamada',
   'cta.p': 'Solo hace falta un correo y en menos de un minuto queda listo.',

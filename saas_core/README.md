@@ -66,7 +66,7 @@ gets its own, translated, from the app's interface catalogue.
 | `auth` | `POST /auth/request`, `GET /verify`, `POST /auth/logout`, `GET /api/me`; the sign-in email |
 | `quota` | The rolling seven-day allowance and CJK-aware word counting |
 | `billing` | Stripe Checkout and billing portal, and the signed webhook that moves accounts between plans |
-| `admin` | `/admin`: the operator's dashboard behind one password, and its API. Its one write: granting an account the unlimited plan by hand (`comped`), and removing such a grant |
+| `admin` | `/admin`: the operator's dashboard behind one password, and its API. Its writes — granting an account the unlimited plan by hand (`comped`), removing such a grant, and cancelling a billed subscription via Stripe's API — are all recorded as `admin.*` rows in the account's billing history |
 | `error` | The JSON error type with stable codes (`unauthorized`, `quota_exceeded`, …) |
 | `routes` | All of the above mounted on one `Router`, for the app to merge |
 

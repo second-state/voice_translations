@@ -22,7 +22,7 @@ use axum::{
 use serde::Deserialize;
 use serde_json::json;
 
-use crate::{db, error::AppError, quota, state::SaasState};
+use crate::{billing, db, error::AppError, quota, state::SaasState};
 
 /// Name of the admin session cookie, kept apart from the user session so
 /// signing out of one does nothing to the other.
@@ -353,8 +353,8 @@ fn revoke_granted_subscription(state: &SaasState, user_id: &str) -> Result<db::U
     }
     if !user.is_comped() {
         return Err(AppError::BadRequest(
-            "This subscription is billed through Stripe. Cancel it there; the account \
-             returns to the free plan when the subscription expires."
+            "This subscription is billed through Stripe; use the cancel actions, which \
+             end it at Stripe."
                 .to_string(),
         ));
     }
@@ -365,6 +365,100 @@ fn revoke_granted_subscription(state: &SaasState, user_id: &str) -> Result<db::U
         user.email
     );
     refreshed(state, &user.id)
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CancelRequest {
+    /// `"period_end"` stops the charges and lets the paid period run out;
+    /// `"now"` ends the subscription immediately, forfeiting the remainder.
+    pub when: String,
+}
+
+/// POST /api/admin/users/{id}/cancel_subscription — end a user's Stripe
+/// subscription from the dashboard, by asking Stripe to end it.
+///
+/// The database is never flipped directly for a billed subscription: that
+/// would leave the card being charged and the next renewal webhook would
+/// hand the access straight back. Instead Stripe is told to cancel — at the
+/// period's end by default, so the user keeps what they paid for — and the
+/// downgrade arrives the way every plan change does. An immediate cancel
+/// takes effect at once, refunding nothing by itself.
+pub async fn cancel_subscription(
+    State(state): State<SaasState>,
+    headers: HeaderMap,
+    Path(user_id): Path<String>,
+    Json(req): Json<CancelRequest>,
+) -> Result<Response, AppError> {
+    require_admin(&state, &headers)?;
+    let Some(user) = state.db.user_by_id(&user_id)? else {
+        return Err(AppError::NotFound("No such account.".to_string()));
+    };
+    let subscription_id = stripe_subscription_to_cancel(&user, state.cfg.stripe.enabled())?;
+
+    match req.when.as_str() {
+        "period_end" => {
+            billing::cancel_subscription_at_period_end(&state, subscription_id).await?;
+            record_admin_event(
+                &state,
+                &user.id,
+                "admin.subscription_cancel_scheduled",
+                "cancel_at_period_end",
+            )?;
+            tracing::info!(
+                "admin dashboard: scheduled {}'s Stripe subscription to end with the period",
+                user.email
+            );
+        }
+        "now" => {
+            let status = billing::cancel_subscription_now(&state, subscription_id).await?;
+            // Stripe's answer is authoritative; the deleted webhook that
+            // follows repeats this harmlessly.
+            state.db.deactivate_subscription(&user.id, &status)?;
+            record_admin_event(&state, &user.id, "admin.subscription_canceled", &status)?;
+            tracing::info!(
+                "admin dashboard: canceled {}'s Stripe subscription immediately",
+                user.email
+            );
+        }
+        other => {
+            return Err(AppError::BadRequest(format!(
+                "Unknown cancellation {other:?}; use \"period_end\" or \"now\"."
+            )))
+        }
+    }
+    let user = refreshed(&state, &user.id)?;
+    Ok(Json(json!({
+        "ok": true,
+        "when": req.when,
+        "plan": user.plan,
+        "subscription_status": user.subscription_status,
+    }))
+    .into_response())
+}
+
+/// The subscription id a cancellation would act on, or why there is none:
+/// cancellation is only meaningful for a subscription Stripe is billing.
+fn stripe_subscription_to_cancel(user: &db::User, stripe_enabled: bool) -> Result<&str, AppError> {
+    if !stripe_enabled {
+        return Err(AppError::Unavailable(
+            "Subscriptions are not configured on this deployment.".to_string(),
+        ));
+    }
+    if !user.is_pro() {
+        return Err(AppError::BadRequest(
+            "This account is not subscribed.".to_string(),
+        ));
+    }
+    if user.is_comped() {
+        return Err(AppError::BadRequest(
+            "This subscription was granted from the dashboard, not billed through Stripe; \
+             remove it instead."
+                .to_string(),
+        ));
+    }
+    user.stripe_subscription_id.as_deref().ok_or_else(|| {
+        AppError::BadRequest("This account has no Stripe subscription id on record.".to_string())
+    })
 }
 
 /// Grants have no Stripe delivery behind them, so they write their own line
@@ -487,5 +581,33 @@ mod tests {
         let err = revoke_granted_subscription(&state, &user.id).unwrap_err();
         assert!(format!("{err:?}").contains("Stripe"));
         assert!(state.db.user_by_id(&user.id).unwrap().unwrap().is_pro());
+    }
+    #[test]
+    fn only_a_stripe_billed_subscription_can_be_cancelled() {
+        let state = crate::state::SaasState::test();
+        let user = state.db.upsert_user("payer@example.com").unwrap();
+
+        // Not subscribed at all.
+        let free = state.db.user_by_id(&user.id).unwrap().unwrap();
+        assert!(stripe_subscription_to_cancel(&free, true).is_err());
+
+        // A grant is removed, not cancelled: nothing is billed.
+        grant_subscription(&state, &user.id).unwrap();
+        let comped = state.db.user_by_id(&user.id).unwrap().unwrap();
+        let err = stripe_subscription_to_cancel(&comped, true).unwrap_err();
+        assert!(format!("{err:?}").contains("granted"));
+
+        // A billed subscription names what to cancel — unless billing is
+        // switched off on this deployment.
+        state
+            .db
+            .activate_subscription(&user.id, Some("cus_1"), Some("sub_1"), "active")
+            .unwrap();
+        let paying = state.db.user_by_id(&user.id).unwrap().unwrap();
+        assert_eq!(
+            stripe_subscription_to_cancel(&paying, true).unwrap(),
+            "sub_1"
+        );
+        assert!(stripe_subscription_to_cancel(&paying, false).is_err());
     }
 }

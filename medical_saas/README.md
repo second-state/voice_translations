@@ -168,22 +168,30 @@ but are the two events most worth seeing later. Anything Stripe sends that
 resolves to an account is kept; anything that resolves to nobody is logged and
 dropped, as before.
 
-The dashboard has exactly one write: **granting an account the unlimited
-plan by hand**, from the drawer that opens on its row — for a partner, a
-tester, someone comped for a month. A grant is marked `Comped`: paid-plan
-access with nothing billed and no Stripe record behind it, dated and written
-into the account's billing history like any payment, and removable from the
-same place. If the user later subscribes through Stripe, the checkout webhook
-takes the subscription over — they stay subscribed, the events log as usual —
-and from then on Stripe's lifecycle governs the account: cancelling there
-returns it to the free plan when the subscription expires. Two edges are
-deliberate: a Stripe cancellation arriving while the account is still merely
-comped changes nothing (a stale `deleted` for a long-ended subscription must
-not take away a grant made afterwards), and a subscription Stripe is billing
-cannot be removed from the dashboard, since the charges would continue and
-the next renewal event would hand the access straight back.
+The drawer that opens on a row is also where plans are managed by hand, and
+every action it takes is written into the account's billing history alongside
+the Stripe events, as an `admin.*` row.
 
-Beyond that one write there is no way to edit an account or read a
+**Granting the unlimited plan** — for a partner, a tester, someone comped
+for a month. A grant is marked `Comped`: paid-plan access with nothing billed
+and no Stripe record behind it, removable from the same place. If the user
+later subscribes through Stripe, the checkout webhook takes the subscription
+over — they stay subscribed, the events log as usual — and from then on
+Stripe's lifecycle governs the account. One edge is deliberate: a Stripe
+cancellation arriving while the account is still merely comped changes
+nothing, since a stale `deleted` for a long-ended subscription must not take
+away a grant made afterwards.
+
+**Cancelling a paid subscription** — a subscription Stripe is billing is
+never flipped in the database (the charges would continue and the next
+renewal event would hand the access straight back); the drawer instead asks
+Stripe to cancel it. *Cancel at period end* stops the charges and lets the
+user keep what they paid for, the account returning to the free plan when
+Stripe's `deleted` event arrives at expiry. *Cancel immediately* is for
+abuse: access ends at once, and Stripe refunds nothing by itself — the rest
+of the period is forfeited unless refunded by hand in Stripe.
+
+Beyond those writes there is no way to edit an account or read a
 transcript — transcripts are never on the server to begin with.
 
 ## Subscriptions

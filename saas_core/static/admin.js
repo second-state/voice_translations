@@ -308,12 +308,12 @@ function eventRow(event) {
   return wrap;
 }
 
-/* Granting and removing the unlimited plan by hand — the dashboard's one
-   write. A grant is marked "comped": paid-plan access with nothing billed.
-   A Stripe subscription later takes the account over, and only then can a
-   Stripe cancellation end the plan; a subscription Stripe is billing cannot
-   be ended from here, since the charges would continue and the next renewal
-   event would hand the access straight back. */
+/* The drawer's plan actions. A grant is marked "comped": paid-plan access
+   with nothing billed, removable from here at any time. A subscription
+   Stripe is billing is never flipped in the database — the charges would
+   continue and the next renewal event would hand the access straight back —
+   so those two buttons ask Stripe to cancel it, and the downgrade arrives
+   through the webhook like any other plan change. */
 function subscriptionActions(user) {
   const wrap = document.createElement('div');
   wrap.className = 'drawer-actions';
@@ -322,7 +322,7 @@ function subscriptionActions(user) {
 
   if (user.plan !== 'pro') {
     const btn = document.createElement('button');
-    btn.className = 'btn accent';
+    btn.className = 'btn primary';
     btn.textContent = 'Mark as subscribed';
     btn.addEventListener('click', () => setPlan(user, 'pro',
       `Give ${user.email} the unlimited plan?\n\nNothing is billed. If they later subscribe through Stripe, `
@@ -338,20 +338,45 @@ function subscriptionActions(user) {
     wrap.appendChild(btn);
     note.textContent = 'This subscription was granted from this dashboard; nothing is billed.';
   } else {
-    note.textContent = 'Billed through Stripe. To end it, cancel there; the account returns to '
-      + 'the free plan when the subscription expires.';
+    const periodEnd = document.createElement('button');
+    periodEnd.className = 'btn';
+    periodEnd.textContent = 'Cancel at period end';
+    periodEnd.addEventListener('click', () => cancelStripe(user, 'period_end',
+      `End ${user.email}'s Stripe subscription when the paid period runs out?\n\n`
+      + 'Charges stop now; they keep unlimited use until the period ends, then return to the free plan.'));
+    wrap.appendChild(periodEnd);
+
+    const now = document.createElement('button');
+    now.className = 'btn danger';
+    now.textContent = 'Cancel immediately';
+    now.addEventListener('click', () => cancelStripe(user, 'now',
+      `End ${user.email}'s Stripe subscription right now?\n\n`
+      + 'Their unlimited access stops immediately. Stripe refunds nothing by itself; '
+      + 'the rest of the paid period is forfeited unless you refund it in Stripe.'));
+    wrap.appendChild(now);
+
+    note.textContent = 'Billed through Stripe. Both actions cancel the subscription at Stripe '
+      + 'and are recorded below.';
   }
   wrap.appendChild(note);
   return wrap;
 }
 
-async function setPlan(user, plan, confirmText) {
+function setPlan(user, plan, confirmText) {
+  return adminAction(user, 'plan', { plan }, confirmText);
+}
+
+function cancelStripe(user, when, confirmText) {
+  return adminAction(user, 'cancel_subscription', { when }, confirmText);
+}
+
+async function adminAction(user, action, payload, confirmText) {
   if (!window.confirm(confirmText)) return;
   try {
-    const resp = await fetch(`/api/admin/users/${encodeURIComponent(user.id)}/plan`, {
+    const resp = await fetch(`/api/admin/users/${encodeURIComponent(user.id)}/${action}`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ plan }),
+      body: JSON.stringify(payload),
     });
     if (resp.status === 401) {
       showGate();

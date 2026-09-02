@@ -110,6 +110,36 @@ pub async fn portal(
     Ok(Json(json!({ "url": url })).into_response())
 }
 
+/// Ask Stripe to end a subscription when the current period runs out.
+///
+/// The account is not touched here: charges stop, the user keeps what they
+/// paid for, and the expiry comes back through the webhook like any other
+/// cancellation.
+pub(crate) async fn cancel_subscription_at_period_end(
+    state: &SaasState,
+    subscription_id: &str,
+) -> Result<(), AppError> {
+    stripe_post(
+        state,
+        &format!("subscriptions/{subscription_id}"),
+        &[("cancel_at_period_end".to_string(), "true".to_string())],
+    )
+    .await?;
+    Ok(())
+}
+
+/// Ask Stripe to end a subscription right now. Returns the status Stripe
+/// reports for the ended subscription, normally `canceled`. Nothing is
+/// refunded automatically; the remainder of the period is forfeited unless
+/// refunded by hand in Stripe.
+pub(crate) async fn cancel_subscription_now(
+    state: &SaasState,
+    subscription_id: &str,
+) -> Result<String, AppError> {
+    let ended = stripe_delete(state, &format!("subscriptions/{subscription_id}")).await?;
+    Ok(ended["status"].as_str().unwrap_or("canceled").to_string())
+}
+
 async fn stripe_post(
     state: &SaasState,
     path: &str,
@@ -120,6 +150,26 @@ async fn stripe_post(
         .post(format!("https://api.stripe.com/v1/{path}"))
         .bearer_auth(&state.cfg.stripe.secret_key)
         .form(form)
+        .send()
+        .await
+        .map_err(|e| AppError::Internal(anyhow::anyhow!("Stripe request failed: {e}")))?;
+
+    let status = resp.status();
+    let body = resp.text().await.unwrap_or_default();
+    if !status.is_success() {
+        return Err(AppError::Internal(anyhow::anyhow!(
+            "Stripe {path} returned {status}: {body}"
+        )));
+    }
+    serde_json::from_str(&body)
+        .map_err(|e| AppError::Internal(anyhow::anyhow!("Stripe {path} returned non-JSON: {e}")))
+}
+
+async fn stripe_delete(state: &SaasState, path: &str) -> Result<Value, AppError> {
+    let resp = state
+        .http
+        .delete(format!("https://api.stripe.com/v1/{path}"))
+        .bearer_auth(&state.cfg.stripe.secret_key)
         .send()
         .await
         .map_err(|e| AppError::Internal(anyhow::anyhow!("Stripe request failed: {e}")))?;

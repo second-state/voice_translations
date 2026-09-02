@@ -1,6 +1,6 @@
 [package]
 name = "conf-translations"
-version = "0.1.10"
+version = "0.1.11"
 edition = "2021"
 description = "Real-time translation for conference calls, tuned per call type"
 license = "Apache-2.0"

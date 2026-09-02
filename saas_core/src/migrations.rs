@@ -28,6 +28,10 @@ pub const MIGRATIONS: &[(&str, &str)] = &[
         "0003_payment_events",
         include_str!("../sql/migrations/0003_payment_events.sql"),
     ),
+    (
+        "0004_activation",
+        include_str!("../sql/migrations/0004_activation.sql"),
+    ),
 ];
 
 /// Bring the database up to the latest schema.
@@ -152,6 +156,41 @@ mod tests {
             .query_row("SELECT COUNT(*) FROM schema_migrations", [], |r| r.get(0))
             .unwrap();
         assert_eq!(count, MIGRATIONS.len() as i64);
+    }
+
+    #[test]
+    fn accounts_that_predate_activation_tracking_cannot_report_a_signup() {
+        // The upgrade a live deployment actually performs: rows already in
+        // the table, then 0004 arrives. Those accounts have signed in
+        // already, so none of them may look like a first activation the next
+        // time they follow a link — that would be a conversion reported for
+        // someone who signed up months ago.
+        let mut conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch(include_str!("../sql/migrations/0001_initial.sql"))
+            .unwrap();
+        conn.execute_batch(
+            "INSERT INTO users (id, email, plan, created_at, updated_at)
+             VALUES ('u1', 'old@example.com', 'free', 111, 111),
+                    ('u2', 'older@example.com', 'free', 222, 222);",
+        )
+        .unwrap();
+
+        run(&mut conn).unwrap();
+
+        let unactivated: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM users WHERE activated_at IS NULL",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(unactivated, 0, "an existing account was left uncounted");
+        let dated: i64 = conn
+            .query_row("SELECT activated_at FROM users WHERE id = 'u1'", [], |r| {
+                r.get(0)
+            })
+            .unwrap();
+        assert_eq!(dated, 111, "the backfill should use the account's own date");
     }
 
     #[test]

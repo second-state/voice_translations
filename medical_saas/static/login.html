@@ -3,6 +3,21 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Google tag (gtag.js) — the GA4 property for translator.clinic -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-FDHZVFW4VD"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  // Google Signals and ad personalisation are off on purpose. This is a
+  // medical product, so remarketing audiences built from who visited are a
+  // policy risk we have no use for. Importing conversions into Google Ads
+  // still works with both of these off.
+  gtag('config', 'G-FDHZVFW4VD', {
+    allow_google_signals: false,
+    allow_ad_personalization_signals: false,
+  });
+</script>
 <title data-i18n="login.title">Sign in · Medical Translator</title>
 <link rel="stylesheet" href="/style.css">
 <script src="/i18n.js"></script>
@@ -77,6 +92,14 @@ $('loginForm').addEventListener('submit', async (ev) => {
       show(t('login.sent', { email: data.email, minutes: data.expires_in_minutes }), 'ok');
     }
     $('loginForm').reset();
+
+    // A sign-in link went out. This is the furthest the browser can see:
+    // whether the address was new or returning is known only to the server,
+    // so the event is named for what actually happened — a request — and the
+    // account-level signup is reported separately from /verify.
+    if (typeof gtag === 'function') {
+      gtag('event', 'generate_lead', { currency: 'USD', value: 0 });
+    }
   } catch (err) {
     show(err.message, 'error');
   } finally {

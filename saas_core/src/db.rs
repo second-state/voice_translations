@@ -280,6 +280,26 @@ impl Db {
         Ok(())
     }
 
+    /// Record that this account has now been activated, and say whether this
+    /// call was the one that did it.
+    ///
+    /// `true` exactly once in an account's life — the `activated_at IS NULL`
+    /// guard makes the write its own test, so two links redeemed at the same
+    /// instant still yield one signup. The caller uses the answer to decide
+    /// whether the browser it is about to redirect should report a signup, so
+    /// a wrong answer here is a wrong conversion count.
+    pub fn mark_activated(&self, user_id: &str) -> Result<bool> {
+        let ts = now();
+        let changed = self.with(|conn| {
+            conn.execute(
+                "UPDATE users SET activated_at = ?1, updated_at = ?1
+                 WHERE id = ?2 AND activated_at IS NULL",
+                params![ts, user_id],
+            )
+        })?;
+        Ok(changed == 1)
+    }
+
     /// The account a session cookie belongs to, if the session is still valid.
     pub fn user_by_session(&self, token: &str) -> Result<Option<User>> {
         let hash = hash_token(token);
@@ -645,6 +665,19 @@ mod tests {
 
     fn db() -> Db {
         Db::open_in_memory().unwrap()
+    }
+
+    #[test]
+    fn an_account_is_activated_once_and_only_once() {
+        let db = db();
+        let user = db.upsert_user("new@example.com").unwrap();
+        // Creating the row is not activation: they have not opened the email.
+        assert!(db.mark_activated(&user.id).unwrap());
+        // Every sign-in after the first is not a signup.
+        assert!(!db.mark_activated(&user.id).unwrap());
+        assert!(!db.mark_activated(&user.id).unwrap());
+        // An address nobody has ever used activates nothing.
+        assert!(!db.mark_activated("no-such-account").unwrap());
     }
 
     #[test]

@@ -200,13 +200,28 @@ pub async fn verify(
         .db
         .set_session(&user.id, &token, db::now() + max_age)?;
 
-    tracing::info!("session started for {}", user.email);
+    // Redeeming the first link is the moment the account exists in any real
+    // sense, and the only one an ad platform should be told about. Returning
+    // sign-ins go to the same place without the marker, so a signup is
+    // reported once per account rather than once per visit.
+    let first_activation = state.db.mark_activated(&user.id)?;
+    let destination = if first_activation {
+        "/app?signup=1"
+    } else {
+        "/app"
+    };
+
+    if first_activation {
+        tracing::info!("account activated: {}", user.email);
+    } else {
+        tracing::info!("session started for {}", user.email);
+    }
     let cookie = session_cookie_header(&token, max_age, cookies_secure(&state, &headers));
     Ok((
         StatusCode::SEE_OTHER,
         [
             (header::SET_COOKIE, cookie),
-            (header::LOCATION, "/app".into()),
+            (header::LOCATION, destination.into()),
         ],
     )
         .into_response())

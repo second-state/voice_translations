@@ -147,7 +147,7 @@ payments are shown as failed rather than as money collected, and events that
 moved no money — a plan change, a cancellation — are still listed, because the
 question being asked is usually "why is this account not paid?"
 
-Three columns are worth knowing how they are built:
+Four columns are worth knowing how they are built:
 
 - **Last active** is the later of two things — the last request made with a
   session, and the last turn actually spoken. An account can be signed in
@@ -161,6 +161,12 @@ Three columns are worth knowing how they are built:
   clear which rows have a history to open. Events are stored under Stripe's
   own event id, so a redelivery — which Stripe does on any non-2xx — is stored
   once rather than twice.
+- **Activated** is when the account's first sign-in link was redeemed —
+  distinct from **Joined**, which is when the address was typed into the
+  form. An account that requested a link and never opened the email shows
+  `Not yet`. The plan filter distinguishes `Paid` (billed through Stripe)
+  from `Comped` (granted from the dashboard); the summary line keeps the
+  same split.
 
 Recording happens in the webhook handler, so it captures deliveries the app
 otherwise ignores: `invoice.paid` and `invoice.payment_failed` change no plan

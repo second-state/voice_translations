@@ -107,6 +107,9 @@ pub struct AdminUserRow {
     pub last_seen_at: Option<i64>,
     pub subscribed_at: Option<i64>,
     pub unsubscribed_at: Option<i64>,
+    /// When the first magic link was redeemed; NULL for an account whose
+    /// address was typed into the form but whose link was never opened.
+    pub activated_at: Option<i64>,
     /// Last turn actually spoken, which is a narrower thing than being seen.
     pub last_used_at: Option<i64>,
     pub words_window: i64,
@@ -520,6 +523,7 @@ impl Db {
             let mut stmt = conn.prepare(
                 "SELECT u.id, u.email, u.plan, u.subscription_status, u.created_at,
                         u.last_seen_at, u.subscribed_at, u.unsubscribed_at,
+                        u.activated_at,
                         COALESCE(all_time.words, 0), COALESCE(all_time.turns, 0),
                         all_time.last_used, COALESCE(recent.words, 0)
                  FROM users u
@@ -543,10 +547,11 @@ impl Db {
                     last_seen_at: row.get(5)?,
                     subscribed_at: row.get(6)?,
                     unsubscribed_at: row.get(7)?,
-                    words_total: row.get(8)?,
-                    turns: row.get(9)?,
-                    last_used_at: row.get(10)?,
-                    words_window: row.get(11)?,
+                    activated_at: row.get(8)?,
+                    words_total: row.get(9)?,
+                    turns: row.get(10)?,
+                    last_used_at: row.get(11)?,
+                    words_window: row.get(12)?,
                 })
             })?;
             rows.collect::<rusqlite::Result<Vec<_>>>()

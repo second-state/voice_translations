@@ -85,6 +85,7 @@ function sortValue(user, key) {
     case 'words_total': return user.words_total;
     case 'payment_events': return user.payment_events;
     case 'created_at': return user.created_at;
+    case 'activated_at': return user.activated_at || null;
     default: return null;
   }
 }
@@ -107,7 +108,9 @@ function visibleUsers() {
 
   const filtered = allUsers.filter((user) => {
     if (term && !user.email.toLowerCase().includes(term)) return false;
-    if (plan !== 'all' && user.plan !== plan) return false;
+    if (plan === 'pro' && !(user.plan === 'pro' && user.subscription_status !== 'comped')) return false;
+    if (plan === 'comped' && user.subscription_status !== 'comped') return false;
+    if (plan === 'free' && user.plan === 'pro') return false;
     if (activity === 'week' && !(user.last_active && user.last_active >= weekAgo)) return false;
     if (activity === 'spoken' && user.turns === 0) return false;
     if (activity === 'never' && user.turns > 0) return false;
@@ -200,6 +203,12 @@ function render() {
 
     const joined = cell(tr, day(user.created_at) || '');
     joined.title = absolute(user.created_at);
+
+    // When the first sign-in link was redeemed. An account that only ever
+    // typed its address into the form has not activated, and says so.
+    const activated = cell(tr, day(user.activated_at) || 'Not yet');
+    if (user.activated_at) activated.title = absolute(user.activated_at);
+    else activated.className = 'muted';
 
     if (user.id === openUserId) tr.classList.add('open');
     tr.addEventListener('click', () => openPayments(user));

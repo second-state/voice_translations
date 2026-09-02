@@ -3,6 +3,32 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Google tag (gtag.js) — the GA4 property for translator.bytefuture.ai -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-194BFQH2F8"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-194BFQH2F8');
+
+  // `?signup=1` is set by /verify, and only for the first link an account
+  // ever redeems. Reading it here is what turns a redirect into a counted
+  // conversion. The parameter is then taken out of the address bar, so a
+  // refresh or a shared link cannot report the same signup twice — the
+  // server would not set it again, but the browser should not be the thing
+  // relying on that.
+  try {
+    var params = new URLSearchParams(location.search);
+    if (params.get('signup') === '1') {
+      gtag('event', 'sign_up', { method: 'magic_link' });
+      params.delete('signup');
+      var rest = params.toString();
+      history.replaceState(null, '', location.pathname + (rest ? '?' + rest : ''));
+    }
+  } catch (err) {
+    // Reporting is not worth breaking the app over.
+  }
+</script>
 <title data-i18n="app.title">Conference Translator</title>
 <link rel="stylesheet" href="/style.css">
 <script src="/i18n.js"></script>

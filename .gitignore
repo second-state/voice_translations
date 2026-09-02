@@ -1,2 +1,6 @@
 /target
 config.toml
+# Local account databases (SQLite), created by the hosted apps at runtime.
+*.db
+*.db-shm
+*.db-wal

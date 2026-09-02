@@ -168,9 +168,23 @@ but are the two events most worth seeing later. Anything Stripe sends that
 resolves to an account is kept; anything that resolves to nobody is logged and
 dropped, as before.
 
-The dashboard reads; it does not write. There is no way to change a plan, edit
-an account, or read a transcript from it — transcripts are never on the server
-to begin with.
+The dashboard has exactly one write: **granting an account the unlimited
+plan by hand**, from the drawer that opens on its row — for a partner, a
+tester, someone comped for a month. A grant is marked `Comped`: paid-plan
+access with nothing billed and no Stripe record behind it, dated and written
+into the account's billing history like any payment, and removable from the
+same place. If the user later subscribes through Stripe, the checkout webhook
+takes the subscription over — they stay subscribed, the events log as usual —
+and from then on Stripe's lifecycle governs the account: cancelling there
+returns it to the free plan when the subscription expires. Two edges are
+deliberate: a Stripe cancellation arriving while the account is still merely
+comped changes nothing (a stale `deleted` for a long-ended subscription must
+not take away a grant made afterwards), and a subscription Stripe is billing
+cannot be removed from the dashboard, since the charges would continue and
+the next renewal event would hand the access straight back.
+
+Beyond that one write there is no way to edit an account or read a
+transcript — transcripts are never on the server to begin with.
 
 ## Subscriptions
 
@@ -179,9 +193,10 @@ signed-in account and returns the hosted URL; `POST /api/billing/portal`
 sends an existing subscriber to Stripe's billing portal to change a card or
 cancel.
 
-**Only Stripe changes a plan.** The browser can start a checkout, but an
-account moves between free and paid solely through `POST /stripe/webhook`,
-and only for a delivery carrying a valid `Stripe-Signature`.
+**The browser never changes a plan.** It can start a checkout, but an
+account moves between free and paid only through `POST /stripe/webhook` —
+solely for a delivery carrying a valid `Stripe-Signature` — or by the
+operator granting a subscription from the dashboard (see above).
 
 Leaving `[stripe]` empty runs the service without paid plans: every account
 stays free and the upgrade button disappears.

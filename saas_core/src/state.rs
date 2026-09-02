@@ -71,4 +71,16 @@ impl SaasState {
             Err(AppError::QuotaExceeded(quota))
         }
     }
+
+    /// Default settings around an in-memory database, for tests that
+    /// exercise handlers and webhook logic without a server.
+    #[cfg(test)]
+    pub(crate) fn test() -> Self {
+        Self {
+            cfg: Arc::new(SaasConfig::parse("", "Test Translator").expect("defaults validate")),
+            db: Db::open_in_memory().expect("in-memory database opens"),
+            http: reqwest::Client::new(),
+            brand: "Test Translator",
+        }
+    }
 }

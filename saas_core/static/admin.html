@@ -163,6 +163,8 @@ td.email { font-weight: 500; }
 .pill.free { background: var(--panel-2); color: var(--muted); }
 .pill.pro { background: rgba(45, 212, 167, 0.16); color: var(--green); }
 .pill.past_due { background: rgba(255, 180, 84, 0.16); color: var(--amber); }
+/* Granted from this dashboard: paid-plan access, nothing billed. */
+.pill.comped { background: rgba(79, 140, 255, 0.16); color: var(--accent); }
 
 /* A free account that has spent its week. */
 .over { color: var(--amber); }
@@ -195,6 +197,15 @@ tbody tr.open { background: rgba(79, 140, 255, 0.09); }
 .drawer-head h2 { margin: 0 0 2px; font-size: 15px; font-weight: 600; word-break: break-all; }
 .drawer-head .sub { font-size: 12px; color: var(--muted); }
 .drawer-body { overflow: auto; padding: 8px 20px 24px; }
+.drawer-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+}
+.drawer-actions .event-meta { margin: 0; }
 .close {
   margin-left: auto;
   background: none;

@@ -278,6 +278,124 @@ pub async fn payments(
     .into_response())
 }
 
+#[derive(Debug, Deserialize)]
+pub struct PlanRequest {
+    /// `"pro"` grants the unlimited plan; `"free"` removes a granted one.
+    pub plan: String,
+}
+
+/// POST /api/admin/users/{id}/plan — grant an account the unlimited plan by
+/// hand, or take a granted one away. The dashboard's one write.
+///
+/// A grant is marked `comped`: paid-plan access with nothing billed. If the
+/// user later subscribes through Stripe, the checkout webhook overwrites
+/// that status and Stripe's lifecycle governs the account from then on —
+/// which is also why removal is refused for a Stripe-billed subscription:
+/// taking access away here would not stop the charges, and the next renewal
+/// event would hand the access straight back.
+pub async fn set_plan(
+    State(state): State<SaasState>,
+    headers: HeaderMap,
+    Path(user_id): Path<String>,
+    Json(req): Json<PlanRequest>,
+) -> Result<Response, AppError> {
+    require_admin(&state, &headers)?;
+    let user = match req.plan.as_str() {
+        "pro" => grant_subscription(&state, &user_id)?,
+        "free" => revoke_granted_subscription(&state, &user_id)?,
+        other => {
+            return Err(AppError::BadRequest(format!(
+                "Unknown plan {other:?}; use \"pro\" or \"free\"."
+            )))
+        }
+    };
+    Ok(Json(json!({
+        "ok": true,
+        "plan": user.plan,
+        "subscription_status": user.subscription_status,
+    }))
+    .into_response())
+}
+
+fn grant_subscription(state: &SaasState, user_id: &str) -> Result<db::User, AppError> {
+    let Some(user) = state.db.user_by_id(user_id)? else {
+        return Err(AppError::NotFound("No such account.".to_string()));
+    };
+    if user.is_pro() {
+        return Err(AppError::BadRequest(
+            "This account is already subscribed.".to_string(),
+        ));
+    }
+    state
+        .db
+        .activate_subscription(&user.id, None, None, db::STATUS_COMPED)?;
+    record_admin_event(
+        state,
+        &user.id,
+        "admin.subscription_granted",
+        db::STATUS_COMPED,
+    )?;
+    tracing::info!(
+        "admin dashboard: granted the unlimited plan to {}",
+        user.email
+    );
+    refreshed(state, &user.id)
+}
+
+fn revoke_granted_subscription(state: &SaasState, user_id: &str) -> Result<db::User, AppError> {
+    let Some(user) = state.db.user_by_id(user_id)? else {
+        return Err(AppError::NotFound("No such account.".to_string()));
+    };
+    if !user.is_pro() {
+        return Err(AppError::BadRequest(
+            "This account is not subscribed.".to_string(),
+        ));
+    }
+    if !user.is_comped() {
+        return Err(AppError::BadRequest(
+            "This subscription is billed through Stripe. Cancel it there; the account \
+             returns to the free plan when the subscription expires."
+                .to_string(),
+        ));
+    }
+    state.db.deactivate_subscription(&user.id, "revoked")?;
+    record_admin_event(state, &user.id, "admin.subscription_removed", "revoked")?;
+    tracing::info!(
+        "admin dashboard: removed the granted subscription from {}",
+        user.email
+    );
+    refreshed(state, &user.id)
+}
+
+/// Grants have no Stripe delivery behind them, so they write their own line
+/// into the account's billing history: who reads it later should see when
+/// access was given and taken as plainly as any payment.
+fn record_admin_event(
+    state: &SaasState,
+    user_id: &str,
+    event_type: &str,
+    status: &str,
+) -> Result<(), AppError> {
+    state.db.record_payment_event(
+        &format!("admin_{}", uuid::Uuid::new_v4()),
+        user_id,
+        event_type,
+        Some(status),
+        None,
+        None,
+        None,
+        db::now(),
+    )?;
+    Ok(())
+}
+
+fn refreshed(state: &SaasState, user_id: &str) -> Result<db::User, AppError> {
+    state
+        .db
+        .user_by_id(user_id)?
+        .ok_or_else(|| AppError::Internal(anyhow::anyhow!("account vanished mid-update")))
+}
+
 /// A dashboard that was never configured is simply not there, and says so
 /// the way any missing page would rather than in the API's JSON.
 fn not_configured() -> Response {
@@ -324,5 +442,50 @@ mod tests {
         assert!(!constant_time_eq("a-long-secret", "a-long-secreT"));
         assert!(!constant_time_eq("short", "a-long-secret"));
         assert!(constant_time_eq("", ""));
+    }
+    #[test]
+    fn a_grant_is_pro_without_stripe_and_leaves_an_audit_trail() {
+        let state = crate::state::SaasState::test();
+        let user = state.db.upsert_user("comp@example.com").unwrap();
+
+        let granted = grant_subscription(&state, &user.id).unwrap();
+        assert!(granted.is_pro() && granted.is_comped());
+        assert!(granted.stripe_customer_id.is_none());
+        // Unlimited in the same way a paying account is.
+        assert!(state.quota_for(&granted).unwrap().unlimited);
+        // The grant is dated like any subscription, and audited.
+        let row = state.db.admin_user_rows(604_800, 10).unwrap().remove(0);
+        assert!(row.subscribed_at.is_some());
+        let events = state.db.payment_events_for_user(&user.id, 10).unwrap();
+        assert_eq!(events[0].event_type, "admin.subscription_granted");
+        assert_eq!(events[0].amount_cents, None);
+
+        // Granting twice is a mistake, not a no-op.
+        assert!(grant_subscription(&state, &user.id).is_err());
+    }
+
+    #[test]
+    fn a_grant_can_be_removed_but_a_stripe_subscription_cannot() {
+        let state = crate::state::SaasState::test();
+        let user = state.db.upsert_user("comp@example.com").unwrap();
+        grant_subscription(&state, &user.id).unwrap();
+
+        let back = revoke_granted_subscription(&state, &user.id).unwrap();
+        assert!(!back.is_pro());
+        assert_eq!(back.subscription_status.as_deref(), Some("revoked"));
+        let events = state.db.payment_events_for_user(&user.id, 10).unwrap();
+        assert_eq!(events[0].event_type, "admin.subscription_removed");
+        // Removing what is not there is a mistake too.
+        assert!(revoke_granted_subscription(&state, &user.id).is_err());
+
+        // A subscription Stripe is billing cannot be ended from here:
+        // the charges would continue and the next renewal would restore it.
+        state
+            .db
+            .activate_subscription(&user.id, Some("cus_1"), Some("sub_1"), "active")
+            .unwrap();
+        let err = revoke_granted_subscription(&state, &user.id).unwrap_err();
+        assert!(format!("{err:?}").contains("Stripe"));
+        assert!(state.db.user_by_id(&user.id).unwrap().unwrap().is_pro());
     }
 }

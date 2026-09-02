@@ -138,11 +138,20 @@ function subscriptionText(user) {
 function planPill(user) {
   const span = document.createElement('span');
   const status = user.subscription_status || '';
-  // past_due keeps access, so it is worth seeing apart from a healthy sub.
-  const kind = user.plan === 'pro' ? (status === 'past_due' ? 'past_due' : 'pro') : 'free';
+  // past_due keeps access, so it is worth seeing apart from a healthy sub;
+  // comped is access granted from this dashboard, with nothing billed.
+  let kind = 'free';
+  let text = 'Free';
+  if (user.plan === 'pro') {
+    if (status === 'comped') { kind = 'comped'; text = 'Comped'; }
+    else if (status === 'past_due') { kind = 'past_due'; text = 'Past due'; }
+    else { kind = 'pro'; text = 'Paid'; }
+  }
   span.className = `pill ${kind}`;
-  span.textContent = user.plan === 'pro' ? (status === 'past_due' ? 'Past due' : 'Paid') : 'Free';
-  if (status) span.title = `Stripe status: ${status}`;
+  span.textContent = text;
+  if (status === 'comped') span.title = 'Granted from this dashboard; not billed through Stripe';
+  else if (status === 'revoked') span.title = 'A granted subscription, removed from this dashboard';
+  else if (status) span.title = `Stripe status: ${status}`;
   return span;
 }
 
@@ -203,14 +212,16 @@ function render() {
 }
 
 function renderSummary(visible) {
-  const paying = allUsers.filter((u) => u.plan === 'pro').length;
+  // A granted subscription is not revenue; the summary keeps the two apart.
+  const comped = allUsers.filter((u) => u.plan === 'pro' && u.subscription_status === 'comped').length;
+  const paying = allUsers.filter((u) => u.plan === 'pro').length - comped;
   const weekAgo = Math.floor(Date.now() / 1000) - 7 * 24 * 60 * 60;
   const active = allUsers.filter((u) => u.last_active && u.last_active >= weekAgo).length;
   const words = allUsers.reduce((sum, u) => sum + u.words_window, 0);
 
   const parts = [
     `<b>${numbers.format(meta.total)}</b> account${meta.total === 1 ? '' : 's'}`,
-    `<b>${numbers.format(paying)}</b> paying`,
+    `<b>${numbers.format(paying)}</b> paying` + (comped ? ` · <b>${numbers.format(comped)}</b> comped` : ''),
     `<b>${numbers.format(active)}</b> active this week`,
     `<b>${numbers.format(words)}</b> words this week`,
   ];
@@ -297,6 +308,68 @@ function eventRow(event) {
   return wrap;
 }
 
+/* Granting and removing the unlimited plan by hand — the dashboard's one
+   write. A grant is marked "comped": paid-plan access with nothing billed.
+   A Stripe subscription later takes the account over, and only then can a
+   Stripe cancellation end the plan; a subscription Stripe is billing cannot
+   be ended from here, since the charges would continue and the next renewal
+   event would hand the access straight back. */
+function subscriptionActions(user) {
+  const wrap = document.createElement('div');
+  wrap.className = 'drawer-actions';
+  const note = document.createElement('p');
+  note.className = 'event-meta';
+
+  if (user.plan !== 'pro') {
+    const btn = document.createElement('button');
+    btn.className = 'btn accent';
+    btn.textContent = 'Mark as subscribed';
+    btn.addEventListener('click', () => setPlan(user, 'pro',
+      `Give ${user.email} the unlimited plan?\n\nNothing is billed. If they later subscribe through Stripe, `
+      + 'Stripe takes the subscription over; until then only this dashboard can remove it.'));
+    wrap.appendChild(btn);
+    note.textContent = 'Grants the unlimited plan with nothing billed.';
+  } else if (user.subscription_status === 'comped') {
+    const btn = document.createElement('button');
+    btn.className = 'btn';
+    btn.textContent = 'Remove subscription';
+    btn.addEventListener('click', () => setPlan(user, 'free',
+      `Remove ${user.email}'s granted subscription?\n\nThey return to the free plan immediately.`));
+    wrap.appendChild(btn);
+    note.textContent = 'This subscription was granted from this dashboard; nothing is billed.';
+  } else {
+    note.textContent = 'Billed through Stripe. To end it, cancel there; the account returns to '
+      + 'the free plan when the subscription expires.';
+  }
+  wrap.appendChild(note);
+  return wrap;
+}
+
+async function setPlan(user, plan, confirmText) {
+  if (!window.confirm(confirmText)) return;
+  try {
+    const resp = await fetch(`/api/admin/users/${encodeURIComponent(user.id)}/plan`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ plan }),
+    });
+    if (resp.status === 401) {
+      showGate();
+      return;
+    }
+    if (!resp.ok) {
+      const body = await resp.json().catch(() => ({}));
+      throw new Error(body.error || `Request failed (${resp.status})`);
+    }
+    // The table and the open drawer both show the change at once.
+    await loadUsers();
+    const fresh = allUsers.find((u) => u.id === user.id);
+    if (fresh && openUserId === user.id) openPayments(fresh);
+  } catch (err) {
+    window.alert(err.message);
+  }
+}
+
 function closeDrawer() {
   openUserId = null;
   $('drawer').hidden = true;
@@ -329,6 +402,7 @@ async function openPayments(user) {
       : 'No Stripe events';
 
     body.replaceChildren();
+    body.appendChild(subscriptionActions(user));
     if (data.stripe_customer_id || data.stripe_subscription_id) {
       const ids = document.createElement('p');
       ids.className = 'ids';

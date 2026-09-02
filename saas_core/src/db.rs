@@ -86,6 +86,12 @@ impl User {
     pub fn is_pro(&self) -> bool {
         self.plan == PLAN_PRO
     }
+
+    /// Whether the subscription was granted from the dashboard rather than
+    /// bought through Stripe.
+    pub fn is_comped(&self) -> bool {
+        self.is_pro() && self.subscription_status.as_deref() == Some(STATUS_COMPED)
+    }
 }
 
 /// One account as the operator's dashboard sees it: the account row plus the
@@ -140,6 +146,12 @@ const LAST_SEEN_RESOLUTION_SECS: i64 = 300;
 
 pub const PLAN_FREE: &str = "free";
 pub const PLAN_PRO: &str = "pro";
+
+/// The `subscription_status` of a subscription granted from the dashboard:
+/// paid-plan access with nothing billed and no Stripe ids behind it. A real
+/// Stripe subscription later overwrites this status and takes the account
+/// over; until then, Stripe events cannot end the grant.
+pub const STATUS_COMPED: &str = "comped";
 
 /// Handle to the account database.
 #[derive(Clone)]

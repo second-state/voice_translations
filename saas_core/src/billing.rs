@@ -3,8 +3,10 @@
 //! plans.
 //!
 //! Nothing here trusts the browser. The client can ask for a Checkout URL,
-//! but plan changes happen only when Stripe tells us, over a signed webhook,
-//! that money actually moved.
+//! but a paid plan is only ever the result of Stripe telling us, over a
+//! signed webhook, that money actually moved — or of the operator granting
+//! one by hand from the dashboard, which is `admin`'s to do, not this
+//! module's.
 
 use axum::{
     body::Bytes,
@@ -262,6 +264,20 @@ fn apply(
         return Ok(());
     };
 
+    // A subscription granted from the dashboard is not Stripe's to end.
+    // Once a Stripe subscription re-activates the account its status stops
+    // being "comped" and the Stripe lifecycle governs it again; until then a
+    // cancellation — including a stale redelivery for a subscription that
+    // ended before the grant was made — changes nothing.
+    if !entitled && user.is_comped() {
+        tracing::info!(
+            "stripe webhook: ignoring {status} for {}; their subscription was granted by \
+             the operator and is not billed through Stripe",
+            user.email
+        );
+        return Ok(());
+    }
+
     // A cancellation for a subscription this account has already replaced
     // must not downgrade the replacement. Stripe can deliver a `deleted`
     // event for an old subscription after the user has resubscribed, and
@@ -433,5 +449,50 @@ mod tests {
         assert!(constant_time_eq("abc", "abc"));
         assert!(!constant_time_eq("abc", "abd"));
         assert!(!constant_time_eq("abc", "ab"));
+    }
+    #[test]
+    fn a_granted_subscription_ignores_stripe_cancellations() {
+        let state = crate::state::SaasState::test();
+        let user = state.db.upsert_user("comp@example.com").unwrap();
+        state
+            .db
+            .activate_subscription(&user.id, None, None, crate::db::STATUS_COMPED)
+            .unwrap();
+        let user = state.db.user_by_id(&user.id).unwrap().unwrap();
+
+        // A cancellation arrives — a stale redelivery, or a subscription that
+        // ended before the grant was made. The grant survives.
+        let object = serde_json::json!({ "id": "sub_old", "customer": "cus_1" });
+        apply(&state, Some(&user), &object, "canceled", false).unwrap();
+        let after = state.db.user_by_id(&user.id).unwrap().unwrap();
+        assert!(after.is_pro() && after.is_comped());
+    }
+
+    #[test]
+    fn stripe_takes_over_a_granted_subscription_and_may_then_end_it() {
+        let state = crate::state::SaasState::test();
+        let user = state.db.upsert_user("comp@example.com").unwrap();
+        state
+            .db
+            .activate_subscription(&user.id, None, None, crate::db::STATUS_COMPED)
+            .unwrap();
+        let user = state.db.user_by_id(&user.id).unwrap().unwrap();
+
+        // The user subscribes through Checkout: still pro, no longer a grant.
+        let checkout = serde_json::json!({
+            "id": "cs_1", "mode": "subscription",
+            "customer": "cus_1", "subscription": "sub_1",
+        });
+        apply(&state, Some(&user), &checkout, "active", true).unwrap();
+        let paying = state.db.user_by_id(&user.id).unwrap().unwrap();
+        assert!(paying.is_pro() && !paying.is_comped());
+        assert_eq!(paying.subscription_status.as_deref(), Some("active"));
+
+        // Now the Stripe lifecycle governs: its cancellation ends the plan.
+        let deleted = serde_json::json!({ "id": "sub_1", "customer": "cus_1" });
+        apply(&state, Some(&paying), &deleted, "canceled", false).unwrap();
+        let after = state.db.user_by_id(&user.id).unwrap().unwrap();
+        assert!(!after.is_pro());
+        assert_eq!(after.subscription_status.as_deref(), Some("canceled"));
     }
 }

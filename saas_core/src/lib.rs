@@ -91,6 +91,7 @@ where
         .route("/api/admin/session", get(admin::session))
         .route("/api/admin/users", get(admin::users))
         .route("/api/admin/users/{id}/payments", get(admin::payments))
+        .route("/api/admin/users/{id}/plan", post(admin::set_plan))
 }
 
 /// Say at startup what the service is configured to do, and warn about the

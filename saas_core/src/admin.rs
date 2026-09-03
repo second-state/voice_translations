@@ -129,6 +129,13 @@ fn constant_time_eq(a: &str, b: &str) -> bool {
     a.iter().zip(b).fold(0u8, |acc, (x, y)| acc | (x ^ y)) == 0
 }
 
+/// Compiled-in pages carry no version in their URLs, so a browser or proxy
+/// that cached one would keep showing a UI from before an upgrade.
+const NO_CACHE: [(axum::http::HeaderName, axum::http::HeaderValue); 1] = [(
+    header::CACHE_CONTROL,
+    axum::http::HeaderValue::from_static("no-cache"),
+)];
+
 /// GET /admin — the dashboard page. Public HTML, like the console: it renders
 /// a password form and asks the API below what it may show.
 pub async fn page(State(state): State<SaasState>) -> Response {
@@ -137,7 +144,11 @@ pub async fn page(State(state): State<SaasState>) -> Response {
     }
     // The page is shared by every app built on this crate; the one thing
     // that differs between them is what the product is called.
-    Html(include_str!("../static/admin.html").replace("{{brand}}", state.brand)).into_response()
+    (
+        NO_CACHE,
+        Html(include_str!("../static/admin.html").replace("{{brand}}", state.brand)),
+    )
+        .into_response()
 }
 
 /// GET /admin.js
@@ -146,6 +157,7 @@ pub async fn script(State(state): State<SaasState>) -> Response {
         return not_configured();
     }
     (
+        NO_CACHE,
         [(
             header::CONTENT_TYPE,
             "application/javascript; charset=utf-8",

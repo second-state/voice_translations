@@ -135,26 +135,36 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Compiled-in pages carry no version in their URLs, so a browser (or a
+/// proxy) that cached one would keep showing a UI from before an upgrade.
+/// `no-cache` means revalidate-every-time, and these responses carry no
+/// validators, so in practice each load fetches the current build.
+const NO_CACHE: [(axum::http::HeaderName, axum::http::HeaderValue); 1] = [(
+    header::CACHE_CONTROL,
+    axum::http::HeaderValue::from_static("no-cache"),
+)];
+
 /// The public landing page: what the service does and what the two plans
 /// cost. Reachable signed out, and links straight into the app when a
 /// session is found.
-async fn home_page() -> Html<&'static str> {
-    Html(include_str!("../static/home.html"))
+async fn home_page() -> impl IntoResponse {
+    (NO_CACHE, Html(include_str!("../static/home.html")))
 }
 
 /// The translator console. The page itself is public; its scripts send an
 /// unauthenticated visitor to the sign-in page, and every API it calls
 /// requires a session regardless.
-async fn app_page() -> Html<&'static str> {
-    Html(include_str!("../static/index.html"))
+async fn app_page() -> impl IntoResponse {
+    (NO_CACHE, Html(include_str!("../static/index.html")))
 }
 
-async fn login_page() -> Html<&'static str> {
-    Html(include_str!("../static/login.html"))
+async fn login_page() -> impl IntoResponse {
+    (NO_CACHE, Html(include_str!("../static/login.html")))
 }
 
 async fn i18n_js() -> impl IntoResponse {
     (
+        NO_CACHE,
         [(
             header::CONTENT_TYPE,
             "application/javascript; charset=utf-8",
@@ -165,6 +175,7 @@ async fn i18n_js() -> impl IntoResponse {
 
 async fn app_js() -> impl IntoResponse {
     (
+        NO_CACHE,
         [(
             header::CONTENT_TYPE,
             "application/javascript; charset=utf-8",
@@ -175,6 +186,7 @@ async fn app_js() -> impl IntoResponse {
 
 async fn style_css() -> impl IntoResponse {
     (
+        NO_CACHE,
         [(header::CONTENT_TYPE, "text/css; charset=utf-8")],
         include_str!("../static/style.css"),
     )
@@ -182,6 +194,7 @@ async fn style_css() -> impl IntoResponse {
 
 async fn home_css() -> impl IntoResponse {
     (
+        NO_CACHE,
         [(header::CONTENT_TYPE, "text/css; charset=utf-8")],
         include_str!("../static/home.css"),
     )

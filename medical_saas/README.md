@@ -88,7 +88,7 @@ cannot be left on in production by accident.
 
 ## The free allowance
 
-A free account may translate **1,000 spoken words per rolling seven-day
+A free account may translate **5,000 spoken words per rolling seven-day
 window** (`[quota] free_words_per_week`). Paid accounts are unlimited.
 
 - **Both sides count.** The clinician's turns and the patient's draw on the
@@ -430,7 +430,7 @@ edition adds:
 | `[email]` | `from_name`, `from_address` | Sender of the sign-in email |
 | `[email]` | `resend_api_key` | Resend key; empty logs links instead of sending them |
 | `[email]` | `dev_echo_link` | Development only: return the link in the response |
-| `[quota]` | `free_words_per_week` | Free allowance per rolling seven days (default 1000) |
+| `[quota]` | `free_words_per_week` | Free allowance per rolling seven days (default 5000) |
 | `[stripe]` | `secret_key`, `price_id` | Checkout for the monthly plan; empty disables billing |
 | `[stripe]` | `webhook_secret` | Endpoint signing secret; without it deliveries are refused |
 | `[stripe]` | `price_display` | Optional, cosmetic: overrides the $20 / month the landing page shows by default |

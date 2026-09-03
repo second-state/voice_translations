@@ -118,7 +118,7 @@ dev_echo_link = false
 # window. Everyone who speaks draws on the same allowance, and the window is
 # counted from each moment backwards — there is no reset hour. Paid accounts
 # are unlimited. Translating into five languages costs the same as one.
-free_words_per_week = 1000
+free_words_per_week = 5000
 
 [stripe]
 # Step-by-step setup, local testing with the Stripe CLI, and a

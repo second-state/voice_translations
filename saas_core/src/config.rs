@@ -140,7 +140,7 @@ pub struct QuotaConfig {
 impl Default for QuotaConfig {
     fn default() -> Self {
         Self {
-            free_words_per_week: 1000,
+            free_words_per_week: 5000,
         }
     }
 }
@@ -237,7 +237,7 @@ mod tests {
     #[test]
     fn defaults_are_usable_without_any_saas_sections() {
         let cfg = parse("").expect("defaults validate");
-        assert_eq!(cfg.quota.free_words_per_week, 1000);
+        assert_eq!(cfg.quota.free_words_per_week, 5000);
         assert_eq!(cfg.auth.session_days, 30);
         assert_eq!(cfg.auth.magic_link_minutes, 60);
         assert_eq!(cfg.auth.database, "accounts.db");

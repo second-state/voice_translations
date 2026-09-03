@@ -29,7 +29,7 @@ document.addEventListener('visibilitychange', () => {
 document.addEventListener('click', () => { if (!wakeLock) keepScreenAwake(); }, { capture: true });
 keepScreenAwake();
 
-/* Conference Translator, hosted edition — browser side.
+/* Meeting Translator — browser side.
    The speech capture, VAD handling, and fan-out to several target languages
    are the standalone conference app's, unchanged in substance. What this
    edition adds around them: the account and its weekly allowance, the

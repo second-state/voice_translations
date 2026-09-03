@@ -202,11 +202,11 @@ const STRINGS = {};
 
 STRINGS.en = {
   // ── Shared ──────────────────────────────────────────────────────────
-  'brand': 'Conference Translator',
+  'brand': 'Meeting Translator',
   'lang.label': 'Language',
 
   // ── Landing page ────────────────────────────────────────────────────
-  'home.title': 'Conference Translator — every word of the meeting, in every language',
+  'home.title': 'Meeting Translator — every word of the meeting, in every language',
   'nav.how': 'How it works',
   'nav.features': 'What it does',
   'nav.record': 'The record',
@@ -323,7 +323,7 @@ STRINGS.en = {
   'foot.disclaimer': 'This is a machine translation to help you follow a call. Nobody reviews it before you see it, and it is not a certified translation. For anything contractual or legal, check the original before acting on it.',
 
   // ── Sign-in page ────────────────────────────────────────────────────
-  'login.title': 'Sign in · Conference Translator',
+  'login.title': 'Sign in · Meeting Translator',
   'login.lede': 'Follow a call in your own language, and keep the transcript. Enter your email and we will send you a sign-in link, with no password to choose or forget.',
   'login.email': 'Email address',
   'login.placeholder': 'you@example.com',
@@ -335,7 +335,7 @@ STRINGS.en = {
   'login.expired': 'That sign-in link has expired or was already used. Request a new one.',
 
   // ── Console: setup ──────────────────────────────────────────────────
-  'app.title': 'Conference Translator',
+  'app.title': 'Meeting Translator',
   'app.setup': 'Options',
   'app.callType': 'Call type',
   'app.callType.hint': 'What kind of call this is; it sets the register of every translation',

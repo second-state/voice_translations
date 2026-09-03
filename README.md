@@ -13,7 +13,7 @@ its own configuration file, and can run side by side:
 | [`conf_translations/`](conf_translations/) | Conference-call translator: pick target languages, and a call-type selector (business, formal, friends, politics, book club, tech) tunes the register of every translation | `conf_translations/` |
 | [`medical_translations/`](medical_translations/) | Patient/clinician translator: two-party turns, per-specialty terminology rules, safety-first translation prompts | `medical_translations/` |
 | [`medical_saas/`](medical_saas/) | The medical translator run as a service: accounts in embedded SQLite, magic-link sign-in, a rolling weekly word allowance, Stripe subscriptions. Depends on `medical_translations` for the domain and on `saas_core` for the service, so it carries only the glue and its UI | `medical_saas/` |
-| [`conf_saas/`](conf_saas/) | The conference translator run as the same service, on `conf_translations` and `saas_core`. Translation targets default to the interface language; the spoken language is always detected | `conf_saas/` |
+| [`conf_saas/`](conf_saas/) | **Meeting Translator**: the conference translator run as the same service, on `conf_translations` and `saas_core`. Translation targets default to the interface language; the spoken language is always detected | `conf_saas/` |
 | [`saas_core/`](saas_core/) | A second library: the hosted-service layer both `*_saas` apps share — accounts, magic links, the rolling quota, Stripe, the operator's dashboard, and the SQL migrations. Nothing in it knows what is being translated | `saas_core/` |
 
 ## The pipeline (what the library does)

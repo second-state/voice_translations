@@ -1,5 +1,5 @@
-//! Conference Translator (hosted edition) — the multi-language conference
-//! translator of `conf_translations`, run as a service.
+//! Meeting Translator — the multi-language conference translator of
+//! `conf_translations`, run as a hosted service.
 //!
 //! Three dependencies carry everything this app does not invent: the speech
 //! pipeline (browser-side Silero VAD, ASR, streaming LLM translation, TTS)
@@ -20,7 +20,7 @@
 /// language; this is the English one the server sends out. Keeping it in a
 /// single place is what stops a rename from reaching the pages and leaving
 /// the sign-in email still using the old name.
-pub const BRAND: &str = "Conference Translator";
+pub const BRAND: &str = "Meeting Translator";
 
 mod api;
 mod config;
@@ -92,7 +92,7 @@ async fn main() -> anyhow::Result<()> {
         languages = conference.languages.len(),
         free_words_per_week = saas.cfg.quota.free_words_per_week,
         billing = saas.cfg.stripe.enabled(),
-        "hosted conference translator ready"
+        "meeting translator ready"
     );
 
     let state = HostedState {

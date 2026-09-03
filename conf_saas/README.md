@@ -1,4 +1,4 @@
-# Conference Translator — hosted edition
+# Meeting Translator
 
 The multi-language conference translator of
 [`conf_translations`](../conf_translations/), run as a service: user

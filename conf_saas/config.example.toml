@@ -102,7 +102,7 @@ session_days = 30
 # it must be the address users actually reach — not the bind address.
 base_url = "https://calls.example.com"
 # Sender of the sign-in email. Left empty, the product name is used.
-from_name = "Conference Translator"
+from_name = "Meeting Translator"
 from_address = "login@example.com"
 # Resend API key (https://resend.com). Leave empty and sign-in links are
 # written to the server log instead of delivered — fine for local work,

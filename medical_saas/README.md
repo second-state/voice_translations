@@ -58,6 +58,7 @@ English rather than showing a bare key.
 | --- | --- |
 | `/` | Public landing page: what the service does, and the free vs. subscription plans. Links straight into the app when a session is found. |
 | `/login` | Sign-in page: enter an email, receive a link. |
+| `/verify` | What a sign-in link opens: a confirmation naming the account, whose one button posts to `/verify/confirm` — the request that actually signs in. |
 | `/app` | The translator console. Anonymous visitors are sent to `/login`, and every API it calls requires a session regardless. |
 | `/admin` | The operator's dashboard, behind one password. Absent entirely unless `[admin] password` is set. |
 
@@ -72,11 +73,36 @@ reset, or leak.
 - `POST /auth/request` `{email}` — mail a sign-in link. Answers identically
   whether or not the address already has an account, so the endpoint cannot
   be used to discover who has one.
-- `GET /verify?token=…` — redeem a link: sets an `HttpOnly; SameSite=Lax`
-  session cookie (with `Secure` whenever the request arrived over HTTPS) and
-  redirects to the app. A link works exactly once and expires.
+- `GET /verify?token=…` — what the link in the email opens. It looks the
+  token up, checks its expiry, and renders a small page naming the account
+  with one **Continue** button. It is side-effect-free by contract: no
+  session, no cookie, and the token is not touched, so it can be fetched any
+  number of times.
+- `POST /verify/confirm` `token=…` — what the button posts. The only place a
+  token is consumed: it is validated again here, then cleared, and an
+  `HttpOnly; SameSite=Lax` session cookie (with `Secure` whenever the request
+  arrived over HTTPS) is set before redirecting to the app. A link works
+  exactly once and expires.
 - `POST /auth/logout` — end the session and clear the cookie.
 - `GET /api/me` — who is signed in, their plan, and their current allowance.
+
+Redemption is split in two because corporate mail security — Microsoft
+Defender Safe Links, Proofpoint URL Defense, Mimecast and their kind — fetches
+every URL in a message before the recipient ever sees it. A single GET that
+consumed the token would be consumed by the scanner, leaving the person a dead
+link. The alternative, reusable links, would weaken every link for every user
+to accommodate some mailboxes; instead the GET changes nothing and the POST
+does everything. The two are distinct paths rather than two methods on one
+path, so that "nothing under `GET /verify` ever mutates" can be checked by
+grep, and so proxies, CDNs and WAF rules can key on the URL.
+
+When a link cannot be redeemed at either step, the browser is sent (303) to
+`/login?error=invalid_link` — never issued, or already used — or
+`/login?error=expired_link`. The sign-in page maps each code to its own
+translated message above the email field and renders nothing for a code it
+does not know, so the URL carries a code and never text. The two are kept
+apart because they call for different reactions: an expired link just needs a
+fresh one, a used link may mean someone else opened it.
 
 Tokens are stored as SHA-256 hashes, never in the clear, so a leaked copy of
 the database yields no usable session or sign-in link.

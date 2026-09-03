@@ -21,6 +21,10 @@
   <div class="auth-top"><h1><span class="logo">🎧</span> <span data-i18n="brand">Meeting Translator</span></h1><select id="localePicker" class="select lang-select" aria-label="Language" data-i18n-attr="aria-label:lang.label,title:lang.label"></select></div>
   <p class="auth-lede" data-i18n="login.lede">Follow a call in your own language, and keep the transcript. Enter your email and we will send you a sign-in link, with no password to choose or forget.</p>
 
+  <!-- Why a sign-in link did not work, when one sent the browser back here.
+       Filled from a short code in the query string, never from text in it. -->
+  <p id="linkError" class="auth-msg error auth-msg-top" hidden></p>
+
   <form id="loginForm" class="auth-form" autocomplete="on">
     <label class="auth-label" for="email" data-i18n="login.email">Email address</label>
     <input id="email" name="email" type="email" class="auth-input"
@@ -55,9 +59,21 @@ fetch('/api/config')
   })
   .catch(() => {});
 
-// An expired, reused, or unknown link lands back here with ?error=link.
-if (new URLSearchParams(location.search).get('error') === 'link') {
-  show(t('login.expired'), 'error');
+// A sign-in link that could not be redeemed sends the browser back here
+// with a short code. Each known code maps to a translated string of ours; an
+// unknown one renders nothing, so nobody can craft a link that puts their
+// words on this page. "Already used" and "expired" stay distinct because
+// they call for different reactions.
+const LINK_ERRORS = {
+  invalid_link: 'login.error.invalid',
+  expired_link: 'login.error.expired',
+};
+const linkErrorKey = LINK_ERRORS[new URLSearchParams(location.search).get('error')];
+if (linkErrorKey) {
+  const el = $('linkError');
+  el.dataset.i18n = linkErrorKey;   // re-rendered by applyTranslations on a language change
+  el.textContent = t(linkErrorKey);
+  el.hidden = false;
 }
 
 $('loginForm').addEventListener('submit', async (ev) => {

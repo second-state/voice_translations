@@ -70,6 +70,7 @@ English rather than showing a bare key.
 | --- | --- |
 | `/` | Public landing page: what the service does, and the free vs. subscription plans. Links straight into the app when a session is found. |
 | `/login` | Sign-in page: enter an email, receive a link. |
+| `/verify` | What a sign-in link opens: a confirmation naming the account, whose one button posts to `/verify/confirm` — the request that actually signs in. Side-effect-free, so mail scanners that pre-fetch links spend nothing; see the [medical edition's README](../medical_saas/README.md#accounts). |
 | `/app` | The translator console. Anonymous visitors are sent to `/login`, and every API it calls requires a session regardless. |
 | `/admin` | The operator's dashboard, behind one password. Absent entirely unless `[admin] password` is set. |
 

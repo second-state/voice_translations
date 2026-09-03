@@ -94,6 +94,22 @@ impl User {
     }
 }
 
+/// What a magic-link token turned out to be.
+///
+/// The two failures are kept apart on purpose: "already used" and "expired"
+/// call for different reactions from the person holding the link, and the
+/// sign-in page tells them apart.
+#[derive(Debug)]
+pub enum MagicLookup {
+    /// The token matches this account and is still within its lifetime.
+    Valid(User),
+    /// The token matches an account but its lifetime is over.
+    Expired,
+    /// No account holds this token: it was never issued, or it has been
+    /// consumed.
+    Unknown,
+}
+
 /// One account as the operator's dashboard sees it: the account row plus the
 /// aggregates over its usage.
 #[derive(Debug, Clone, Serialize)]
@@ -244,28 +260,70 @@ impl Db {
         Ok(())
     }
 
-    /// Redeem a magic-link token: returns the account it belongs to only when
-    /// the token matches and has not expired, and clears it either way so a
-    /// link works exactly once.
-    pub fn redeem_magic_token(&self, token: &str) -> Result<Option<User>> {
+    /// Look a magic-link token up without touching it.
+    ///
+    /// This is what `GET /verify` calls, and it must stay a pure read: mail
+    /// scanners fetch every link in a message before the recipient sees it,
+    /// so anything a GET changed would be changed by the scanner, not the
+    /// person. Only [`Db::redeem_magic_token`] consumes a token.
+    pub fn peek_magic_token(&self, token: &str) -> Result<MagicLookup> {
         let hash = hash_token(token);
         let ts = now();
         self.with(|conn| {
-            let user = row_to_user(conn, "magic_token_hash = ?1", params![hash])?;
-            let Some(user) = user else { return Ok(None) };
+            let Some(user) = row_to_user(conn, "magic_token_hash = ?1", params![hash])? else {
+                return Ok(MagicLookup::Unknown);
+            };
             let expires: Option<i64> = conn.query_row(
                 "SELECT magic_expires FROM users WHERE id = ?1",
                 params![user.id],
                 |r| r.get(0),
             )?;
-            conn.execute(
-                "UPDATE users SET magic_token_hash = NULL, magic_expires = NULL, updated_at = ?1
-                 WHERE id = ?2",
-                params![ts, user.id],
-            )?;
             Ok(match expires {
-                Some(exp) if exp >= ts => Some(user),
-                _ => None,
+                Some(exp) if exp >= ts => MagicLookup::Valid(user),
+                _ => MagicLookup::Expired,
+            })
+        })
+    }
+
+    /// Consume a magic-link token: the account it belongs to, and the token
+    /// cleared, when it matches and has not expired.
+    ///
+    /// The clear is a conditional `UPDATE` on the hash and the expiry, and
+    /// the token is redeemed only when that statement changed a row. Two
+    /// requests racing on the same link therefore cannot both win: the
+    /// second finds nothing to clear and is told the link is unknown, which
+    /// is the truth by then. An expired token is left in place rather than
+    /// cleared, so a link that was expired keeps being reported as expired
+    /// instead of turning into "unknown" on the next try; it is useless
+    /// either way, and the next link issued overwrites it.
+    pub fn redeem_magic_token(&self, token: &str) -> Result<MagicLookup> {
+        let hash = hash_token(token);
+        let ts = now();
+        self.with(|conn| {
+            let Some(user) = row_to_user(conn, "magic_token_hash = ?1", params![hash])? else {
+                return Ok(MagicLookup::Unknown);
+            };
+            let changed = conn.execute(
+                "UPDATE users SET magic_token_hash = NULL, magic_expires = NULL, updated_at = ?1
+                 WHERE id = ?2 AND magic_token_hash = ?3 AND magic_expires >= ?1",
+                params![ts, user.id, hash],
+            )?;
+            if changed == 1 {
+                return Ok(MagicLookup::Valid(user));
+            }
+            // Nothing was cleared: either the expiry guard failed, or another
+            // request consumed the token between the read and the update.
+            let still_there: Option<i64> = conn
+                .query_row(
+                    "SELECT magic_expires FROM users WHERE id = ?1 AND magic_token_hash = ?2",
+                    params![user.id, hash],
+                    |r| r.get(0),
+                )
+                .optional()?
+                .flatten();
+            Ok(match still_there {
+                Some(exp) if exp < ts => MagicLookup::Expired,
+                _ => MagicLookup::Unknown,
             })
         })
     }
@@ -703,15 +761,82 @@ mod tests {
 
         let token = generate_token();
         db.set_magic_token(&user.id, &token, now() + 600).unwrap();
-        assert_eq!(db.redeem_magic_token(&token).unwrap().unwrap().id, user.id);
-        // Second use finds nothing: redemption cleared it.
-        assert!(db.redeem_magic_token(&token).unwrap().is_none());
+        let MagicLookup::Valid(redeemed) = db.redeem_magic_token(&token).unwrap() else {
+            panic!("a fresh token redeems");
+        };
+        assert_eq!(redeemed.id, user.id);
+        // Second use finds nothing: redemption cleared it, and a consumed
+        // token is indistinguishable from one that never existed.
+        assert!(matches!(
+            db.redeem_magic_token(&token).unwrap(),
+            MagicLookup::Unknown
+        ));
 
         let stale = generate_token();
         db.set_magic_token(&user.id, &stale, now() - 1).unwrap();
-        assert!(db.redeem_magic_token(&stale).unwrap().is_none());
+        assert!(matches!(
+            db.redeem_magic_token(&stale).unwrap(),
+            MagicLookup::Expired
+        ));
+        // Expired stays expired on a retry rather than becoming "unknown".
+        assert!(matches!(
+            db.redeem_magic_token(&stale).unwrap(),
+            MagicLookup::Expired
+        ));
 
-        assert!(db.redeem_magic_token("not-a-token").unwrap().is_none());
+        assert!(matches!(
+            db.redeem_magic_token("not-a-token").unwrap(),
+            MagicLookup::Unknown
+        ));
+    }
+
+    #[test]
+    fn peeking_at_a_magic_token_never_consumes_it() {
+        let db = db();
+        let user = db.upsert_user("a@b.com").unwrap();
+        let token = generate_token();
+        db.set_magic_token(&user.id, &token, now() + 600).unwrap();
+
+        // A mail scanner may fetch the link any number of times.
+        for _ in 0..5 {
+            let MagicLookup::Valid(found) = db.peek_magic_token(&token).unwrap() else {
+                panic!("peek finds the live token");
+            };
+            assert_eq!(found.id, user.id);
+        }
+        // The hash is still stored, untouched.
+        let stored: Option<String> = db
+            .with(|c| {
+                c.query_row(
+                    "SELECT magic_token_hash FROM users WHERE id = ?1",
+                    params![user.id],
+                    |r| r.get(0),
+                )
+            })
+            .unwrap();
+        assert_eq!(stored.as_deref(), Some(hash_token(&token).as_str()));
+
+        // And the one redeem afterwards still succeeds — the peeks spent
+        // nothing.
+        assert!(matches!(
+            db.redeem_magic_token(&token).unwrap(),
+            MagicLookup::Valid(_)
+        ));
+        assert!(matches!(
+            db.peek_magic_token(&token).unwrap(),
+            MagicLookup::Unknown
+        ));
+
+        let stale = generate_token();
+        db.set_magic_token(&user.id, &stale, now() - 1).unwrap();
+        assert!(matches!(
+            db.peek_magic_token(&stale).unwrap(),
+            MagicLookup::Expired
+        ));
+        assert!(matches!(
+            db.peek_magic_token("nope").unwrap(),
+            MagicLookup::Unknown
+        ));
     }
 
     #[test]

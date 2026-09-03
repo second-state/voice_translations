@@ -72,9 +72,14 @@ where
     SaasState: FromRef<S>,
 {
     Router::new()
-        // Accounts
+        // Accounts. A sign-in link is redeemed in two steps split by side
+        // effect: GET /verify only reads the token and renders a confirmation
+        // (mail scanners fetch links before people do), and POST
+        // /verify/confirm is the one request that consumes it. Distinct
+        // paths, so "nothing under GET /verify mutates" is checkable by grep.
         .route("/auth/request", post(auth::request_link))
-        .route("/verify", get(auth::verify))
+        .route("/verify", get(auth::verify_page))
+        .route("/verify/confirm", post(auth::verify_confirm))
         .route("/auth/logout", post(auth::logout))
         .route("/api/me", get(auth::me))
         // Billing: the browser may start a checkout, but only Stripe's

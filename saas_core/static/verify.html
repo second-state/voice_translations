@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title data-i18n="verify.title">Confirm sign-in · {{brand}}</title>
+<link rel="stylesheet" href="/style.css">
+<script src="/i18n.js"></script>
+</head>
+<body class="auth-body">
+
+<!-- Opening a sign-in link lands here, and nothing has happened yet: this
+     page is the answer to a GET that reads the token and changes nothing, so
+     a mail scanner that fetched the link ahead of the recipient has spent
+     nothing. The session is created only by the form below, which is a POST
+     to a different path. -->
+<main class="auth-card">
+  <div class="auth-top"><h1><span data-i18n="brand">{{brand}}</span></h1><select id="localePicker" class="select lang-select" aria-label="Language" data-i18n-attr="aria-label:lang.label,title:lang.label"></select></div>
+  <p class="auth-lede" data-i18n="verify.lede">This link opens a session on this device for the account below. Check that it is the account you meant before you continue.</p>
+
+  <form class="auth-form" method="post" action="/verify/confirm">
+    <span class="auth-label" data-i18n="verify.heading">Sign in as</span>
+    <p class="auth-account">{{email}}</p>
+    <input type="hidden" name="token" value="{{token}}">
+    <button type="submit" class="mic-btn auth-submit" data-i18n="verify.continue">Continue</button>
+  </form>
+
+  <p class="auth-foot" data-i18n-html="verify.wrong">Not the right account? <a href="/login">Request a link for another one.</a></p>
+</main>
+
+<script>
+'use strict';
+renderLocalePicker(document.getElementById('localePicker'));
+applyTranslations();
+</script>
+</body>
+</html>

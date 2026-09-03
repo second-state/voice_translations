@@ -63,7 +63,7 @@ gets its own, translated, from the app's interface catalogue.
 | `state` | `SaasState`: the settings, the database, the shared HTTP client, the brand; `quota_for` and `enforce_quota` |
 | `db` | SQLite: accounts, hashed magic-link and session tokens, subscription state, the word ledger, admin sessions, payment events |
 | `migrations` | The registry of `sql/migrations/*.sql`, compiled in, and the runner that applies each once in its own transaction |
-| `auth` | `POST /auth/request`, `GET /verify`, `POST /auth/logout`, `GET /api/me`; the sign-in email |
+| `auth` | `POST /auth/request`, `GET /verify` (renders, never mutates), `POST /verify/confirm` (the one request that consumes a link), `POST /auth/logout`, `GET /api/me`; the sign-in email |
 | `quota` | The rolling seven-day allowance and CJK-aware word counting |
 | `billing` | Stripe Checkout and billing portal, and the signed webhook that moves accounts between plans |
 | `admin` | `/admin`: the operator's dashboard behind one password, and its API. Its writes — granting an account the unlimited plan by hand (`comped`), removing such a grant, and cancelling a billed subscription via Stripe's API — are all recorded as `admin.*` rows in the account's billing history |

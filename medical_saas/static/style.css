@@ -455,6 +455,18 @@ body {
 .auth-msg.ok { background: rgba(45, 212, 167, 0.14); color: var(--patient); }
 .auth-msg.error { background: rgba(255, 107, 107, 0.14); color: var(--red); }
 .auth-msg a { color: inherit; }
+/* The same box, sitting above the form instead of below it. */
+.auth-msg-top { margin: 0 0 16px; }
+/* The account a sign-in link is about to open, on the confirmation page. */
+.auth-account {
+  margin: 0 0 6px;
+  padding: 11px 13px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 15px;
+  word-break: break-all;
+}
 .auth-foot {
   margin: 22px 0 0;
   color: var(--muted);

@@ -43,3 +43,9 @@ toml = "0.8"
 # Errors / logging
 anyhow = "1"
 tracing = "0.1"
+
+[dev-dependencies]
+# Drive the router in tests without a socket: `oneshot` a request through
+# it and read the body back.
+tower = { version = "0.5", features = ["util"] }
+http-body-util = "0.1"

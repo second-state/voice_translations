@@ -21,7 +21,7 @@
     allow_ad_personalization_signals: false,
   });
 
-  // `?signup=1` is set by /verify, and only for the first link an account
+  // `?signup=1` is set by /verify/confirm, and only for the first link an account
   // ever redeems. Reading it here is what turns a redirect into a counted
   // conversion. The parameter is then taken out of the address bar, so a
   // refresh or a shared link cannot report the same signup twice — the

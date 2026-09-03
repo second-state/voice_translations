@@ -1,6 +1,6 @@
 [package]
 name = "conf-saas"
-version = "0.1.13"
+version = "0.1.14"
 edition = "2021"
 description = "Meeting Translator: the conference-call translator as a hosted service — accounts, magic-link login, a rolling weekly word quota, and Stripe subscriptions"
 license = "Apache-2.0"
